@@ -1,0 +1,28 @@
+# Soma.ai - Docker Compose (dev)
+# Seu Mac já tem MongoDB local (:27017) e Redis em Docker (:6379)
+# Use este compose apenas se precisar subir do zero em outra máquina.
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: soma-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: soma_ai_dev
+    profiles: ["full"]  # só sobe com: docker-compose --profile full up
+
+  redis:
+    image: redis:7-alpine
+    container_name: soma-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    profiles: ["full"]  # só sobe com: docker-compose --profile full up
+
+volumes:
+  mongo_data:
+  redis_data:

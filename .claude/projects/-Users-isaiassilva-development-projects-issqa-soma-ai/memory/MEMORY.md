@@ -1,0 +1,2 @@
+- [Soma.ai SaaS Platform](project_soma_ai.md) — Automated marketing SaaS, monorepo Next.js + Fastify + MongoDB + BullMQ
+- [Isaias - Founder](user_isaias.md) — Full-stack dev, prefers dark theme, Portuguese UI, parallel agents, comprehensive tests
