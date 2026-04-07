@@ -328,5 +328,6 @@ pm2 startup
   Pet Shop:  maria@petshopamigo.com / demo123 - Pro
   Farmacia:  joao@farmaciacentral.com / demo123 - Starter
 
+Entreprese - carlos@agenciadigital.com / demo123
 
 > Todas criadas automaticamente pelo `npx tsx apps/api/src/seed.ts`
