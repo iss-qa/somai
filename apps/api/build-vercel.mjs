@@ -1,28 +1,15 @@
-import { mkdirSync, writeFileSync } from 'fs'
+import { execSync } from 'child_process'
+import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 
-// Use "handler" instead of "api" to avoid conflicts with Vercel's api/ directory auto-detection
-const FUNC = '.vercel/output/functions/handler.func'
-mkdirSync(FUNC, { recursive: true })
+// 1. Bundle app code with esbuild (workspace packages inlined, npm deps external)
+const externals = [
+  'fastify', '@fastify/cors', '@fastify/jwt', '@fastify/cookie', '@fastify/multipart',
+  'mongoose', 'bcryptjs', 'ioredis', 'bullmq', 'date-fns', 'dotenv', 'jose',
+].map(p => `--external:${p}`).join(' ')
 
-writeFileSync(`${FUNC}/index.js`, `
-module.exports = (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify({ ok: true, node: process.version, url: req.url }));
-};
-`)
+execSync(
+  `npx -y esbuild@0.25.0 api/_handler.ts --bundle --platform=node --target=node20 --outfile=api/index.js --format=cjs ${externals} --footer:js="module.exports=module.exports.default||module.exports;"`,
+  { stdio: 'inherit' }
+)
 
-writeFileSync(`${FUNC}/.vc-config.json`, JSON.stringify({
-  runtime: 'nodejs20.x',
-  handler: 'index.js',
-  maxDuration: 10,
-}))
-
-mkdirSync('.vercel/output', { recursive: true })
-writeFileSync('.vercel/output/config.json', JSON.stringify({
-  version: 3,
-  routes: [
-    { src: '/(.*)', dest: '/handler' },
-  ],
-}))
-
-console.log('Minimal test function deployed at /handler')
+console.log('esbuild complete')
