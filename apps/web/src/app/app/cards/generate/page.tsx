@@ -2115,7 +2115,7 @@ function GenerateCardPage() {
                         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
                           <CardPreview
                             config={slideConfig}
-                            previewRef={activeSlide === i ? previewRef : undefined}
+                            previewRef={activeSlide === i ? previewRef : null}
                             companyName={companyName}
                           />
                         </div>
