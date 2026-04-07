@@ -94,20 +94,37 @@ async function handler(req: NextRequest) {
     payload: body,
   })
 
+  // Build response with headers, handling Set-Cookie specially
   const responseHeaders = new Headers()
+  const setCookies: string[] = []
+
   for (const [key, value] of Object.entries(result.headers)) {
     if (value === undefined) continue
-    if (Array.isArray(value)) {
+    if (key.toLowerCase() === 'set-cookie') {
+      // Collect Set-Cookie headers separately (Headers API mangles them)
+      if (Array.isArray(value)) {
+        setCookies.push(...value)
+      } else {
+        setCookies.push(String(value))
+      }
+    } else if (Array.isArray(value)) {
       value.forEach(v => responseHeaders.append(key, v))
     } else {
       responseHeaders.set(key, String(value))
     }
   }
 
-  return new Response(result.body, {
+  const res = new Response(result.body, {
     status: result.statusCode,
     headers: responseHeaders,
   })
+
+  // Append Set-Cookie headers directly (bypasses Headers API limitations)
+  for (const cookie of setCookies) {
+    res.headers.append('Set-Cookie', cookie)
+  }
+
+  return res
 }
 
 export const GET = handler
