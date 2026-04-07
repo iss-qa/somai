@@ -1,58 +1,22 @@
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'fs'
-import { execSync } from 'child_process'
+import { mkdirSync, writeFileSync } from 'fs'
 
 const FUNC = '.vercel/output/functions/api/index.func'
 mkdirSync(FUNC, { recursive: true })
 
-// 1. Bundle app code (workspace packages inlined, npm deps external)
-const externals = [
-  'fastify', '@fastify/cors', '@fastify/jwt', '@fastify/cookie', '@fastify/multipart',
-  'mongoose', 'bcryptjs', 'ioredis', 'bullmq', 'date-fns', 'dotenv', 'jose',
-].map(p => `--external:${p}`).join(' ')
-
-execSync(
-  `npx -y esbuild@0.25.0 api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/app.js --format=cjs ${externals}`,
-  { stdio: 'inherit' }
-)
-
-// 2. Create a wrapper that properly exports the handler for Vercel
+// MINIMAL TEST: deploy a simple function to verify Build Output API works
 writeFileSync(`${FUNC}/index.js`, `
-const app = require('./app.js');
-const handler = app.default || app;
-module.exports = async (req, res) => {
-  try {
-    await handler(req, res);
-  } catch (err) {
-    console.error('Handler error:', err);
-    if (!res.headersSent) {
-      res.statusCode = 500;
-      res.end(JSON.stringify({ error: err.message }));
-    }
-  }
+module.exports = (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ ok: true, env: !!process.env.MONGO_URI, node: process.version }));
 };
 `)
 
-// 3. Install npm deps
-const pkg = JSON.parse(readFileSync('package.json', 'utf-8'))
-const deps = Object.fromEntries(
-  Object.entries(pkg.dependencies).filter(([, v]) => !v.startsWith('workspace:'))
-)
-writeFileSync(`${FUNC}/package.json`, JSON.stringify({
-  name: 'somai-api-func',
-  private: true,
-  dependencies: deps,
-}))
-console.log('Installing production dependencies...')
-execSync('npm install --omit=dev --no-package-lock', { cwd: FUNC, stdio: 'inherit' })
-
-// 4. Function config
 writeFileSync(`${FUNC}/.vc-config.json`, JSON.stringify({
   runtime: 'nodejs20.x',
   handler: 'index.js',
-  maxDuration: 30,
+  maxDuration: 10,
 }))
 
-// 5. Routing
 writeFileSync('.vercel/output/config.json', JSON.stringify({
   version: 3,
   routes: [
@@ -60,4 +24,4 @@ writeFileSync('.vercel/output/config.json', JSON.stringify({
   ],
 }))
 
-console.log('Build complete')
+console.log('Minimal test function deployed')
