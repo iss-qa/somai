@@ -54,10 +54,30 @@ async function getApp() {
   await app.register(adminLogsRoutes, { prefix: '/api/admin/logs' })
 
   await app.ready()
+  console.log('[SOMA API] Routes registered:', app.printRoutes())
   return app
 }
 
 async function handler(req: NextRequest) {
+  const url = new URL(req.url)
+
+  // Debug endpoint
+  if (url.pathname === '/api/health') {
+    try {
+      const fastify = await getApp()
+      const routeList = fastify.printRoutes()
+      return new Response(JSON.stringify({
+        ok: true,
+        mongo: process.env.MONGO_URI ? 'configured' : 'missing',
+        jwt: process.env.JWT_SECRET ? 'configured' : 'missing',
+        routes: routeList,
+        authType: typeof authRoutes,
+      }), { headers: { 'Content-Type': 'application/json' } })
+    } catch (err: any) {
+      return new Response(JSON.stringify({ error: err.message, stack: err.stack?.split('\n').slice(0, 5) }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+    }
+  }
+
   const fastify = await getApp()
 
   const url = new URL(req.url)
