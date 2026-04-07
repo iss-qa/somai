@@ -149,6 +149,7 @@ export enum BillingStatus {
 export enum PlanSlug {
   Starter = 'starter',
   Pro = 'pro',
+  Enterprise = 'enterprise',
 }
 
 // ── User Roles ───────────────────────────────

@@ -25,6 +25,7 @@ const plans = [
     monthly: 39.9,
     features: ['Instagram', 'Cards ilimitados'],
     badge: 'default' as const,
+    badgeLabel: 'Basico',
   },
   {
     name: 'Pro',
@@ -38,6 +39,23 @@ const plans = [
       'Campanhas',
     ],
     badge: 'success' as const,
+    badgeLabel: 'Recomendado',
+  },
+  {
+    name: 'Enterprise',
+    setup: 720,
+    monthly: 89.9,
+    features: [
+      'Instagram + Facebook',
+      'Cards ilimitados',
+      'Videos 5/dia',
+      'WhatsApp',
+      'Campanhas',
+      'Trafego Pago',
+      'Reconhecimento',
+    ],
+    badge: 'info' as const,
+    badgeLabel: 'Premium',
   },
 ]
 
@@ -64,8 +82,11 @@ const featureIcons: Record<string, React.ElementType> = {
   'Instagram + Facebook': Facebook,
   'Cards ilimitados': Layers,
   'Videos 2/dia': Video,
+  'Videos 5/dia': Video,
   WhatsApp: MessageCircle,
   Campanhas: Megaphone,
+  'Trafego Pago': Megaphone,
+  Reconhecimento: CheckCircle,
 }
 
 export default function AdminSettingsPage() {
@@ -91,7 +112,7 @@ export default function AdminSettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             {plans.map((plan) => (
               <div
                 key={plan.name}
@@ -102,7 +123,7 @@ export default function AdminSettingsPage() {
                     {plan.name}
                   </h3>
                   <Badge variant={plan.badge}>
-                    {plan.name === 'Pro' ? 'Recomendado' : 'Basico'}
+                    {plan.badgeLabel}
                   </Badge>
                 </div>
 

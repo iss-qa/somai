@@ -44,6 +44,25 @@ export const PLAN_PRO = {
   },
 } as const;
 
+export const PLAN_ENTERPRISE = {
+  name: 'Enterprise',
+  slug: PlanSlug.Enterprise,
+  setup_price: 720,
+  monthly_price: 89.9,
+  features: {
+    instagram: true,
+    facebook: true,
+    cards_limit: -1,
+    video_generation: true,
+    videos_per_day: 5,
+    scripts: true,
+    whatsapp: true,
+    campaigns: true,
+    date_suggestions: true,
+    analytics: true,
+  },
+} as const;
+
 // ── Niche Options ────────────────────────────
 
 export const NICHE_OPTIONS = [

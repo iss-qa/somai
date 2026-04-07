@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { Company, Integration, Schedule } from '@soma-ai/db'
+import { Company, Integration, Schedule, Plan } from '@soma-ai/db'
 import { CompanyStatus } from '@soma-ai/shared'
 import { authenticate, adminOnly } from '../plugins/auth'
 
@@ -63,26 +63,32 @@ export default async function companiesRoutes(app: FastifyInstance) {
       responsible_name: string
       whatsapp: string
       email: string
-      plan_id: string
+      plan: string
+      setupPaid?: boolean
+      billingDay?: string
       logo_url?: string
       brand_colors?: { primary: string; secondary: string }
-      setup_amount?: number
       notes?: string
     }
   }>(
     '/',
     { preHandler: [adminOnly] },
     async (request, reply) => {
-      const body = request.body
+      const { plan, setupPaid, billingDay, ...rest } = request.body
+
+      const planDoc = await Plan.findOne({ slug: plan })
 
       const company = await Company.create({
-        ...body,
+        ...rest,
+        whatsapp: rest.whatsapp.replace(/\D/g, ''),
+        plan_id: planDoc?._id ?? null,
         status: CompanyStatus.SetupPending,
         access_enabled: false,
-        setup_paid: false,
+        setup_paid: setupPaid ?? false,
+        setup_amount: planDoc?.setup_price ?? 0,
         billing: {
-          monthly_amount: 0,
-          due_day: 10,
+          monthly_amount: planDoc?.monthly_price ?? 0,
+          due_day: parseInt(billingDay ?? '10', 10),
           overdue_days: 0,
           status: 'pending',
         },

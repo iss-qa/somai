@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -26,22 +25,19 @@ import {
 } from 'lucide-react'
 
 const plans = [
-  { value: 'starter', label: 'Starter', price: 'R$ 197/mes' },
-  { value: 'pro', label: 'Pro', price: 'R$ 397/mes' },
-  { value: 'enterprise', label: 'Enterprise', price: 'R$ 697/mes' },
+  { value: 'starter', label: 'Starter', price: 'R$ 39,90/mes', setup: 297 },
+  { value: 'pro', label: 'Pro', price: 'R$ 69,90/mes', setup: 497 },
+  { value: 'enterprise', label: 'Enterprise', price: 'R$ 89,90/mes', setup: 720 },
 ]
 
 const niches = [
-  'Restaurante',
-  'Loja de roupas',
-  'Barbearia',
-  'Clinica',
-  'Academia',
-  'Pet Shop',
-  'Imobiliaria',
-  'Advogado',
-  'Dentista',
-  'Outro',
+  { value: 'farmacia', label: 'Farmacia' },
+  { value: 'pet', label: 'Pet Shop' },
+  { value: 'moda', label: 'Moda' },
+  { value: 'cosmeticos', label: 'Cosmeticos' },
+  { value: 'mercearia', label: 'Mercearia' },
+  { value: 'calcados', label: 'Calcados' },
+  { value: 'outro', label: 'Outro' },
 ]
 
 const states = [
@@ -49,6 +45,14 @@ const states = [
   'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
   'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
 ]
+
+function formatWhatsapp(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+  if (digits.length <= 2) return digits
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+}
 
 export default function NewCompanyPage() {
   const router = useRouter()
@@ -60,7 +64,7 @@ export default function NewCompanyPage() {
     niche: '',
     city: '',
     state: '',
-    responsible: '',
+    responsible_name: '',
     whatsapp: '',
     email: '',
     plan: 'starter',
@@ -84,15 +88,32 @@ export default function NewCompanyPage() {
     }))
   }
 
+  function handleWhatsapp(e: React.ChangeEvent<HTMLInputElement>) {
+    updateForm('whatsapp', formatWhatsapp(e.target.value))
+  }
+
   async function handleSave() {
-    if (!form.name || !form.email || !form.plan) {
+    if (!form.name || !form.email || !form.niche || !form.city || !form.state || !form.responsible_name) {
       toast.error('Preencha os campos obrigatorios')
       return
     }
 
     setSaving(true)
     try {
-      await api.post('/api/companies', form)
+      await api.post('/api/companies', {
+        name: form.name,
+        slug: form.slug,
+        niche: form.niche,
+        city: form.city,
+        state: form.state,
+        responsible_name: form.responsible_name,
+        whatsapp: form.whatsapp,
+        email: form.email,
+        plan: form.plan,
+        setupPaid: form.setupPaid,
+        billingDay: form.billingDay,
+        notes: form.notes,
+      })
       toast.success('Empresa criada com sucesso!')
       router.push('/admin/companies')
     } catch (err: any) {
@@ -154,8 +175,8 @@ export default function NewCompanyPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {niches.map((n) => (
-                    <SelectItem key={n} value={n.toLowerCase()}>
-                      {n}
+                    <SelectItem key={n.value} value={n.value}>
+                      {n.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -193,16 +214,17 @@ export default function NewCompanyPage() {
               <Label>Responsavel</Label>
               <Input
                 placeholder="Nome do responsavel"
-                value={form.responsible}
-                onChange={(e) => updateForm('responsible', e.target.value)}
+                value={form.responsible_name}
+                onChange={(e) => updateForm('responsible_name', e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label>WhatsApp</Label>
               <Input
-                placeholder="11999999999"
+                placeholder="(11) 99999-9999"
                 value={form.whatsapp}
-                onChange={(e) => updateForm('whatsapp', e.target.value)}
+                onChange={handleWhatsapp}
+                inputMode="numeric"
               />
             </div>
           </div>
@@ -255,7 +277,9 @@ export default function NewCompanyPage() {
             <div className="flex items-center justify-between p-3 rounded-lg bg-brand-surface border border-brand-border">
               <div>
                 <p className="text-sm text-gray-300">Setup pago</p>
-                <p className="text-xs text-gray-500">R$ 297 de implantacao</p>
+                <p className="text-xs text-gray-500">
+                  R$ {selectedPlan?.setup.toLocaleString('pt-BR')},00 de implantacao
+                </p>
               </div>
               <Switch
                 checked={form.setupPaid}

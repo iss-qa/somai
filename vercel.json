@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm --filter @soma-ai/web... build",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs",
+  "installCommand": "pnpm install"
+}

@@ -5,7 +5,7 @@ dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env') })
 
 import bcrypt from 'bcryptjs'
 import { connectDB, Plan, AdminUser, NicheConfig, Company, User } from '@soma-ai/db'
-import { PLAN_STARTER, PLAN_PRO, Niche, PostType } from '@soma-ai/shared'
+import { PLAN_STARTER, PLAN_PRO, PLAN_ENTERPRISE, Niche, PostType } from '@soma-ai/shared'
 
 async function seed() {
   const mongoUri =
@@ -46,6 +46,21 @@ async function seed() {
     console.log('Plano Pro criado')
   } else {
     console.log('Plano Pro ja existe')
+  }
+
+  const existingEnterprise = await Plan.findOne({ slug: PLAN_ENTERPRISE.slug })
+  if (!existingEnterprise) {
+    await Plan.create({
+      slug: PLAN_ENTERPRISE.slug,
+      name: PLAN_ENTERPRISE.name,
+      setup_price: PLAN_ENTERPRISE.setup_price,
+      monthly_price: PLAN_ENTERPRISE.monthly_price,
+      features: { ...PLAN_ENTERPRISE.features },
+      active: true,
+    })
+    console.log('Plano Enterprise criado')
+  } else {
+    console.log('Plano Enterprise ja existe')
   }
 
   // ── Admin User ──────────────────────────────
@@ -160,6 +175,7 @@ async function seed() {
 
   const starterPlan = await Plan.findOne({ slug: 'starter' })
   const proPlan = await Plan.findOne({ slug: 'pro' })
+  const enterprisePlan = await Plan.findOne({ slug: 'enterprise' })
 
   // Pet Shop Amigo (Pro)
   const existingPet2 = await Company.findOne({ slug: 'pet-shop-amigo' })
@@ -243,6 +259,48 @@ async function seed() {
     console.log('Farmacia Central criado (joao@farmaciacentral.com / demo123) - Plano Starter')
   } else {
     console.log('Farmacia Central ja existe')
+  }
+
+  // Agencia Digital (Enterprise)
+  const existingAgencia = await Company.findOne({ slug: 'agencia-digital' })
+  if (!existingAgencia) {
+    const agenciaCompany = await Company.create({
+      name: 'Agencia Digital',
+      slug: 'agencia-digital',
+      niche: Niche.Outro,
+      city: 'Sao Paulo',
+      state: 'SP',
+      responsible_name: 'Carlos Mendes',
+      whatsapp: '5511997766554',
+      email: 'carlos@agenciadigital.com',
+      logo_url: '',
+      brand_colors: { primary: '#7C3AED', secondary: '#F59E0B' },
+      plan_id: enterprisePlan?._id || null,
+      status: 'active',
+      access_enabled: true,
+      setup_paid: true,
+      setup_paid_at: new Date(),
+      setup_amount: 720,
+      billing: {
+        monthly_amount: 89.90,
+        due_day: 10,
+        overdue_days: 0,
+        status: 'paid',
+      },
+    })
+
+    const agenciaUserHash = await bcrypt.hash('demo123', 12)
+    await User.create({
+      company_id: agenciaCompany._id,
+      name: 'Carlos Mendes',
+      email: 'carlos@agenciadigital.com',
+      password_hash: agenciaUserHash,
+      role: 'owner',
+      active: true,
+    })
+    console.log('Agencia Digital criado (carlos@agenciadigital.com / demo123) - Plano Enterprise')
+  } else {
+    console.log('Agencia Digital ja existe')
   }
 
   console.log('\n--- Seed concluido! ---')
