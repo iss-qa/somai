@@ -1,25 +1,37 @@
-import { Page } from '@playwright/test'
+import { Page, expect } from '@playwright/test'
 
 const API_URL = 'http://localhost:3001'
 
-export async function loginAsAdmin(page: Page) {
-  await page.goto('/login')
-  await page.fill('input[name="email"]', 'admin@soma.ai')
-  await page.fill('input[name="password"]', 'admin123')
-  await page.click('button[type="submit"]')
-  await page.waitForURL('**/dashboard', { timeout: 10000 })
+/** Seletores do formulário de login */
+const selectors = {
+  email: '#email',
+  password: '#password',
+  submit: 'button[type="submit"]',
 }
 
-export async function loginAsCompany(page: Page, email: string, password: string) {
+async function fillLoginForm(page: Page, email: string, password: string) {
   await page.goto('/login')
-  await page.fill('input[name="email"]', email)
-  await page.fill('input[name="password"]', password)
-  await page.click('button[type="submit"]')
-  await page.waitForURL('**/dashboard', { timeout: 10000 })
+  await page.waitForSelector(selectors.email, { state: 'visible' })
+  await page.fill(selectors.email, email)
+  await page.fill(selectors.password, password)
+  await page.click(selectors.submit)
+}
+
+export async function loginAsAdmin(page: Page) {
+  await fillLoginForm(page, 'admin@soma.ai', 'admin123')
+  await page.waitForURL('**/admin/dashboard', { timeout: 15000 })
+}
+
+export async function loginAsCompany(
+  page: Page,
+  email: string,
+  password: string
+) {
+  await fillLoginForm(page, email, password)
+  await page.waitForURL('**/app/dashboard', { timeout: 15000 })
 }
 
 export async function seedTestData() {
-  // Call the seed endpoint or directly POST to create test data
   const loginRes = await fetch(`${API_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -29,7 +41,10 @@ export async function seedTestData() {
   return token
 }
 
-export async function apiRequest(path: string, options: RequestInit & { token?: string } = {}) {
+export async function apiRequest(
+  path: string,
+  options: RequestInit & { token?: string } = {}
+) {
   const { token, ...fetchOptions } = options
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -40,3 +55,5 @@ export async function apiRequest(path: string, options: RequestInit & { token?: 
   const res = await fetch(`${API_URL}${path}`, { ...fetchOptions, headers })
   return res.json()
 }
+
+export { selectors }
