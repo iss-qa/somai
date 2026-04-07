@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'soma-ai-secret-key-change-in-production'
+  process.env.JWT_SECRET || 'soma_ai_secret_key_2026'
 )
 
 const PROTECTED_PATHS = ['/app', '/admin']
