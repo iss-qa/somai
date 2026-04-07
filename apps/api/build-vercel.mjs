@@ -4,11 +4,19 @@ import { mkdirSync, writeFileSync } from 'fs'
 const FUNC = '.vercel/output/functions/api/index.func'
 mkdirSync(FUNC, { recursive: true })
 
-// Bundle everything into a single CJS file (esbuild skips TS type-checking)
-execSync(
-  `npx -y esbuild@latest api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/index.js --format=cjs`,
-  { stdio: 'inherit' }
-)
+// Bundle everything into a single CJS file
+try {
+  execSync(
+    `node_modules/.bin/esbuild api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/index.js --format=cjs`,
+    { stdio: 'inherit' }
+  )
+} catch {
+  // Fallback: try npx
+  execSync(
+    `npx -y esbuild api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/index.js --format=cjs`,
+    { stdio: 'inherit' }
+  )
+}
 
 // Function config
 writeFileSync(`${FUNC}/.vc-config.json`, JSON.stringify({
@@ -19,6 +27,7 @@ writeFileSync(`${FUNC}/.vc-config.json`, JSON.stringify({
 }))
 
 // Routing config
+mkdirSync('.vercel/output', { recursive: true })
 writeFileSync('.vercel/output/config.json', JSON.stringify({
   version: 3,
   routes: [

@@ -1,4 +1,4 @@
 {
-  "installCommand": "cd ../.. && pnpm install --dev",
+  "installCommand": "cd ../.. && NODE_ENV=development pnpm install",
   "buildCommand": "node build-vercel.mjs"
 }
