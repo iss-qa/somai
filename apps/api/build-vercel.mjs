@@ -4,18 +4,12 @@ import { mkdirSync, writeFileSync } from 'fs'
 const FUNC = '.vercel/output/functions/api/index.func'
 mkdirSync(FUNC, { recursive: true })
 
-// Bundle everything into a single CJS file
+// Bundle everything into a single CJS file with correct export for Vercel
+const flags = `api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/index.js --format=cjs --footer:js="module.exports=module.exports.default||module.exports;"`
 try {
-  execSync(
-    `node_modules/.bin/esbuild api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/index.js --format=cjs`,
-    { stdio: 'inherit' }
-  )
+  execSync(`node_modules/.bin/esbuild ${flags}`, { stdio: 'inherit' })
 } catch {
-  // Fallback: try npx
-  execSync(
-    `npx -y esbuild api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/index.js --format=cjs`,
-    { stdio: 'inherit' }
-  )
+  execSync(`npx -y esbuild ${flags}`, { stdio: 'inherit' })
 }
 
 // Function config
