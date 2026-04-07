@@ -29,6 +29,12 @@ export default function LoginPage() {
     try {
       const data = await api.post('/api/auth/login', { email, password })
       setUser(data.user)
+
+      // Garante que o cookie é setado no browser (fallback caso Set-Cookie do servidor falhe)
+      if (data.token) {
+        document.cookie = `soma-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
+      }
+
       toast.success('Login realizado com sucesso!')
 
       const isAdmin = data.user.role === 'superadmin' || data.user.role === 'support'

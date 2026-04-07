@@ -37,7 +37,7 @@ export async function getApp() {
   await app.register(cookie)
 
   await app.register(jwt, {
-    secret: process.env.JWT_SECRET || 'fallback_secret',
+    secret: process.env.JWT_SECRET || 'soma_ai_secret_key_2026',
     cookie: {
       cookieName: 'soma-token',
       signed: false,
