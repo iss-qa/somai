@@ -80,7 +80,6 @@ async function handler(req: NextRequest) {
 
   const fastify = await getApp()
 
-  const url = new URL(req.url)
   const headers: Record<string, string> = {}
   req.headers.forEach((value, key) => { headers[key] = value })
 
