@@ -1,11 +1,16 @@
 {
   "version": 2,
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "npx esbuild api/index.ts --bundle --platform=node --target=node20 --outfile=api/_handler.js --format=cjs --external:fastify --external:@fastify/cors --external:@fastify/jwt --external:@fastify/cookie --external:@fastify/multipart --external:mongoose --external:bcryptjs --external:ioredis --external:bullmq --external:date-fns --external:dotenv",
   "builds": [
-    { "src": "api/_handler.js", "use": "@vercel/node" }
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["src/**", "../../packages/**"]
+      }
+    }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/api/_handler.js" }
+    { "src": "/(.*)", "dest": "/api/index.ts" }
   ]
 }
