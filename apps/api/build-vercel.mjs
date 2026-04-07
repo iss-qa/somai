@@ -18,12 +18,15 @@ try {
   execSync(`npx -y esbuild ${flags}`, { stdio: 'inherit' })
 }
 
-// 2. Create package.json with production deps for npm install
+// 2. Create package.json with production deps (exclude workspace packages, already bundled)
 const pkg = JSON.parse(readFileSync('package.json', 'utf-8'))
+const deps = Object.fromEntries(
+  Object.entries(pkg.dependencies).filter(([, v]) => !v.startsWith('workspace:'))
+)
 writeFileSync(`${FUNC}/package.json`, JSON.stringify({
   name: 'somai-api-func',
   private: true,
-  dependencies: pkg.dependencies,
+  dependencies: deps,
 }))
 
 // 3. Install production deps with npm (flat node_modules, no symlinks)
