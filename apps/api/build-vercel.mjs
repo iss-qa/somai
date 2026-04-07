@@ -10,17 +10,10 @@ const externals = [
   'mongoose', 'bcryptjs', 'ioredis', 'bullmq', 'date-fns', 'dotenv', 'jose',
 ].map(p => `--external:${p}`).join(' ')
 
-try {
-  execSync(
-    `node_modules/.bin/esbuild api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/app.js --format=cjs ${externals}`,
-    { stdio: 'inherit' }
-  )
-} catch {
-  execSync(
-    `npx -y esbuild api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/app.js --format=cjs ${externals}`,
-    { stdio: 'inherit' }
-  )
-}
+execSync(
+  `npx -y esbuild@0.25.0 api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/app.js --format=cjs ${externals}`,
+  { stdio: 'inherit' }
+)
 
 // 2. Create a wrapper that properly exports the handler for Vercel
 writeFileSync(`${FUNC}/index.js`, `
