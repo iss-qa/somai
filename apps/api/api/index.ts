@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http'
-import { getApp } from '../src/app.js'
+import { getApp } from '../src/app'
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   try {
