@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'http'
+import { getApp } from '../src/app.js'
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   try {
-    const { getApp } = await import('../src/app')
     const app = await getApp()
     app.routing(req, res)
   } catch (error: any) {
