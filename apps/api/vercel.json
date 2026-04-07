@@ -1,4 +1,9 @@
 {
-  "installCommand": "cd ../.. && NODE_ENV=development pnpm install",
-  "buildCommand": "node build-vercel.mjs"
+  "version": 2,
+  "builds": [
+    { "src": "api/index.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/api/index.js" }
+  ]
 }
