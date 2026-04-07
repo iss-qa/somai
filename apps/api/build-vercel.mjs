@@ -6,7 +6,7 @@ mkdirSync(FUNC, { recursive: true })
 
 // Bundle everything into a single CJS file (esbuild skips TS type-checking)
 execSync(
-  `npx esbuild api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/index.js --format=cjs`,
+  `npx -y esbuild@latest api/index.ts --bundle --platform=node --target=node20 --outfile=${FUNC}/index.js --format=cjs`,
   { stdio: 'inherit' }
 )
 
