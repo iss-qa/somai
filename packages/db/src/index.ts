@@ -46,3 +46,9 @@ export { DatesCalendar, type IDatesCalendar } from './models/DatesCalendar'
 export { Analytics, type IAnalytics } from './models/Analytics'
 export { Notification, type INotification } from './models/Notification'
 export { AuditLog, type IAuditLog } from './models/AuditLog'
+export {
+  AppLog,
+  type IAppLog,
+  type AppLogLevel,
+  type AppLogCategory,
+} from './models/AppLog'

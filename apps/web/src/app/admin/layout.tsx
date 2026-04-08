@@ -31,6 +31,8 @@ import {
   User,
   Shield,
   Sparkles,
+  Plug,
+  ScrollText,
 } from 'lucide-react'
 
 const navItems = [
@@ -38,7 +40,8 @@ const navItems = [
   { href: '/admin/companies', label: 'Parceiros', icon: Building2 },
   { href: '/admin/financial', label: 'Financeiro', icon: DollarSign },
   { href: '/admin/health', label: 'Saude do Sistema', icon: Activity },
-  { href: '/admin/logs', label: 'Logs', icon: FileSearch },
+  { href: '/admin/integrations', label: 'Integracoes', icon: Plug },
+  { href: '/admin/logs', label: 'Logs', icon: ScrollText },
   { href: '/admin/settings', label: 'Configuracoes', icon: Settings },
 ]
 
