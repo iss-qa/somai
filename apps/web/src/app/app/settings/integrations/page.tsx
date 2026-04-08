@@ -34,12 +34,10 @@ const REDIRECT_PATH = '/app/settings/integrations'
 const META_SCOPES = [
   'pages_show_list',
   'pages_read_engagement',
-  'pages_manage_posts',
   'business_management',
   'instagram_basic',
   'instagram_content_publish',
   'instagram_manage_comments',
-  'instagram_manage_insights',
 ].join(',')
 
 function buildFacebookOAuthUrl(appId: string) {
