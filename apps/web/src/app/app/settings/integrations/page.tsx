@@ -186,7 +186,9 @@ function IntegrationsContent() {
   }, [searchParams, handleOAuthCallback])
 
   async function handleSaveCredentials() {
-    if (!igToken || igToken.startsWith('••')) {
+    const tokenIsFromOAuth = igToken.startsWith('••')
+    // If not connected via OAuth, require a real token
+    if (!connected && (!igToken || tokenIsFromOAuth)) {
       toast.error('Cole o Access Token do Instagram')
       return
     }
@@ -197,7 +199,8 @@ function IntegrationsContent() {
     setSaving(true)
     try {
       await api.post('/api/integrations/meta', {
-        access_token: igToken,
+        // Only send token if it's a new value (not the masked placeholder)
+        ...(tokenIsFromOAuth ? {} : { access_token: igToken }),
         instagram_account_id: igAccountId,
         facebook_page_id: fbPageId || undefined,
       })
@@ -427,34 +430,65 @@ function IntegrationsContent() {
           <div className="flex items-center gap-2">
             <Key className="w-5 h-5 text-primary-400" />
             <h3 className="text-base font-semibold text-gray-100">Token de Acesso</h3>
-            <Badge variant="secondary" className="text-[10px]">
-              Preenchido automaticamente ao conectar
-            </Badge>
+            {connected && igToken.startsWith('••') ? (
+              <Badge variant="success" className="text-[10px]">
+                Salvo via OAuth
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-[10px]">
+                Preenchido automaticamente ao conectar
+              </Badge>
+            )}
           </div>
 
-          {/* Token input */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5">
-              <Key className="w-3.5 h-3.5 text-gray-500" />
-              Instagram User Access Token (long-lived)
-            </Label>
-            <div className="relative">
-              <Input
-                type={showToken ? 'text' : 'password'}
-                placeholder="Preenchido ao conectar com Facebook"
-                value={igToken}
-                onChange={(e) => setIgToken(e.target.value)}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowToken(!showToken)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-              >
-                {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+          {/* After OAuth: show saved state; otherwise show manual input */}
+          {connected && igToken.startsWith('••') ? (
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-emerald-300 space-y-1">
+                <p className="font-medium">Token salvo automaticamente via OAuth</p>
+                <p className="text-emerald-400/70">
+                  O token de longa duração foi obtido e salvo durante a conexão com o Facebook.
+                  Nao e necessario preenchimento manual.
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <p className="text-xs text-amber-300 font-medium mb-1">Como obter o token manualmente:</p>
+                <ol className="text-xs text-amber-200/70 space-y-1 list-decimal list-inside">
+                  <li>Acesse <strong>developers.facebook.com/tools/explorer</strong></li>
+                  <li>Selecione seu App no menu superior</li>
+                  <li>Clique em <strong>&quot;Generate Access Token&quot;</strong> e autorize as permissoes</li>
+                  <li>Copie o token gerado e cole abaixo</li>
+                  <li>Para token de longa duracao: em <strong>Ferramentas &gt; Access Token Debugger</strong>, clique &quot;Extend Access Token&quot;</li>
+                </ol>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-gray-500" />
+                  Instagram User Access Token (long-lived)
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showToken ? 'text' : 'password'}
+                    placeholder="Cole aqui o Access Token"
+                    value={igToken}
+                    onChange={(e) => setIgToken(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  >
+                    {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Account ID */}
           <div className="space-y-2">
