@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "node -e \"const p=JSON.parse(require('fs').readFileSync('package.json','utf8'));Object.keys(p.dependencies||{}).forEach(k=>{if(String(p.dependencies[k]).includes('workspace:'))delete p.dependencies[k]});require('fs').writeFileSync('package.json',JSON.stringify(p,null,2))\" && npm install",
+  "installCommand": "sh install-vercel.sh",
   "builds": [
     { "src": "api/index.js", "use": "@vercel/node" }
   ],
