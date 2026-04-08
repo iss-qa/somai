@@ -22,6 +22,7 @@ import adminDashboardRoutes from '../../../../../../apps/api/src/routes/admin/da
 import adminFinancialRoutes from '../../../../../../apps/api/src/routes/admin/financial'
 import adminHealthRoutes from '../../../../../../apps/api/src/routes/admin/health'
 import adminLogsRoutes from '../../../../../../apps/api/src/routes/admin/logs'
+import cronRoutes from '../../../../../../apps/api/src/routes/cron'
 
 let app: ReturnType<typeof Fastify> | null = null
 
@@ -52,6 +53,7 @@ async function getApp() {
   await app.register(adminFinancialRoutes, { prefix: '/api/admin/financial' })
   await app.register(adminHealthRoutes, { prefix: '/api/admin/health' })
   await app.register(adminLogsRoutes, { prefix: '/api/admin/logs' })
+  await app.register(cronRoutes, { prefix: '/api/cron' })
 
   await app.ready()
   console.log('[SOMA API] Routes registered:', app.printRoutes())
