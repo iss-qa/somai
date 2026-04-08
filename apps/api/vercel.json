@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "installCommand": "sh install-vercel.sh",
   "builds": [
     { "src": "api/index.js", "use": "@vercel/node" }
   ],
