@@ -1,10 +1,4 @@
 {
   "framework": "nextjs",
-  "installCommand": "cd ../.. && pnpm install",
-  "crons": [
-    {
-      "path": "/api/cron/publish",
-      "schedule": "* * * * *"
-    }
-  ]
+  "installCommand": "cd ../.. && pnpm install"
 }
