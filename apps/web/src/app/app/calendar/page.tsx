@@ -135,6 +135,7 @@ function getCardThumbnail(card: PopulatedCard | string | null): string | undefin
 function toPostItemFormat(post: ScheduledPost) {
   return {
     id: post._id,
+    title: getCardName(post.card_id, post.caption),
     caption: post.caption,
     thumbnail: getCardThumbnail(post.card_id),
     platforms: post.platforms,

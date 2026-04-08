@@ -7,6 +7,7 @@ import { Instagram, Facebook, Clock, Image as ImageIcon } from 'lucide-react'
 interface PostItemProps {
   post: {
     id: string
+    title?: string
     caption: string
     thumbnail?: string
     platforms: string[]
@@ -53,9 +54,16 @@ export function PostItem({ post, compact = false }: PostItemProps) {
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className={cn('text-sm text-gray-200', compact ? 'line-clamp-1' : 'line-clamp-2')}>
-          {truncate(post.caption, compact ? 50 : 80)}
-        </p>
+        {post.title && (
+          <p className="text-sm font-medium text-gray-100 truncate">
+            {post.title}
+          </p>
+        )}
+        {post.caption && (
+          <p className={cn('text-xs text-gray-400', compact ? 'line-clamp-1' : 'line-clamp-1', post.title && 'mt-0.5')}>
+            {truncate(post.caption, compact ? 40 : 60)}
+          </p>
+        )}
         <div className="flex items-center gap-2 mt-1">
           <div className="flex items-center gap-1">
             {post.platforms.map((p) => {
