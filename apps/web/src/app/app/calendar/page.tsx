@@ -196,7 +196,7 @@ function CalendarPageInner() {
       const data = await api.get<{ items: ScheduledPost[]; pagination: any }>(
         `/api/post-queue?month=${monthKey}&limit=200`
       )
-      setPosts(data.items || [])
+      setPosts((data.items || []).filter((p) => p.status !== 'cancelled'))
     } catch (err: any) {
       console.error('Erro ao carregar agendamentos:', err)
       toast.error('Erro ao carregar agendamentos')
