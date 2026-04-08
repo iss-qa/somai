@@ -607,8 +607,16 @@ function CalendarPageInner() {
                                       }}
                                       className="text-[10px] px-1.5 py-0.5 rounded truncate hover:brightness-125 transition-[filter]"
                                       style={{
-                                        backgroundColor: isInstagram ? 'rgba(236,72,153,0.15)' : 'rgba(59,130,246,0.15)',
-                                        color: isInstagram ? '#f472b6' : '#60a5fa',
+                                        backgroundColor: post.status === 'done'
+                                          ? 'rgba(16,185,129,0.15)'
+                                          : post.status === 'failed'
+                                            ? 'rgba(239,68,68,0.15)'
+                                            : 'rgba(59,130,246,0.15)',
+                                        color: post.status === 'done'
+                                          ? '#34d399'
+                                          : post.status === 'failed'
+                                            ? '#f87171'
+                                            : '#60a5fa',
                                       }}
                                     >
                                       <span className="font-semibold">{time}</span> {cardName}
