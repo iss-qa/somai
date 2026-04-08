@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,32 +9,70 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
+import IntegrationChecklist from '@/components/integrations/IntegrationChecklist'
 import {
-  Instagram,
   Facebook,
   Save,
   Loader2,
   CheckCircle,
-  XCircle,
   RefreshCw,
   Eye,
   EyeOff,
   Wifi,
   WifiOff,
   ExternalLink,
-  Info,
-  ChevronDown,
-  ChevronUp,
-  Link2,
   Key,
   Hash,
   FileText,
+  PlugZap,
 } from 'lucide-react'
 
+const SOMA_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'somai.issqa.com.br'
+const SOMA_ORIGIN = `https://${SOMA_DOMAIN}`
+const REDIRECT_PATH = '/app/settings/integrations'
+
+const META_SCOPES = [
+  'pages_show_list',
+  'pages_read_engagement',
+  'pages_manage_posts',
+  'business_management',
+  'instagram_basic',
+  'instagram_content_publish',
+  'instagram_manage_comments',
+  'instagram_manage_insights',
+].join(',')
+
+function buildFacebookOAuthUrl(appId: string) {
+  // Use production URL to match what's registered in Facebook OAuth settings
+  const redirectUri = `${SOMA_ORIGIN}${REDIRECT_PATH}`
+  const state = crypto.randomUUID()
+  sessionStorage.setItem('fb_oauth_state', state)
+
+  return (
+    `https://www.facebook.com/v25.0/dialog/oauth` +
+    `?client_id=${appId}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=${encodeURIComponent(META_SCOPES)}` +
+    `&response_type=code` +
+    `&state=${state}`
+  )
+}
+
 export default function IntegrationsPage() {
+  const searchParams = useSearchParams()
+
   // Connection state
   const [connected, setConnected] = useState(false)
   const [connectedUsername, setConnectedUsername] = useState('')
+  const [connectedPageName, setConnectedPageName] = useState('')
+  const [igProfileUrl, setIgProfileUrl] = useState('')
+  const [fbPageUrl, setFbPageUrl] = useState('')
+  const [connectedAt, setConnectedAt] = useState('')
+
+  // App credentials (per company)
+  const [metaAppId, setMetaAppId] = useState('')
+  const [metaAppSecret, setMetaAppSecret] = useState('')
+  const [showAppSecret, setShowAppSecret] = useState(false)
 
   // Token fields
   const [igToken, setIgToken] = useState('')
@@ -43,21 +82,93 @@ export default function IntegrationsPage() {
 
   // UI state
   const [saving, setSaving] = useState(false)
+  const [savingApp, setSavingApp] = useState(false)
   const [testing, setTesting] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [showGuide, setShowGuide] = useState(false)
+  const [connectingOAuth, setConnectingOAuth] = useState(false)
 
-  // Load existing integration
+  // Save App ID / Secret before connecting
+  async function handleSaveAppCredentials() {
+    if (!metaAppId.trim()) {
+      toast.error('Preencha o Facebook App ID')
+      return
+    }
+    if (!metaAppSecret.trim() && !metaAppSecret.startsWith('••')) {
+      toast.error('Preencha o App Secret')
+      return
+    }
+    setSavingApp(true)
+    try {
+      await api.post('/api/integrations/meta/app', {
+        app_id: metaAppId,
+        app_secret: metaAppSecret.startsWith('••') ? undefined : metaAppSecret,
+      })
+      toast.success('Credenciais do App salvas!')
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar credenciais do App')
+    } finally {
+      setSavingApp(false)
+    }
+  }
+
+  // Handle OAuth callback from Facebook
+  const handleOAuthCallback = useCallback(async (code: string) => {
+    setConnectingOAuth(true)
+    try {
+      const redirectUri = `${SOMA_ORIGIN}${REDIRECT_PATH}`
+      const result = await api.post<any>('/api/integrations/meta/callback', {
+        code,
+        redirect_uri: redirectUri,
+      })
+
+      if (result?.success) {
+        setConnected(true)
+        setConnectedUsername(result.instagram_username || '')
+        setConnectedPageName(result.facebook_page_name || '')
+        setIgAccountId(result.instagram_account_id || '')
+        setFbPageId(result.facebook_page_id || '')
+        setIgProfileUrl(result.instagram_profile_url || '')
+        setFbPageUrl(result.facebook_page_url || '')
+        setConnectedAt(new Date().toISOString())
+        setIgToken('••••••••••••••••••••••')
+        toast.success(
+          result.instagram_username
+            ? `Conectado! Instagram: @${result.instagram_username}`
+            : `Conectado! Pagina: ${result.facebook_page_name}`,
+        )
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao conectar com Facebook')
+    } finally {
+      setConnectingOAuth(false)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
+  // Load existing integration + detect OAuth callback
   useEffect(() => {
+    const code = searchParams.get('code')
+    if (code) {
+      handleOAuthCallback(code)
+      return
+    }
+
     async function loadIntegration() {
       try {
         const data = await api.get<any>('/api/integrations/meta')
-        if (data) {
-          setIgToken(data.access_token ? '••••••••••••••••••••••' : '')
-          setIgAccountId(data.instagram_account_id || '')
-          setFbPageId(data.facebook_page_id || '')
-          setConnected(data.connected || false)
-          setConnectedUsername(data.instagram_username || '')
+        if (data?.integration?.meta) {
+          const meta = data.integration.meta
+          setMetaAppId(meta.app_id || '')
+          setMetaAppSecret(meta.app_secret ? '••••••••••••' : '')
+          setIgToken(meta.access_token ? '••••••••••••••••••••••' : '')
+          setIgAccountId(meta.instagram_account_id || '')
+          setFbPageId(meta.facebook_page_id || '')
+          setConnected(meta.connected || false)
+          setConnectedUsername(meta.instagram_username || '')
+          setConnectedPageName(meta.facebook_page_name || '')
+          setIgProfileUrl(meta.instagram_profile_url || '')
+          setFbPageUrl(meta.facebook_page_url || '')
+          setConnectedAt(meta.connected_at || '')
         }
       } catch {
         // No integration yet
@@ -66,7 +177,7 @@ export default function IntegrationsPage() {
       }
     }
     loadIntegration()
-  }, [])
+  }, [searchParams, handleOAuthCallback])
 
   async function handleSaveCredentials() {
     if (!igToken || igToken.startsWith('••')) {
@@ -102,7 +213,9 @@ export default function IntegrationsPage() {
       })
       setConnected(true)
       setConnectedUsername(result?.username || igAccountId)
-      toast.success(`Conectado com sucesso! ${result?.username ? `Instagram: @${result.username}` : ''}`)
+      toast.success(
+        `Conectado com sucesso! ${result?.username ? `Instagram: @${result.username}` : ''}`,
+      )
     } catch {
       setConnected(false)
       toast.error('Falha na conexao. Verifique as credenciais.')
@@ -113,13 +226,10 @@ export default function IntegrationsPage() {
 
   async function handleDisconnect() {
     try {
-      await api.post('/api/integrations/meta', {
-        access_token: '',
-        instagram_account_id: '',
-        facebook_page_id: '',
-      })
+      await api.post('/api/integrations/meta/disconnect', {})
       setConnected(false)
       setConnectedUsername('')
+      setConnectedPageName('')
       setIgToken('')
       setIgAccountId('')
       setFbPageId('')
@@ -129,10 +239,21 @@ export default function IntegrationsPage() {
     }
   }
 
-  if (loading) {
+  function handleConnectFacebook() {
+    if (!metaAppId.trim()) {
+      toast.error('Primeiro salve o Facebook App ID')
+      return
+    }
+    window.location.href = buildFacebookOAuthUrl(metaAppId)
+  }
+
+  if (loading || connectingOAuth) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+        {connectingOAuth && (
+          <p className="text-sm text-gray-400">Conectando com Facebook/Instagram...</p>
+        )}
       </div>
     )
   }
@@ -146,9 +267,19 @@ export default function IntegrationsPage() {
         </p>
       </div>
 
-      {/* ── Connection Status ─────────────────────────── */}
+      {/* ── Conta Conectada ──────────────────────────── */}
       <Card className={connected ? 'border-emerald-500/30' : ''}>
-        <CardContent className="p-5">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PlugZap className="w-5 h-5 text-primary-400" />
+              <h3 className="text-base font-semibold text-gray-100">Conta Conectada</h3>
+            </div>
+            <Badge variant={connected ? 'success' : 'secondary'}>
+              {connected ? 'Ativo' : 'Inativo'}
+            </Badge>
+          </div>
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {connected ? (
@@ -161,132 +292,150 @@ export default function IntegrationsPage() {
                 </div>
               )}
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-100">
-                    {connected ? 'Conectado' : 'Desconectado'}
-                  </span>
-                  <Badge variant={connected ? 'success' : 'secondary'}>
-                    {connected ? 'Ativo' : 'Inativo'}
-                  </Badge>
-                </div>
-                {connected && connectedUsername && (
-                  <p className="text-sm text-gray-400">@{connectedUsername}</p>
+                <span className="font-semibold text-gray-100">
+                  {connected ? 'Conectado' : 'Desconectado'}
+                </span>
+                {connected && (connectedUsername || connectedPageName) && (
+                  <p className="text-sm text-gray-400">
+                    {connectedUsername ? `@${connectedUsername}` : connectedPageName}
+                  </p>
                 )}
               </div>
             </div>
 
-            {connected && (
+            {connected ? (
               <Button variant="destructive" size="sm" onClick={handleDisconnect}>
                 Desconectar
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={handleConnectFacebook}
+                disabled={connectingOAuth}
+              >
+                {connectingOAuth ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Facebook className="w-4 h-4" />
+                )}
+                Conectar com Facebook/Instagram
               </Button>
             )}
           </div>
 
+          {/* Connected account details */}
           {connected && (
-            <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span className="text-sm text-emerald-300">
-                Conectado com sucesso! Instagram: @{connectedUsername || igAccountId}
-              </span>
+            <div className="space-y-3 pt-2 border-t border-brand-border">
+              <div className="grid grid-cols-2 gap-3">
+                {connectedUsername && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-wider text-gray-500">Instagram</p>
+                    <a
+                      href={igProfileUrl || `https://instagram.com/${connectedUsername}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="text-sm text-primary-400 hover:text-primary-300 inline-flex items-center gap-1"
+                    >
+                      @{connectedUsername}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+                {connectedPageName && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-wider text-gray-500">Pagina Facebook</p>
+                    <a
+                      href={fbPageUrl || `https://facebook.com/${fbPageId}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="text-sm text-primary-400 hover:text-primary-300 inline-flex items-center gap-1"
+                    >
+                      {connectedPageName}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+                {igAccountId && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-wider text-gray-500">IG Account ID</p>
+                    <p className="text-sm text-gray-300 font-mono">{igAccountId}</p>
+                  </div>
+                )}
+                {fbPageId && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-wider text-gray-500">Page ID</p>
+                    <p className="text-sm text-gray-300 font-mono">{fbPageId}</p>
+                  </div>
+                )}
+                {metaAppId && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-wider text-gray-500">App ID</p>
+                    <p className="text-sm text-gray-300 font-mono">{metaAppId}</p>
+                  </div>
+                )}
+                {connectedAt && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-wider text-gray-500">Conectado em</p>
+                    <p className="text-sm text-gray-300">
+                      {new Date(connectedAt).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* ── Token de Acesso ────────────────────────────── */}
+      {/* ── Checklist de Integração ──────────────────── */}
+      <Card>
+        <CardContent className="p-5">
+          <IntegrationChecklist
+            onAllCompleted={(done) => {
+              if (done && !connected) {
+                toast.success('Checklist completa! Agora conecte com Facebook/Instagram.')
+              }
+            }}
+            metaAppId={metaAppId}
+            metaAppSecret={metaAppSecret}
+            showAppSecret={showAppSecret}
+            savingApp={savingApp}
+            onMetaAppIdChange={setMetaAppId}
+            onMetaAppSecretChange={setMetaAppSecret}
+            onToggleShowAppSecret={() => setShowAppSecret(!showAppSecret)}
+            onSaveAppCredentials={handleSaveAppCredentials}
+          />
+        </CardContent>
+      </Card>
+
+      {/* ── Token de Acesso (preenchido automaticamente) ── */}
       <Card>
         <CardContent className="p-5 space-y-5">
           <div className="flex items-center gap-2">
             <Key className="w-5 h-5 text-primary-400" />
             <h3 className="text-base font-semibold text-gray-100">Token de Acesso</h3>
+            <Badge variant="secondary" className="text-[10px]">
+              Preenchido automaticamente ao conectar
+            </Badge>
           </div>
-
-          {/* How to guide - collapsible */}
-          <button
-            onClick={() => setShowGuide(!showGuide)}
-            className="w-full flex items-center gap-2 p-3 rounded-lg bg-brand-surface border border-brand-border hover:border-gray-700 transition-colors text-left"
-          >
-            <Info className="w-4 h-4 text-primary-400 flex-shrink-0" />
-            <span className="text-sm text-gray-300 flex-1">Como preencher (clique nos links para abrir)</span>
-            {showGuide ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
-          </button>
-
-          {showGuide && (
-            <div className="space-y-4 p-4 rounded-lg bg-brand-surface border border-brand-border">
-              {/* Step 1 */}
-              <div>
-                <p className="text-sm font-semibold text-gray-200">1. Access Token</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Abra o{' '}
-                  <a
-                    href="https://developers.facebook.com/tools/explorer/"
-                    target="_blank"
-                    rel="noopener"
-                    className="text-primary-400 hover:text-primary-300 underline inline-flex items-center gap-1"
-                  >
-                    Graph API Explorer <ExternalLink className="w-3 h-3" />
-                  </a>
-                  , clique em <strong className="text-gray-200">&quot;Gerar Token de Acesso&quot;</strong>, copie o token que aparece no campo de texto superior.
-                </p>
-              </div>
-
-              {/* Step 2 */}
-              <div>
-                <p className="text-sm font-semibold text-gray-200">2. Instagram Business Account ID</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  No mesmo{' '}
-                  <a
-                    href="https://developers.facebook.com/tools/explorer/"
-                    target="_blank"
-                    rel="noopener"
-                    className="text-primary-400 hover:text-primary-300 underline inline-flex items-center gap-1"
-                  >
-                    Graph Explorer <ExternalLink className="w-3 h-3" />
-                  </a>
-                  , clique <strong className="text-gray-200">&quot;Enviar&quot;</strong>. Na resposta, copie o numero dentro de{' '}
-                  <code className="px-1.5 py-0.5 rounded bg-gray-800 text-primary-300 text-xs">instagram_business_account.id</code>
-                </p>
-              </div>
-
-              {/* Step 3 */}
-              <div>
-                <p className="text-sm font-semibold text-gray-200">3. Facebook Page ID</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Na mesma resposta acima, copie o campo{' '}
-                  <code className="px-1.5 py-0.5 rounded bg-gray-800 text-primary-300 text-xs">id</code>{' '}
-                  da pagina. Ou abra{' '}
-                  <a
-                    href="https://www.facebook.com/pages/?category=your_pages"
-                    target="_blank"
-                    rel="noopener"
-                    className="text-primary-400 hover:text-primary-300 underline inline-flex items-center gap-1"
-                  >
-                    Configuracoes de Paginas do Facebook <ExternalLink className="w-3 h-3" />
-                  </a>
-                  .
-                </p>
-              </div>
-
-              <div className="p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
-                <p className="text-xs text-yellow-300">
-                  Requisito: conta Instagram do tipo Business/Creator vinculada a uma Pagina do Facebook.
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Token input */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5 text-gray-500" />
-                Instagram User Access Token (long-lived)
-              </Label>
-            </div>
+            <Label className="flex items-center gap-1.5">
+              <Key className="w-3.5 h-3.5 text-gray-500" />
+              Instagram User Access Token (long-lived)
+            </Label>
             <div className="relative">
               <Input
                 type={showToken ? 'text' : 'password'}
-                placeholder="Cole o token do Graph Explorer"
+                placeholder="Preenchido ao conectar com Facebook"
                 value={igToken}
                 onChange={(e) => setIgToken(e.target.value)}
                 className="pr-10"
@@ -299,17 +448,6 @@ export default function IntegrationsPage() {
                 {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-500">Cole o token do Graph Explorer</p>
-              <a
-                href="https://developers.facebook.com/tools/explorer/"
-                target="_blank"
-                rel="noopener"
-                className="text-xs text-primary-400 hover:text-primary-300"
-              >
-                Abrir Graph Explorer
-              </a>
-            </div>
           </div>
 
           {/* Account ID */}
@@ -319,21 +457,10 @@ export default function IntegrationsPage() {
               Instagram Business Account ID
             </Label>
             <Input
-              placeholder="Ex: 17841480579168244"
+              placeholder="Preenchido ao conectar"
               value={igAccountId}
               onChange={(e) => setIgAccountId(e.target.value)}
             />
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-500">Numero dentro de instagram_business_account.id</p>
-              <a
-                href="https://developers.facebook.com/tools/explorer/"
-                target="_blank"
-                rel="noopener"
-                className="text-xs text-primary-400 hover:text-primary-300"
-              >
-                Buscar ID
-              </a>
-            </div>
           </div>
 
           {/* Facebook Page ID */}
@@ -343,30 +470,15 @@ export default function IntegrationsPage() {
               Facebook Page ID
             </Label>
             <Input
-              placeholder="Ex: 953082297899308"
+              placeholder="Preenchido ao conectar"
               value={fbPageId}
               onChange={(e) => setFbPageId(e.target.value)}
             />
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-500">Campo &quot;id&quot; da Pagina na resposta do Graph Explorer</p>
-              <a
-                href="https://www.facebook.com/pages/?category=your_pages"
-                target="_blank"
-                rel="noopener"
-                className="text-xs text-primary-400 hover:text-primary-300"
-              >
-                Ver Paginas
-              </a>
-            </div>
           </div>
 
           {/* Action buttons */}
           <div className="flex items-center gap-3 pt-2">
-            <Button
-              className="gap-2"
-              disabled={saving}
-              onClick={handleSaveCredentials}
-            >
+            <Button className="gap-2" disabled={saving} onClick={handleSaveCredentials}>
               {saving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (

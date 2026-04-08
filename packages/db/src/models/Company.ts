@@ -89,7 +89,14 @@ const CompanySchema = new Schema<ICompany>(
     plan_id: { type: Schema.Types.ObjectId, ref: 'Plan', default: null },
     status: {
       type: String,
-      enum: ['active', 'blocked', 'setup_pending', 'trial', 'cancelled'],
+      enum: [
+        'active',
+        'blocked',
+        'setup_pending',
+        'pending_subscription',
+        'trial',
+        'cancelled',
+      ],
       default: 'setup_pending',
     },
     access_enabled: { type: Boolean, default: false },
@@ -106,7 +113,7 @@ const CompanySchema = new Schema<ICompany>(
       overdue_days: { type: Number, default: 0 },
       status: {
         type: String,
-        enum: ['paid', 'pending', 'overdue'],
+        enum: ['paid', 'pending', 'pending_subscription', 'overdue'],
         default: 'pending',
       },
       setup_charge_id: { type: String, default: '' },

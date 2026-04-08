@@ -18,6 +18,7 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
       activeCount,
       trialCount,
       setupPendingCount,
+      pendingSubCount,
       blockedCount,
       cancelledCount,
       overdueCount,
@@ -28,11 +29,12 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
       Company.countDocuments({ status: 'active' }),
       Company.countDocuments({ status: 'trial' }),
       Company.countDocuments({ status: 'setup_pending' }),
+      Company.countDocuments({ status: 'pending_subscription' }),
       Company.countDocuments({ status: 'blocked' }),
       Company.countDocuments({ status: 'cancelled' }),
       Company.countDocuments({ 'billing.status': 'overdue' }),
       Company.find({
-        status: { $in: ['active', 'trial'] },
+        status: { $in: ['active', 'trial', 'pending_subscription'] },
       })
         .select('billing.monthly_amount')
         .lean(),
@@ -81,9 +83,10 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
 
     return reply.send({
       metrics: {
-        activePartners: activeCount + trialCount,
+        activePartners: activeCount + trialCount + pendingSubCount,
         monthlyRevenue,
         pendingSetups: setupPendingCount,
+        pendingSubscriptions: pendingSubCount,
         overdue: overdueCount,
         postsToday,
         failedPostsToday,
@@ -93,9 +96,10 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
         active: activeCount,
         trial: trialCount,
         setupPending: setupPendingCount,
+        pendingSubscription: pendingSubCount,
         blocked: blockedCount,
       },
-      totalPartners,
+      totalPartners: activeCount + trialCount + setupPendingCount + pendingSubCount + blockedCount,
     })
   })
 

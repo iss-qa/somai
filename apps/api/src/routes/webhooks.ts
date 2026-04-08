@@ -226,13 +226,14 @@ export default async function webhooksRoutes(app: FastifyInstance) {
           if (company) {
             console.log('[OpenPixWebhook] Found company:', company.name)
 
-            // Mark setup as paid, enable access, set active
+            // Setup paid → enable access, but status = pending_subscription
+            // Full activation only happens after subscription is created
             await Company.findByIdAndUpdate(company._id, {
               setup_paid: true,
               setup_paid_at: new Date(),
               access_enabled: true,
-              status: 'active',
-              'billing.status': 'paid',
+              status: 'pending_subscription',
+              'billing.status': 'pending_subscription',
             })
 
             // Notify

@@ -108,14 +108,15 @@ export default async function billingRoutes(app: FastifyInstance) {
           charge?.status === 'COMPLETED' &&
           !company.setup_paid
         ) {
+          // Setup paid → access enabled, but awaiting subscription
           await Company.findByIdAndUpdate(companyId, {
             setup_paid: true,
             setup_paid_at: new Date(),
             access_enabled: true,
-            status: 'active',
-            'billing.status': 'paid',
+            status: 'pending_subscription',
+            'billing.status': 'pending_subscription',
           })
-          console.log('[billing] Auto-updated company as paid:', company.name)
+          console.log('[billing] Setup paid, awaiting subscription:', company.name)
         }
 
         return reply.send(data)
@@ -172,10 +173,13 @@ export default async function billingRoutes(app: FastifyInstance) {
             day_generate_charge || company.billing?.due_day || 10,
         })
 
-        // Save subscription reference
+        // Save subscription reference + activate company fully
         await Company.findByIdAndUpdate(company_id, {
+          status: 'active',
+          access_enabled: true,
           'billing.monthly_amount': subValue / 100,
           'billing.subscription_id': result.subscription.globalID,
+          'billing.status': 'paid',
           'billing.due_day':
             day_generate_charge || company.billing?.due_day || 10,
         })

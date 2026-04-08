@@ -36,6 +36,7 @@ interface AdminDashboard {
     trial: number
     blocked: number
     setupPending: number
+    pendingSubscription: number
   }
 }
 
@@ -64,6 +65,7 @@ export default function AdminDashboardPage() {
             trial: 0,
             blocked: 0,
             setupPending: 0,
+            pendingSubscription: 0,
           },
         })
       } finally {
@@ -94,8 +96,9 @@ export default function AdminDashboardPage() {
     trial: 0,
     blocked: 0,
     setupPending: 0,
+    pendingSubscription: 0,
   }
-  const totalCompanies = dist.active + dist.trial + dist.blocked + dist.setupPending
+  const totalCompanies = dist.active + dist.trial + dist.blocked + dist.setupPending + dist.pendingSubscription
   const totalForPercent = totalCompanies || 1
 
   return (
@@ -195,6 +198,12 @@ export default function AdminDashboardPage() {
                     style={{ width: `${(dist.trial / totalForPercent) * 100}%` }}
                   />
                 )}
+                {dist.pendingSubscription > 0 && (
+                  <div
+                    className="bg-orange-500 transition-all"
+                    style={{ width: `${(dist.pendingSubscription / totalForPercent) * 100}%` }}
+                  />
+                )}
                 {dist.setupPending > 0 && (
                   <div
                     className="bg-amber-500 transition-all"
@@ -214,6 +223,7 @@ export default function AdminDashboardPage() {
                 {[
                   { label: 'Ativos', value: dist.active, color: 'bg-emerald-500' },
                   { label: 'Trial', value: dist.trial, color: 'bg-blue-500' },
+                  { label: 'Aguardando assinatura', value: dist.pendingSubscription, color: 'bg-orange-500' },
                   { label: 'Setup pendente', value: dist.setupPending, color: 'bg-amber-500' },
                   { label: 'Bloqueados', value: dist.blocked, color: 'bg-red-500' },
                 ].map((item) => (
