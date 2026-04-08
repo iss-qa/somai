@@ -179,6 +179,11 @@ export default async function cardsRoutes(app: FastifyInstance) {
         card.generated_image_url = body.generated_image_url
       }
 
+      // Update headline with the user-provided custom name
+      if (body?.headline) {
+        card.headline = body.headline
+      }
+
       await card.save()
 
       return reply.send(card)

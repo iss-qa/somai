@@ -1,104 +1,254 @@
 import { Integration } from '@soma-ai/db'
 import { EncryptionService } from './encryption.service'
+import { StorageService } from './storage.service'
+
+const GRAPH_API = 'https://graph.facebook.com/v25.0'
+
+async function getIntegration(companyId: string) {
+  const integration: any = await Integration.findOne({ company_id: companyId }).lean()
+  if (!integration?.meta?.access_token) {
+    throw new Error('Meta integration nao configurada para esta empresa')
+  }
+
+  const token = EncryptionService.decrypt(integration.meta.access_token)
+
+  return {
+    token,
+    igUserId: integration.meta.instagram_account_id as string,
+    fbPageId: integration.meta.facebook_page_id as string,
+  }
+}
+
+/**
+ * Ensures imageUrl is a public HTTP URL.
+ * If it's a base64 data URL, uploads it to R2 first.
+ */
+async function ensurePublicUrl(imageUrl: string): Promise<string> {
+  if (imageUrl.startsWith('data:')) {
+    return StorageService.uploadBase64Image(imageUrl)
+  }
+  return imageUrl
+}
+
+/**
+ * Polls the Instagram media container until it's ready to publish (status FINISHED).
+ */
+async function waitForContainer(
+  containerId: string,
+  token: string,
+  maxAttempts = 10,
+): Promise<void> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const res = await fetch(
+      `${GRAPH_API}/${containerId}?fields=status_code&access_token=${token}`,
+    )
+    const data: any = await res.json()
+
+    if (data.status_code === 'FINISHED') return
+    if (data.status_code === 'ERROR' || data.status_code === 'EXPIRED') {
+      throw new Error(`Container Instagram com status: ${data.status_code}`)
+    }
+
+    // Wait 2 seconds before next poll
+    await new Promise((r) => setTimeout(r, 2000))
+  }
+  throw new Error('Timeout aguardando container Instagram ficar pronto')
+}
 
 export class MetaService {
   /**
-   * Publish a feed post to Instagram.
-   * (Placeholder: logs the action and returns mock data)
+   * Publish a feed post to Instagram via Container API.
    */
   static async publishInstagramFeed(
     companyId: string,
     imageUrl: string,
     caption: string,
   ) {
-    console.log(
-      `[MetaService] publishInstagramFeed - company: ${companyId}, image: ${imageUrl}`,
-    )
+    const { token, igUserId } = await getIntegration(companyId)
+    const publicUrl = await ensurePublicUrl(imageUrl)
 
-    const integration: any = await Integration.findOne({ company_id: companyId }).lean()
-    if (!integration?.meta?.access_token) {
-      throw new Error('Meta integration nao configurada para esta empresa')
+    // Step 1: Create media container
+    const containerRes = await fetch(`${GRAPH_API}/${igUserId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image_url: publicUrl,
+        caption,
+        access_token: token,
+      }),
+    })
+    const container: any = await containerRes.json()
+    if (container.error) {
+      throw new Error(`Erro ao criar container IG: ${container.error.message}`)
     }
 
-    // TODO: Implement real Meta Graph API call
-    // POST /{ig-user-id}/media + POST /{ig-user-id}/media_publish
+    // Step 2: Wait for container to be ready
+    await waitForContainer(container.id, token)
+
+    // Step 3: Publish container
+    const publishRes = await fetch(`${GRAPH_API}/${igUserId}/media_publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        creation_id: container.id,
+        access_token: token,
+      }),
+    })
+    const published: any = await publishRes.json()
+    if (published.error) {
+      throw new Error(`Erro ao publicar no Instagram: ${published.error.message}`)
+    }
+
+    console.log(`[MetaService] Instagram feed publicado: ${published.id}`)
     return {
       success: true,
-      instagram_post_id: `mock_ig_${Date.now()}`,
+      instagram_post_id: published.id as string,
       published_at: new Date(),
     }
   }
 
   /**
-   * Publish a story to Instagram.
+   * Publish a story to Instagram via Container API.
    */
   static async publishInstagramStory(companyId: string, mediaUrl: string) {
-    console.log(
-      `[MetaService] publishInstagramStory - company: ${companyId}, media: ${mediaUrl}`,
-    )
+    const { token, igUserId } = await getIntegration(companyId)
+    const publicUrl = await ensurePublicUrl(mediaUrl)
 
+    // Step 1: Create story container
+    const containerRes = await fetch(`${GRAPH_API}/${igUserId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image_url: publicUrl,
+        media_type: 'STORIES',
+        access_token: token,
+      }),
+    })
+    const container: any = await containerRes.json()
+    if (container.error) {
+      throw new Error(`Erro ao criar container story: ${container.error.message}`)
+    }
+
+    // Step 2: Wait for container
+    await waitForContainer(container.id, token)
+
+    // Step 3: Publish story
+    const publishRes = await fetch(`${GRAPH_API}/${igUserId}/media_publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        creation_id: container.id,
+        access_token: token,
+      }),
+    })
+    const published: any = await publishRes.json()
+    if (published.error) {
+      throw new Error(`Erro ao publicar story: ${published.error.message}`)
+    }
+
+    console.log(`[MetaService] Instagram story publicado: ${published.id}`)
     return {
       success: true,
-      instagram_story_id: `mock_story_${Date.now()}`,
+      instagram_story_id: published.id as string,
       published_at: new Date(),
     }
   }
 
   /**
-   * Publish a post to Facebook page.
+   * Publish a photo post to a Facebook Page.
    */
   static async publishFacebookPost(
     companyId: string,
     imageUrl: string,
     message: string,
   ) {
-    console.log(
-      `[MetaService] publishFacebookPost - company: ${companyId}, image: ${imageUrl}`,
-    )
+    const { token, fbPageId } = await getIntegration(companyId)
+    const publicUrl = await ensurePublicUrl(imageUrl)
 
+    const res = await fetch(`${GRAPH_API}/${fbPageId}/photos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: publicUrl,
+        caption: message,
+        access_token: token,
+      }),
+    })
+    const data: any = await res.json()
+    if (data.error) {
+      throw new Error(`Erro ao publicar no Facebook: ${data.error.message}`)
+    }
+
+    console.log(`[MetaService] Facebook post publicado: ${data.post_id || data.id}`)
     return {
       success: true,
-      facebook_post_id: `mock_fb_${Date.now()}`,
+      facebook_post_id: (data.post_id || data.id) as string,
       published_at: new Date(),
     }
   }
 
   /**
-   * Verify if the Meta access token is still valid.
+   * Verify if the Meta access token is still valid via debug_token.
    */
   static async verifyToken(companyId: string) {
-    console.log(`[MetaService] verifyToken - company: ${companyId}`)
-
     const integration: any = await Integration.findOne({ company_id: companyId }).lean()
     if (!integration?.meta?.access_token) {
       return { valid: false, expires_at: null }
     }
 
-    // TODO: Call Meta debug_token endpoint
-    const expiresAt = integration.meta.token_expires_at || new Date(Date.now() + 60 * 86400000)
+    const token = EncryptionService.decrypt(integration.meta.access_token)
+    const appId = process.env.META_APP_ID
+    const appSecret = process.env.META_APP_SECRET
 
-    return {
-      valid: true,
-      expires_at: expiresAt,
+    if (!appId || !appSecret) {
+      // Can't verify without app credentials, assume valid
+      return { valid: true, expires_at: integration.meta.token_expires_at || null }
     }
+
+    const res = await fetch(
+      `${GRAPH_API}/debug_token?input_token=${token}&access_token=${appId}|${appSecret}`,
+    )
+    const data: any = await res.json()
+
+    if (data.error || !data.data?.is_valid) {
+      return { valid: false, expires_at: null }
+    }
+
+    const expiresAt = data.data.expires_at
+      ? new Date(data.data.expires_at * 1000)
+      : null
+
+    return { valid: true, expires_at: expiresAt }
   }
 
   /**
    * Fetch analytics for a specific post.
    */
   static async fetchPostAnalytics(companyId: string, postId: string) {
-    console.log(
-      `[MetaService] fetchPostAnalytics - company: ${companyId}, post: ${postId}`,
-    )
+    const { token } = await getIntegration(companyId)
 
-    // TODO: Call Meta insights endpoint
+    const res = await fetch(
+      `${GRAPH_API}/${postId}/insights?metric=impressions,reach,likes,comments,shares,saved&access_token=${token}`,
+    )
+    const data: any = await res.json()
+
+    if (data.error) {
+      console.warn(`[MetaService] Analytics indisponíveis para ${postId}: ${data.error.message}`)
+      return { impressions: 0, reach: 0, likes: 0, comments: 0, shares: 0, saves: 0, fetched_at: new Date() }
+    }
+
+    const metrics: Record<string, number> = {}
+    for (const item of data.data || []) {
+      metrics[item.name] = item.values?.[0]?.value ?? 0
+    }
+
     return {
-      impressions: 0,
-      reach: 0,
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      saves: 0,
+      impressions: metrics.impressions ?? 0,
+      reach: metrics.reach ?? 0,
+      likes: metrics.likes ?? 0,
+      comments: metrics.comments ?? 0,
+      shares: metrics.shares ?? 0,
+      saves: metrics.saved ?? 0,
       fetched_at: new Date(),
     }
   }

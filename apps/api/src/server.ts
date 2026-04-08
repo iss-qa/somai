@@ -8,6 +8,7 @@ import { getApp } from './app'
 // Workers (auto-start on import)
 import './workers/video.worker'
 import './workers/campaign.worker'
+import './workers/post.worker'
 
 const PORT = Number(process.env.PORT) || 3001
 

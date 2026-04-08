@@ -1854,7 +1854,7 @@ function GenerateCardPage() {
           format: config.format,
           post_type: config.postType,
           product_name: config.productName,
-          headline: config.headline || cardName,
+          headline: cardName || config.headline,
           price_original: config.originalPrice ? Number(String(config.originalPrice).replace(',', '.')) : undefined,
           price_promo: config.promoPrice ? Number(String(config.promoPrice).replace(',', '.')) : undefined,
           subtext: config.extraText,
@@ -1878,6 +1878,7 @@ function GenerateCardPage() {
 
       await api.patch(`/api/cards/${cardId}/approve`, {
         generated_image_url: imageDataUrl,
+        headline: cardName,
       })
       setApproved(true)
       setDirtyAfterApprove(false)
