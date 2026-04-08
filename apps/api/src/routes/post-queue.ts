@@ -123,28 +123,28 @@ export default async function postQueueRoutes(app: FastifyInstance) {
         status: QueueStatus.Queued,
       })
 
-      // Schedule the BullMQ job with delay
-      const delay = Math.max(0, scheduledAt.getTime() - Date.now())
-
-      const job = await postQueue.add(
-        'publish',
-        {
-          queueId: String(queueItem._id),
-          companyId,
-          cardId: body.card_id,
-          videoId: body.video_id,
-          platforms: body.platforms,
-          postType: body.post_type,
-          caption: queueItem.caption,
-          hashtags: queueItem.hashtags,
-          imageUrl: card.generated_image_url || '',
-        },
-        { delay },
-      )
-
-      await PostQueue.findByIdAndUpdate(queueItem._id, {
-        bullmq_job_id: job.id,
-      })
+      // Schedule BullMQ job (best-effort: cron handles publishing if Redis unavailable)
+      try {
+        const delay = Math.max(0, scheduledAt.getTime() - Date.now())
+        const job = await postQueue.add(
+          'publish',
+          {
+            queueId: String(queueItem._id),
+            companyId,
+            cardId: body.card_id,
+            videoId: body.video_id,
+            platforms: body.platforms,
+            postType: body.post_type,
+            caption: queueItem.caption,
+            hashtags: queueItem.hashtags,
+            imageUrl: card.generated_image_url || '',
+          },
+          { delay },
+        )
+        await PostQueue.findByIdAndUpdate(queueItem._id, { bullmq_job_id: job.id })
+      } catch (redisErr: any) {
+        console.warn('[PostQueue] BullMQ indisponivel, cron processara na hora agendada:', redisErr.message)
+      }
 
       // Update card status to scheduled
       await Card.findByIdAndUpdate(body.card_id, { status: 'scheduled' })

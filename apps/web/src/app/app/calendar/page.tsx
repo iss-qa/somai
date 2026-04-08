@@ -305,6 +305,14 @@ function CalendarPageInner() {
     // Find platform option from post_type
     const platformOpt = PLATFORM_OPTIONS.find((p) => p.postType === selectedPost.post_type)
 
+    // Ensure the card is in approvedCards so the Select shows it immediately.
+    // (Card status may no longer be "approved" after scheduling, so it might be absent.)
+    if (typeof selectedPost.card_id !== 'string') {
+      setApprovedCards((prev) =>
+        prev.some((c) => c._id === cardId) ? prev : [selectedPost.card_id as PopulatedCard, ...prev]
+      )
+    }
+
     setEditingQueueId(selectedPost._id)
     setFormCardId(cardId)
     setFormDate(dateStr)
@@ -741,7 +749,7 @@ function CalendarPageInner() {
             {/* Card select */}
             <div className="space-y-2">
               <Label>Card aprovado</Label>
-              {cardsLoading ? (
+              {cardsLoading && approvedCards.length === 0 ? (
                 <div className="flex items-center gap-2 h-10 px-3 rounded-lg border border-gray-800 bg-brand-surface">
                   <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
                   <span className="text-sm text-gray-500">Carregando cards...</span>

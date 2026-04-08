@@ -55,16 +55,24 @@ export default async function cronRoutes(app: FastifyInstance) {
           let instagramPostId = ''
           let facebookPostId = ''
 
-          for (const platform of item.platforms) {
-            if (platform === 'instagram_feed') {
+          // platforms stored as ['instagram'], ['facebook'], ['instagram','facebook']
+          // post_type stored as 'feed', 'stories', 'reels'
+          const isInstagram = item.platforms.includes('instagram')
+          const isFacebook = item.platforms.includes('facebook')
+          const postType = item.post_type
+
+          if (isInstagram) {
+            if (postType === 'stories') {
+              await MetaService.publishInstagramStory(companyId, imageUrl)
+            } else {
+              // feed or reels → use feed container API
               const r = await MetaService.publishInstagramFeed(companyId, imageUrl, fullCaption)
               instagramPostId = r.instagram_post_id
-            } else if (platform === 'instagram_stories' || platform === 'stories') {
-              await MetaService.publishInstagramStory(companyId, imageUrl)
-            } else if (platform === 'facebook') {
-              const r = await MetaService.publishFacebookPost(companyId, imageUrl, fullCaption)
-              facebookPostId = r.facebook_post_id
             }
+          }
+          if (isFacebook) {
+            const r = await MetaService.publishFacebookPost(companyId, imageUrl, fullCaption)
+            facebookPostId = r.facebook_post_id
           }
 
           // Create Post record
@@ -106,9 +114,11 @@ export default async function cronRoutes(app: FastifyInstance) {
             error_message: msg,
           }).catch(() => {})
 
+          const newRetryCount = (item.retry_count || 0) + 1
+          const maxRetries = item.max_retries || 3
           await PostQueue.findByIdAndUpdate(queueId, {
-            status: QueueStatus.Failed,
-            $inc: { retry_count: 1 },
+            status: newRetryCount < maxRetries ? QueueStatus.Queued : QueueStatus.Failed,
+            retry_count: newRetryCount,
           })
 
           results.push({ id: queueId, status: 'failed', error: msg })
