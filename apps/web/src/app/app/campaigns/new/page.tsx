@@ -720,7 +720,7 @@ function CampaignWizardContent() {
 
 export default function NewCampaignPage() {
   return (
-    <FeatureGate feature="Campanhas de marketing">
+    <FeatureGate feature="Campanhas de marketing" minPlan="enterprise">
       <CampaignWizardContent />
     </FeatureGate>
   )

@@ -51,12 +51,27 @@ const config: Config = {
         shimmer: {
           '100%': { transform: 'translateX(100%)' },
         },
+        panelSlideRight: {
+          from: { opacity: '0', transform: 'translateX(40px) scale(0.97)' },
+          to: { opacity: '1', transform: 'translateX(0) scale(1)' },
+        },
+        panelSlideLeft: {
+          from: { opacity: '0', transform: 'translateX(-40px) scale(0.97)' },
+          to: { opacity: '1', transform: 'translateX(0) scale(1)' },
+        },
+        formFadeIn: {
+          from: { opacity: '0', transform: 'translateY(12px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         fadeIn: 'fadeIn 0.3s ease-out',
         slideIn: 'slideIn 0.3s ease-out',
         slideInLeft: 'slideInLeft 0.3s ease-out',
         shimmer: 'shimmer 2s infinite',
+        'panel-slide-right': 'panelSlideRight 0.5s cubic-bezier(0.16,1,0.3,1)',
+        'panel-slide-left': 'panelSlideLeft 0.5s cubic-bezier(0.16,1,0.3,1)',
+        'form-fade-in': 'formFadeIn 0.4s cubic-bezier(0.16,1,0.3,1) 0.15s both',
       },
     },
   },

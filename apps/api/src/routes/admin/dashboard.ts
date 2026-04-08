@@ -1,11 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { Company, Post, PostQueue, Notification } from '@soma-ai/db'
-import {
-  CompanyStatus,
-  BillingStatus,
-  PostStatus,
-  QueueStatus,
-} from '@soma-ai/shared'
+import { Company, Post, Notification } from '@soma-ai/db'
+import { PostStatus } from '@soma-ai/shared'
 import { authenticate, adminOnly } from '../../plugins/auth'
 
 export default async function adminDashboardRoutes(app: FastifyInstance) {
@@ -16,28 +11,29 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
   app.get('/summary', async (_request: FastifyRequest, reply: FastifyReply) => {
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const todayEnd = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      23,
-      59,
-      59,
-      999,
-    )
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
 
+    // Count by status
     const [
-      activeCompanies,
-      setupPending,
-      overdueCompanies,
+      activeCount,
+      trialCount,
+      setupPendingCount,
+      blockedCount,
+      cancelledCount,
+      overdueCount,
       allCompanies,
       postsToday,
       failedPostsToday,
     ] = await Promise.all([
-      Company.countDocuments({ status: CompanyStatus.Active }),
-      Company.countDocuments({ status: CompanyStatus.SetupPending }),
-      Company.countDocuments({ 'billing.status': BillingStatus.Overdue }),
-      Company.find({ status: CompanyStatus.Active })
+      Company.countDocuments({ status: 'active' }),
+      Company.countDocuments({ status: 'trial' }),
+      Company.countDocuments({ status: 'setup_pending' }),
+      Company.countDocuments({ status: 'blocked' }),
+      Company.countDocuments({ status: 'cancelled' }),
+      Company.countDocuments({ 'billing.status': 'overdue' }),
+      Company.find({
+        status: { $in: ['active', 'trial'] },
+      })
         .select('billing.monthly_amount')
         .lean(),
       Post.countDocuments({
@@ -46,23 +42,60 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
       }),
       Post.countDocuments({
         status: PostStatus.Failed,
-        created_at: { $gte: todayStart, $lte: todayEnd },
+        createdAt: { $gte: todayStart, $lte: todayEnd },
       }),
     ])
 
-    // Calculate monthly revenue from active companies
+    // Monthly revenue from active + trial companies
     const monthlyRevenue = allCompanies.reduce(
-      (sum, c) => sum + (c.billing?.monthly_amount || 0),
+      (sum, c: any) => sum + (c.billing?.monthly_amount || 0),
       0,
     )
 
+    // Alerts
+    const alerts = await Notification.find({
+      target: 'admin',
+      read: false,
+    })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean()
+
+    const formattedAlerts = alerts.map((a: any) => ({
+      id: String(a._id),
+      title: a.title || a.type,
+      description: a.message,
+      level:
+        a.type?.includes('failed') || a.type?.includes('blocked')
+          ? 'critical'
+          : a.type?.includes('overdue') || a.type?.includes('pending')
+            ? 'warning'
+            : a.type?.includes('received') || a.type?.includes('completed')
+              ? 'success'
+              : 'info',
+      timestamp: a.createdAt || a.created_at,
+    }))
+
+    const totalPartners =
+      activeCount + trialCount + setupPendingCount + blockedCount
+
     return reply.send({
-      activeCompanies,
-      monthlyRevenue: monthlyRevenue,
-      setupPending: setupPending,
-      overdueCount: overdueCompanies,
-      postsToday: postsToday,
-      failedPostsToday: failedPostsToday,
+      metrics: {
+        activePartners: activeCount + trialCount,
+        monthlyRevenue,
+        pendingSetups: setupPendingCount,
+        overdue: overdueCount,
+        postsToday,
+        failedPostsToday,
+      },
+      alerts: formattedAlerts,
+      statusDistribution: {
+        active: activeCount,
+        trial: trialCount,
+        setupPending: setupPendingCount,
+        blocked: blockedCount,
+      },
+      totalPartners,
     })
   })
 
@@ -72,7 +105,7 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
       target: 'admin',
       read: false,
     })
-      .sort({ created_at: -1 })
+      .sort({ createdAt: -1 })
       .limit(50)
       .lean()
 

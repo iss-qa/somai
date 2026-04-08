@@ -1,7 +1,15 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import bcrypt from 'bcryptjs'
+import crypto from 'node:crypto'
 import { User, AdminUser, Company, Plan } from '@soma-ai/db'
 import { authenticate, adminOnly } from '../plugins/auth'
+import { EvolutionService } from '../services/evolution.service'
+
+// In-memory recovery codes (in production use Redis)
+const recoveryCodes = new Map<
+  string,
+  { code: string; userId: string; expiresAt: number }
+>()
 
 export default async function authRoutes(app: FastifyInstance) {
   // ── POST /login ───────────────────────────────
@@ -16,11 +24,16 @@ export default async function authRoutes(app: FastifyInstance) {
       const { email, password } = request.body
 
       if (!email || !password) {
-        return reply.status(400).send({ error: 'Email e senha sao obrigatorios' })
+        return reply
+          .status(400)
+          .send({ error: 'Email e senha sao obrigatorios' })
       }
 
       // Try AdminUser first, then User
-      let foundUser: any = await AdminUser.findOne({ email, active: true }).lean()
+      let foundUser: any = await AdminUser.findOne({
+        email,
+        active: true,
+      }).lean()
       let isAdmin = false
 
       if (foundUser) {
@@ -33,7 +46,10 @@ export default async function authRoutes(app: FastifyInstance) {
         return reply.status(401).send({ error: 'Credenciais invalidas' })
       }
 
-      const passwordValid = await bcrypt.compare(password, foundUser.password_hash)
+      const passwordValid = await bcrypt.compare(
+        password,
+        foundUser.password_hash,
+      )
       if (!passwordValid) {
         return reply.status(401).send({ error: 'Credenciais invalidas' })
       }
@@ -56,6 +72,8 @@ export default async function authRoutes(app: FastifyInstance) {
       let companyName: string | null = null
       let planSlug: string | null = null
       let niche: string | null = null
+      let accessEnabled = true
+      let trialExpiresAt: string | null = null
 
       if (!isAdmin && foundUser.company_id) {
         const company: any = await Company.findById(foundUser.company_id)
@@ -65,6 +83,10 @@ export default async function authRoutes(app: FastifyInstance) {
           companyName = company.name
           planSlug = company.plan_id?.slug || null
           niche = company.niche || null
+          accessEnabled = company.access_enabled || false
+          trialExpiresAt = company.trial_expires_at
+            ? new Date(company.trial_expires_at).toISOString()
+            : null
         }
       }
 
@@ -74,7 +96,7 @@ export default async function authRoutes(app: FastifyInstance) {
           httpOnly: false,
           sameSite: 'lax',
           secure: process.env.NODE_ENV === 'production',
-          maxAge: 7 * 24 * 60 * 60, // 7 days
+          maxAge: 7 * 24 * 60 * 60,
         })
         .send({
           token,
@@ -87,12 +109,14 @@ export default async function authRoutes(app: FastifyInstance) {
             companyName,
             plan: planSlug,
             niche,
+            accessEnabled,
+            trialExpiresAt,
           },
         })
     },
   )
 
-  // ── POST /register (admin only) ───────────────
+  // ── POST /register (admin only — internal) ────
   app.post<{
     Body: {
       name: string
@@ -113,7 +137,6 @@ export default async function authRoutes(app: FastifyInstance) {
           .send({ error: 'Campos obrigatorios: name, email, password, role' })
       }
 
-      // Check for existing user
       const existingUser = await User.findOne({ email }).lean()
       const existingAdmin = await AdminUser.findOne({ email }).lean()
       if (existingUser || existingAdmin) {
@@ -165,12 +188,339 @@ export default async function authRoutes(app: FastifyInstance) {
     },
   )
 
+  // ── POST /partner-signup — PUBLIC (no auth) ───
+  app.post(
+    '/partner-signup',
+    async (
+      request: FastifyRequest<{
+        Body: {
+          company_name: string
+          responsible_name: string
+          email: string
+          whatsapp: string
+          password: string
+          niche: string
+          city: string
+          state: string
+          plan?: string
+          trial_days?: number
+        }
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const {
+        company_name,
+        responsible_name,
+        email,
+        whatsapp,
+        password,
+        niche,
+        city,
+        state,
+        plan: selectedPlan,
+        trial_days: requestedTrialDays,
+      } = request.body
+
+      console.log('[partner-signup] Recebido:', {
+        company_name,
+        responsible_name,
+        email,
+        whatsapp: whatsapp ? '***' + whatsapp.slice(-4) : 'vazio',
+        niche,
+        city,
+        state,
+        selectedPlan,
+        requestedTrialDays,
+      })
+
+      // Validate required fields
+      if (
+        !company_name ||
+        !responsible_name ||
+        !email ||
+        !whatsapp ||
+        !password
+      ) {
+        console.log('[partner-signup] Campos faltando')
+        return reply.status(400).send({
+          error:
+            'Campos obrigatorios: company_name, responsible_name, email, whatsapp, password',
+        })
+      }
+
+      if (password.length < 6) {
+        return reply
+          .status(400)
+          .send({ error: 'Senha deve ter no minimo 6 caracteres' })
+      }
+
+      // Check existing email
+      const existingUser = await User.findOne({ email }).lean()
+      const existingAdmin = await AdminUser.findOne({ email }).lean()
+      if (existingUser || existingAdmin) {
+        console.log('[partner-signup] Email ja existe:', email)
+        return reply.status(409).send({ error: 'Email ja cadastrado' })
+      }
+
+      // Get plan (user-selected or default starter)
+      const planSlug = selectedPlan || 'starter'
+      let plan: any = await Plan.findOne({
+        slug: planSlug,
+        active: true,
+      }).lean()
+      if (!plan) {
+        plan = await Plan.findOne({ slug: 'starter', active: true }).lean()
+      }
+      if (!plan) {
+        plan = await Plan.findOne({ active: true }).lean()
+      }
+      console.log('[partner-signup] Plano:', plan?.slug || 'nenhum encontrado')
+
+      // Calculate trial period
+      const trialDays = requestedTrialDays || 3
+      const trialExpiresAt = new Date()
+      trialExpiresAt.setDate(trialExpiresAt.getDate() + trialDays)
+
+      // Create slug from company name
+      const slug = company_name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+
+      try {
+        // Create company
+        const company = await Company.create({
+          name: company_name,
+          slug,
+          niche: niche || 'outro',
+          city: city || '',
+          state: state || '',
+          responsible_name,
+          whatsapp,
+          email,
+          logo_url: '',
+          brand_colors: { primary: '#8B5CF6', secondary: '#facc15' },
+          plan_id: plan?._id || null,
+          status: 'trial',
+          access_enabled: false,
+          setup_paid: false,
+          trial_days: trialDays,
+          trial_expires_at: trialExpiresAt,
+          billing: {
+            monthly_amount: plan?.monthly_price || 39.9,
+            due_day: 10,
+            status: 'pending',
+          },
+          notes: `Cadastro via formulario de parceria — Trial ${trialDays} dias`,
+        })
+
+        console.log('[partner-signup] Company criada:', String(company._id))
+
+      // Create user (owner)
+      const password_hash = await bcrypt.hash(password, 12)
+      const user = await User.create({
+        name: responsible_name,
+        email,
+        password_hash,
+        role: 'owner',
+        company_id: company._id,
+      })
+
+      // Auto-login: generate token
+      const payload = {
+        userId: String(user._id),
+        companyId: String(company._id),
+        role: 'owner',
+      }
+
+      const token = app.jwt.sign(payload, {
+        expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      })
+
+      // Send welcome message via WhatsApp (if Evolution is configured)
+      try {
+        const instanceName = process.env.EVOLUTION_INSTANCE
+        if (instanceName && whatsapp) {
+          const cleanNumber = whatsapp.replace(/\D/g, '')
+          await EvolutionService.sendText(
+            instanceName,
+            cleanNumber,
+            `Ola ${responsible_name}! Bem-vindo(a) ao Soma.ai! Sua empresa "${company_name}" foi cadastrada com sucesso. Acesse o painel para comecar a criar conteudo com IA. Qualquer duvida, estamos aqui!`,
+          )
+        }
+      } catch (err) {
+        console.warn('[auth] WhatsApp welcome message failed:', err)
+      }
+
+      reply
+        .setCookie('soma-token', token, {
+          path: '/',
+          httpOnly: false,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 7 * 24 * 60 * 60,
+        })
+        .status(201)
+        .send({
+          token,
+          user: {
+            id: String(user._id),
+            name: responsible_name,
+            email,
+            role: 'owner',
+            companyId: String(company._id),
+            companyName: company_name,
+            plan: plan?.slug || 'starter',
+            niche: niche || 'outro',
+            accessEnabled: false,
+            trialExpiresAt: trialExpiresAt.toISOString(),
+          },
+        })
+      } catch (err: any) {
+        console.error('[partner-signup] ERRO:', err.message, err.errors || '')
+        return reply.status(500).send({
+          error: err.message || 'Erro interno ao cadastrar empresa',
+        })
+      }
+    },
+  )
+
+  // ── POST /recovery/request — Send code via WhatsApp ──
+  app.post(
+    '/recovery/request',
+    async (
+      request: FastifyRequest<{ Body: { email: string } }>,
+      reply: FastifyReply,
+    ) => {
+      const { email } = request.body
+
+      if (!email) {
+        return reply.status(400).send({ error: 'Email e obrigatorio' })
+      }
+
+      // Find user
+      const user: any = await User.findOne({ email, active: true }).lean()
+      if (!user) {
+        // Don't reveal if email exists
+        return reply.send({
+          message: 'Se o email estiver cadastrado, enviaremos um codigo via WhatsApp',
+        })
+      }
+
+      // Get company to find WhatsApp number
+      const company: any = await Company.findById(user.company_id).lean()
+      const whatsappNumber = company?.whatsapp
+
+      if (!whatsappNumber) {
+        return reply.send({
+          message: 'Se o email estiver cadastrado, enviaremos um codigo via WhatsApp',
+        })
+      }
+
+      // Generate 6-digit code
+      const code = crypto.randomInt(100000, 999999).toString()
+      const expiresAt = Date.now() + 10 * 60 * 1000 // 10 minutes
+
+      // Store code
+      recoveryCodes.set(email, {
+        code,
+        userId: String(user._id),
+        expiresAt,
+      })
+
+      // Send via WhatsApp
+      try {
+        const instanceName = process.env.EVOLUTION_INSTANCE
+        if (instanceName) {
+          const cleanNumber = whatsappNumber.replace(/\D/g, '')
+          await EvolutionService.sendText(
+            instanceName,
+            cleanNumber,
+            `Soma.ai - Codigo de recuperacao: *${code}*\n\nUse este codigo para redefinir sua senha. Valido por 10 minutos.\n\nSe voce nao solicitou, ignore esta mensagem.`,
+          )
+        }
+      } catch (err) {
+        console.error('[auth] Recovery WhatsApp failed:', err)
+        return reply.status(502).send({
+          error: 'Erro ao enviar codigo. Tente novamente.',
+        })
+      }
+
+      // Mask WhatsApp number for display
+      const clean = whatsappNumber.replace(/\D/g, '')
+      const masked = clean.slice(0, 4) + '****' + clean.slice(-2)
+
+      return reply.send({
+        message: 'Codigo enviado via WhatsApp',
+        whatsapp_masked: masked,
+      })
+    },
+  )
+
+  // ── POST /recovery/verify — Verify code and reset password ──
+  app.post(
+    '/recovery/verify',
+    async (
+      request: FastifyRequest<{
+        Body: { email: string; code: string; new_password: string }
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { email, code, new_password } = request.body
+
+      if (!email || !code || !new_password) {
+        return reply
+          .status(400)
+          .send({ error: 'Email, codigo e nova senha sao obrigatorios' })
+      }
+
+      if (new_password.length < 6) {
+        return reply
+          .status(400)
+          .send({ error: 'Nova senha deve ter no minimo 6 caracteres' })
+      }
+
+      const stored = recoveryCodes.get(email)
+
+      if (!stored) {
+        return reply
+          .status(400)
+          .send({ error: 'Nenhum codigo solicitado para este email' })
+      }
+
+      if (Date.now() > stored.expiresAt) {
+        recoveryCodes.delete(email)
+        return reply
+          .status(400)
+          .send({ error: 'Codigo expirado. Solicite um novo.' })
+      }
+
+      if (stored.code !== code) {
+        return reply.status(400).send({ error: 'Codigo incorreto' })
+      }
+
+      // Reset password
+      const password_hash = await bcrypt.hash(new_password, 12)
+      await User.findByIdAndUpdate(stored.userId, { password_hash })
+
+      // Cleanup
+      recoveryCodes.delete(email)
+
+      return reply.send({ message: 'Senha alterada com sucesso!' })
+    },
+  )
+
   // ── POST /logout ──────────────────────────────
-  app.post('/logout', async (_request: FastifyRequest, reply: FastifyReply) => {
-    reply
-      .clearCookie('soma-token', { path: '/' })
-      .send({ message: 'Logout realizado' })
-  })
+  app.post(
+    '/logout',
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      reply
+        .clearCookie('soma-token', { path: '/' })
+        .send({ message: 'Logout realizado' })
+    },
+  )
 
   // ── GET /me ───────────────────────────────────
   app.get(
@@ -181,7 +531,9 @@ export default async function authRoutes(app: FastifyInstance) {
 
       const isAdmin = role === 'superadmin' || role === 'support'
       const Model = isAdmin ? AdminUser : User
-      const user: any = await Model.findById(userId).select('-password_hash').lean()
+      const user: any = await Model.findById(userId)
+        .select('-password_hash')
+        .lean()
 
       if (!user) {
         return reply.status(404).send({ error: 'Usuario nao encontrado' })

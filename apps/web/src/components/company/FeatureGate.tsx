@@ -8,10 +8,24 @@ import { useAuthStore } from '@/store/authStore'
 interface FeatureGateProps {
   children: React.ReactNode
   feature: string
+  /**
+   * Minimum plan required:
+   * - 'pro' = Pro or Enterprise
+   * - 'enterprise' = Enterprise only
+   * Default: 'pro'
+   */
+  minPlan?: 'pro' | 'enterprise'
 }
 
-export function FeatureGate({ children, feature }: FeatureGateProps) {
+export function FeatureGate({
+  children,
+  feature,
+  minPlan = 'pro',
+}: FeatureGateProps) {
+  const user = useAuthStore((s) => s.user)
   const isPro = useAuthStore((s) => s.isPro)
+  const isEnterprise = useAuthStore((s) => s.isEnterprise)
+  const isAdmin = useAuthStore((s) => s.isAdmin)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -19,9 +33,24 @@ export function FeatureGate({ children, feature }: FeatureGateProps) {
   }, [])
 
   // Before hydration, always render children to avoid mismatch
-  if (!mounted || isPro()) {
+  if (!mounted) {
     return <>{children}</>
   }
+
+  // Admin always has access
+  if (isAdmin()) {
+    return <>{children}</>
+  }
+
+  // Check plan level
+  const hasRequiredPlan =
+    minPlan === 'enterprise' ? isEnterprise() : isPro()
+
+  if (hasRequiredPlan) {
+    return <>{children}</>
+  }
+
+  const planLabel = minPlan === 'enterprise' ? 'Enterprise' : 'Pro'
 
   return (
     <div className="relative">
@@ -37,14 +66,15 @@ export function FeatureGate({ children, feature }: FeatureGateProps) {
             <Lock className="w-7 h-7 text-primary-400" />
           </div>
           <h3 className="text-lg font-semibold text-white mb-2">
-            Recurso Pro
+            Recurso {planLabel}
           </h3>
           <p className="text-sm text-gray-400 mb-6">
-            {feature} esta disponivel no plano Pro. Faca upgrade para desbloquear todos os recursos.
+            {feature} esta disponivel no plano {planLabel}. Faca upgrade
+            para desbloquear todos os recursos.
           </p>
           <Button className="gap-2">
             <Sparkles className="w-4 h-4" />
-            Upgrade para Pro
+            Upgrade para {planLabel}
           </Button>
         </div>
       </div>

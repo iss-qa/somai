@@ -12,6 +12,8 @@ export interface User {
   companyName?: string
   plan?: 'starter' | 'pro' | 'enterprise'
   niche?: string
+  accessEnabled?: boolean
+  trialExpiresAt?: string | null
 }
 
 interface AuthState {
@@ -20,6 +22,8 @@ interface AuthState {
   clearUser: () => void
   isAdmin: () => boolean
   isPro: () => boolean
+  isEnterprise: () => boolean
+  hasAccess: () => boolean
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -36,9 +40,26 @@ export const useAuthStore = create<AuthState>()(
         const { user } = get()
         return user?.plan === 'pro' || user?.plan === 'enterprise'
       },
+      isEnterprise: () => {
+        const { user } = get()
+        return user?.plan === 'enterprise'
+      },
+      hasAccess: () => {
+        const { user } = get()
+        if (!user) return false
+        // Admin always has access
+        if (user.role === 'superadmin' || user.role === 'support') return true
+        // Check access_enabled
+        if (user.accessEnabled) return true
+        // Check trial period
+        if (user.trialExpiresAt) {
+          return new Date(user.trialExpiresAt) > new Date()
+        }
+        return false
+      },
     }),
     {
       name: 'soma-auth',
-    }
-  )
+    },
+  ),
 )

@@ -31,6 +31,8 @@ export interface ICompany extends Document {
   setup_paid: boolean
   setup_paid_at: Date | null
   setup_amount: number
+  trial_days: number
+  trial_expires_at: Date | null
   billing: ICompanyBilling
   notes: string
   createdAt: Date
@@ -50,12 +52,32 @@ const CompanySchema = new Schema<ICompany>(
         'cosmeticos',
         'mercearia',
         'calcados',
+        'restaurante',
+        'confeitaria',
+        'hamburgueria',
+        'cafeteria',
+        'suplementos',
+        'estetica',
+        'odontologia',
+        'academia',
+        'salao_beleza',
+        'barbearia',
+        'imobiliaria',
+        'educacao',
+        'arquitetura',
+        'contabilidade',
+        'viagens',
+        'eletronicos',
+        'decoracao',
+        'papelaria',
+        'automotivo',
+        'construcao',
         'outro',
       ],
       required: true,
     },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
+    city: { type: String, default: '' },
+    state: { type: String, default: '' },
     responsible_name: { type: String, required: true },
     whatsapp: { type: String, required: true },
     email: { type: String, required: true },
@@ -74,6 +96,8 @@ const CompanySchema = new Schema<ICompany>(
     setup_paid: { type: Boolean, default: false },
     setup_paid_at: { type: Date, default: null },
     setup_amount: { type: Number, default: 0 },
+    trial_days: { type: Number, default: 3 },
+    trial_expires_at: { type: Date, default: null },
     billing: {
       monthly_amount: { type: Number, default: 0 },
       due_day: { type: Number, default: 10 },
@@ -85,10 +109,12 @@ const CompanySchema = new Schema<ICompany>(
         enum: ['paid', 'pending', 'overdue'],
         default: 'pending',
       },
+      setup_charge_id: { type: String, default: '' },
+      subscription_id: { type: String, default: '' },
     },
     notes: { type: String, default: '' },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
 CompanySchema.index({ status: 1 })

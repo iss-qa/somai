@@ -7,6 +7,12 @@ export default async function companiesRoutes(app: FastifyInstance) {
   // All routes require auth
   app.addHook('preHandler', authenticate)
 
+  // ── GET /plans — List available plans ──────────
+  app.get('/plans', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const plans = await Plan.find({ active: true }).sort({ monthly_price: 1 }).lean()
+    return reply.send(plans)
+  })
+
   // ── GET / ─────────────────────────────────────
   app.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     const { role, companyId } = request.user!

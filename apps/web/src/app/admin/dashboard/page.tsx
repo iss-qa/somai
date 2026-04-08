@@ -95,7 +95,8 @@ export default function AdminDashboardPage() {
     blocked: 0,
     setupPending: 0,
   }
-  const totalCompanies = dist.active + dist.trial + dist.blocked + dist.setupPending || 1
+  const totalCompanies = dist.active + dist.trial + dist.blocked + dist.setupPending
+  const totalForPercent = totalCompanies || 1
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -185,25 +186,25 @@ export default function AdminDashboardPage() {
                 {dist.active > 0 && (
                   <div
                     className="bg-emerald-500 transition-all"
-                    style={{ width: `${(dist.active / totalCompanies) * 100}%` }}
+                    style={{ width: `${(dist.active / totalForPercent) * 100}%` }}
                   />
                 )}
                 {dist.trial > 0 && (
                   <div
                     className="bg-blue-500 transition-all"
-                    style={{ width: `${(dist.trial / totalCompanies) * 100}%` }}
+                    style={{ width: `${(dist.trial / totalForPercent) * 100}%` }}
                   />
                 )}
                 {dist.setupPending > 0 && (
                   <div
                     className="bg-amber-500 transition-all"
-                    style={{ width: `${(dist.setupPending / totalCompanies) * 100}%` }}
+                    style={{ width: `${(dist.setupPending / totalForPercent) * 100}%` }}
                   />
                 )}
                 {dist.blocked > 0 && (
                   <div
                     className="bg-red-500 transition-all"
-                    style={{ width: `${(dist.blocked / totalCompanies) * 100}%` }}
+                    style={{ width: `${(dist.blocked / totalForPercent) * 100}%` }}
                   />
                 )}
               </div>
@@ -232,12 +233,12 @@ export default function AdminDashboardPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-500">Total de parceiros</p>
-                  <p className="text-xl font-bold text-white">{totalCompanies}</p>
+                  <p className="text-xl font-bold text-white">{totalCompanies || 0}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Taxa de atividade</p>
                   <p className="text-xl font-bold text-emerald-400">
-                    {Math.round((dist.active / totalCompanies) * 100)}%
+                    {Math.round((dist.active / totalForPercent) * 100)}%
                   </p>
                 </div>
               </div>

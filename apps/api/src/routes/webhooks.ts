@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { Integration } from '@soma-ai/db'
+import { Company, Integration, Notification } from '@soma-ai/db'
 import { EncryptionService } from '../services/encryption.service'
+import { EvolutionService } from '../services/evolution.service'
 
 export default async function webhooksRoutes(app: FastifyInstance) {
   // ── GET /meta/callback ────────────────────────
@@ -178,6 +179,96 @@ export default async function webhooksRoutes(app: FastifyInstance) {
         return reply.send({ received: true })
       } catch (err) {
         console.error('[EvolutionWebhook] Error:', err)
+        return reply.status(500).send({ error: 'Erro ao processar webhook' })
+      }
+    },
+  )
+
+  // ── GET /openpix — Webhook validation (OpenPix sends GET to verify) ──
+  app.get(
+    '/openpix',
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      return reply.send({ status: 'ok' })
+    },
+  )
+
+  // ── POST /openpix — OpenPix payment webhook ───
+  // Called by OpenPix when a charge is paid (OPENPIX:CHARGE_COMPLETED)
+  app.post(
+    '/openpix',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const body = request.body as any
+      const event = body?.event
+
+      console.log('[OpenPixWebhook] Event:', event, JSON.stringify(body?.charge?.correlationID || ''))
+
+      if (!event) {
+        return reply.status(400).send({ error: 'Payload invalido' })
+      }
+
+      try {
+        if (event === 'OPENPIX:CHARGE_COMPLETED') {
+          const charge = body?.charge || body?.pix?.[0]?.charge || {}
+          const correlationID = charge.correlationID || body?.pix?.[0]?.charge?.correlationID
+
+          if (!correlationID) {
+            console.warn('[OpenPixWebhook] No correlationID in payload')
+            return reply.send({ received: true })
+          }
+
+          console.log('[OpenPixWebhook] Charge COMPLETED:', correlationID)
+
+          // Find the company that has this charge
+          const company: any = await Company.findOne({
+            'billing.setup_charge_id': correlationID,
+          }).lean()
+
+          if (company) {
+            console.log('[OpenPixWebhook] Found company:', company.name)
+
+            // Mark setup as paid, enable access, set active
+            await Company.findByIdAndUpdate(company._id, {
+              setup_paid: true,
+              setup_paid_at: new Date(),
+              access_enabled: true,
+              status: 'active',
+              'billing.status': 'paid',
+            })
+
+            // Notify
+            await Notification.create({
+              target: 'admin',
+              type: 'payment_received',
+              title: 'Pagamento recebido!',
+              message: `Setup de ${company.name} pago via PIX`,
+              action_url: `/admin/companies/${company._id}`,
+              read: false,
+            })
+
+            // Send WhatsApp confirmation
+            try {
+              const instanceName = process.env.EVOLUTION_INSTANCE
+              if (instanceName && company.whatsapp) {
+                const phone = company.whatsapp.replace(/\D/g, '')
+                await EvolutionService.sendText(
+                  instanceName,
+                  phone.startsWith('55') ? phone : `55${phone}`,
+                  `Ola ${company.responsible_name}! Seu pagamento de setup do Soma.ai foi confirmado com sucesso! Seu acesso ja esta liberado. Acesse o painel e comece a criar conteudo com IA.`,
+                )
+              }
+            } catch (err) {
+              console.warn('[OpenPixWebhook] WhatsApp notify failed:', err)
+            }
+
+            console.log('[OpenPixWebhook] Company updated: access enabled, status active')
+          } else {
+            console.log('[OpenPixWebhook] No company found for correlationID:', correlationID)
+          }
+        }
+
+        return reply.send({ received: true })
+      } catch (err) {
+        console.error('[OpenPixWebhook] Error:', err)
         return reply.status(500).send({ error: 'Erro ao processar webhook' })
       }
     },

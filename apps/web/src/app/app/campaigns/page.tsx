@@ -298,7 +298,7 @@ function CampaignsContent() {
 
 export default function CampaignsPage() {
   return (
-    <FeatureGate feature="Campanhas de marketing">
+    <FeatureGate feature="Campanhas de marketing" minPlan="enterprise">
       <CampaignsContent />
     </FeatureGate>
   )

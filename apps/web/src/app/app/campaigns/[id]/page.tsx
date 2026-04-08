@@ -461,7 +461,7 @@ function MetricRow({
 
 export default function CampaignDetailPage() {
   return (
-    <FeatureGate feature="Campanhas de marketing">
+    <FeatureGate feature="Campanhas de marketing" minPlan="enterprise">
       <CampaignDashboardContent />
     </FeatureGate>
   )

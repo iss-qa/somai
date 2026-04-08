@@ -5,9 +5,25 @@ import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { StatusBadge } from '@/components/admin/StatusBadge'
 import { api } from '@/lib/api'
-import { formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import {
   ArrowLeft,
@@ -26,6 +42,15 @@ import {
   Mail,
   Calendar,
   Shield,
+  QrCode,
+  Receipt,
+  RefreshCw,
+  ExternalLink,
+  Copy,
+  Repeat,
+  Trash2,
+  Clock,
+  MessageCircle,
 } from 'lucide-react'
 
 interface CompanyPlan {
@@ -33,6 +58,7 @@ interface CompanyPlan {
   slug: string
   name: string
   monthly_price: number
+  setup_price: number
 }
 
 interface CompanyBilling {
@@ -63,6 +89,8 @@ interface CompanyData {
   setup_paid_at: string | null
   setup_amount: number
   billing: CompanyBilling
+  trial_days: number
+  trial_expires_at: string | null
   notes: string
   createdAt: string
   updatedAt: string
@@ -110,6 +138,126 @@ export default function CompanyDetailPage() {
     finally { setActing(false) }
   }
 
+  async function handleEnableAccess() {
+    if (!company) return
+    setActing(true)
+    try {
+      await api.put(`/api/companies/${company._id}`, {
+        access_enabled: true,
+        status: 'active',
+      })
+      toast.success('Acesso liberado!')
+      loadCompany()
+    } catch { toast.error('Erro ao liberar acesso') }
+    finally { setActing(false) }
+  }
+
+  // ── Edit modal ────────────────────────────────
+  const [editOpen, setEditOpen] = useState(false)
+  const [editData, setEditData] = useState<Record<string, any>>({})
+  const [editSaving, setEditSaving] = useState(false)
+  const [plans, setPlans] = useState<any[]>([])
+
+  useEffect(() => {
+    if (company) {
+      setEditData({
+        name: company.name,
+        responsible_name: company.responsible_name,
+        whatsapp: company.whatsapp,
+        email: company.email,
+        niche: company.niche,
+        city: company.city,
+        state: company.state,
+        plan_slug: company.plan_id?.slug || 'starter',
+        plan_id: company.plan_id?._id || '',
+        setup_amount: company.setup_amount || company.plan_id?.setup_price || 297,
+        monthly_amount: company.billing?.monthly_amount || 0,
+        due_day: company.billing?.due_day || 10,
+        trial_days: company.trial_days || 3,
+        notes: company.notes || '',
+      })
+    }
+  }, [company])
+
+  // Plans — try to load from API, fallback to constants
+  useEffect(() => {
+    async function loadPlans() {
+      try {
+        const data = await api.get<any[]>('/api/companies/plans')
+        if (Array.isArray(data) && data.length > 0) {
+          setPlans(data)
+          return
+        }
+      } catch { /* fallback */ }
+      setPlans([
+        { _id: '', slug: 'starter', name: 'Starter', setup_price: 297, monthly_price: 39.9 },
+        { _id: '', slug: 'pro', name: 'Pro', setup_price: 497, monthly_price: 69.9 },
+        { _id: '', slug: 'enterprise', name: 'Enterprise', setup_price: 720, monthly_price: 89.9 },
+      ])
+    }
+    loadPlans()
+  }, [])
+
+  async function handleSaveEdit() {
+    if (!company) return
+    setEditSaving(true)
+    try {
+      // Find the real plan_id from slug
+      const selectedPlan = plans.find((p) => p.slug === editData.plan_slug)
+
+      const update: Record<string, any> = {
+        name: editData.name,
+        responsible_name: editData.responsible_name,
+        whatsapp: editData.whatsapp,
+        email: editData.email,
+        niche: editData.niche,
+        city: editData.city,
+        state: editData.state,
+        setup_amount: editData.setup_amount,
+        trial_days: editData.trial_days,
+        notes: editData.notes,
+        billing: {
+          monthly_amount: editData.monthly_amount,
+          due_day: editData.due_day,
+          status: company.billing?.status || 'pending',
+          last_paid_at: company.billing?.last_paid_at || null,
+          next_due_at: company.billing?.next_due_at || null,
+          overdue_days: company.billing?.overdue_days || 0,
+          setup_charge_id: (company.billing as any)?.setup_charge_id || '',
+          subscription_id: (company.billing as any)?.subscription_id || '',
+        },
+      }
+      if (selectedPlan?._id) {
+        update.plan_id = selectedPlan._id
+      }
+      await api.put(`/api/companies/${company._id}`, update)
+      toast.success('Empresa atualizada!')
+      setEditOpen(false)
+      loadCompany()
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  function updateEdit(key: string, value: any) {
+    setEditData((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function onPlanChange(slug: string) {
+    const plan = plans.find((p) => p.slug === slug)
+    if (plan) {
+      setEditData((prev) => ({
+        ...prev,
+        plan_slug: slug,
+        plan_id: plan._id,
+        setup_amount: plan.setup_price,
+        monthly_amount: plan.monthly_price,
+      }))
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -151,7 +299,13 @@ export default function CompanyDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
+          {!company.access_enabled && (
+            <Button size="sm" className="gap-2" onClick={handleEnableAccess} disabled={acting}>
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Liberar Acesso</span>
+            </Button>
+          )}
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setEditOpen(true)}>
             <Pencil className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Editar</span>
           </Button>
@@ -213,10 +367,8 @@ export default function CompanyDetailPage() {
               <span className="text-sm text-gray-400">Setup</span>
               <div className="flex items-center gap-1.5">
                 <span className="text-sm text-gray-300">{formatCurrency(company.setup_amount)}</span>
-                {company.setup_paid ? (
+                {company.setup_paid && (
                   <CheckCircle className="w-4 h-4 text-emerald-400" />
-                ) : (
-                  <XCircle className="w-4 h-4 text-red-400" />
                 )}
               </div>
             </div>
@@ -260,6 +412,13 @@ export default function CompanyDetailPage() {
               <span className="text-sm text-gray-400">Status</span>
               <StatusBadge status={company.status} />
             </div>
+            {/* Trial countdown */}
+            {company.trial_expires_at && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">Trial</span>
+                <AdminTrialBadge expiresAt={company.trial_expires_at} days={company.trial_days} />
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Slug</span>
               <code className="text-xs text-gray-400 bg-brand-surface px-2 py-0.5 rounded">
@@ -290,7 +449,498 @@ export default function CompanyDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ─── Billing / OpenPix ────────────────── */}
+      <BillingSection companyId={company._id} company={company} onRefresh={loadCompany} />
+
+      {/* ─── Edit Modal ──────────────────────── */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar empresa</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-gray-400">Nome da empresa</Label>
+                <Input value={editData.name || ''} onChange={(e) => updateEdit('name', e.target.value)} className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-400">Responsavel</Label>
+                <Input value={editData.responsible_name || ''} onChange={(e) => updateEdit('responsible_name', e.target.value)} className="mt-1" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-gray-400">WhatsApp</Label>
+                <Input value={editData.whatsapp || ''} onChange={(e) => updateEdit('whatsapp', e.target.value)} className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-400">Email</Label>
+                <Input value={editData.email || ''} onChange={(e) => updateEdit('email', e.target.value)} className="mt-1" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs text-gray-400">Cidade</Label>
+                <Input value={editData.city || ''} onChange={(e) => updateEdit('city', e.target.value)} className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-400">Estado</Label>
+                <Input value={editData.state || ''} onChange={(e) => updateEdit('state', e.target.value)} className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-400">Nicho</Label>
+                <Input value={editData.niche || ''} onChange={(e) => updateEdit('niche', e.target.value)} className="mt-1" />
+              </div>
+            </div>
+
+            <div className="border-t border-brand-border pt-4">
+              <p className="text-sm font-medium text-white mb-3">Plano e Cobranca</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-gray-400">Plano</Label>
+                  <Select value={editData.plan_slug || 'starter'} onValueChange={onPlanChange}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Selecionar plano" /></SelectTrigger>
+                    <SelectContent>
+                      {plans.map((p) => (
+                        <SelectItem key={p.slug} value={p.slug}>
+                          {p.name} — {formatCurrency(p.monthly_price)}/mes
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-400">Valor do Setup (R$)</Label>
+                  <Input type="number" value={editData.setup_amount || ''} onChange={(e) => updateEdit('setup_amount', Number(e.target.value))} className="mt-1" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <Label className="text-xs text-gray-400">Mensalidade (R$)</Label>
+                  <Input type="number" value={editData.monthly_amount || ''} onChange={(e) => updateEdit('monthly_amount', Number(e.target.value))} className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-400">Dia da cobranca</Label>
+                  <Input type="number" value={editData.due_day || ''} onChange={(e) => updateEdit('due_day', Number(e.target.value))} min={1} max={27} className="mt-1" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <Label className="text-xs text-gray-400">Trial gratuito</Label>
+                <div className="flex gap-2 mt-1">
+                  {[3, 7].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => updateEdit('trial_days', d)}
+                      className={cn(
+                        'flex-1 py-2 rounded-lg text-sm font-medium border transition-all',
+                        editData.trial_days === d
+                          ? 'border-primary-500 bg-primary-500/10 text-primary-300'
+                          : 'border-brand-border text-gray-400 hover:border-gray-600',
+                      )}
+                    >
+                      {d} dias
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs text-gray-400">Observacoes</Label>
+              <Input value={editData.notes || ''} onChange={(e) => updateEdit('notes', e.target.value)} className="mt-1" />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setEditOpen(false)}>Cancelar</Button>
+              <Button className="flex-1" onClick={handleSaveEdit} disabled={editSaving}>
+                {editSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+// ─── Billing Section ────────────────────────────
+
+function BillingSection({
+  companyId,
+  company,
+  onRefresh,
+}: {
+  companyId: string
+  company: CompanyData
+  onRefresh: () => void
+}) {
+  const [setupLoading, setSetupLoading] = useState(false)
+  const [subLoading, setSubLoading] = useState(false)
+  const [setupCharge, setSetupCharge] = useState<any>(null)
+  const [subscription, setSubscription] = useState<any>(null)
+  const [showSubForm, setShowSubForm] = useState(false)
+  const [subDay, setSubDay] = useState(company.billing?.due_day || 10)
+  const [subValue, setSubValue] = useState(company.billing?.monthly_amount || 39.9)
+  const [checkingSetup, setCheckingSetup] = useState(false)
+  const [checkingSub, setCheckingSub] = useState(false)
+
+  // Load existing charges on mount
+  useEffect(() => {
+    loadSetupStatus()
+    loadSubscriptionStatus()
+  }, [companyId])
+
+  async function loadSetupStatus() {
+    setCheckingSetup(true)
+    try {
+      const data = await api.get(`/api/billing/setup-charge/${companyId}`)
+      if (data.charge) setSetupCharge(data.charge)
+    } catch { /* ignore */ }
+    finally { setCheckingSetup(false) }
+  }
+
+  async function loadSubscriptionStatus() {
+    setCheckingSub(true)
+    try {
+      const data = await api.get(`/api/billing/subscription/${companyId}`)
+      if (data.subscription) setSubscription(data.subscription)
+    } catch { /* ignore */ }
+    finally { setCheckingSub(false) }
+  }
+
+  async function handleCreateSetupCharge() {
+    setSetupLoading(true)
+    try {
+      const data = await api.post('/api/billing/setup-charge', {
+        company_id: companyId,
+      })
+      setSetupCharge(data.charge)
+      toast.success('Cobranca PIX de setup gerada!')
+      onRefresh()
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao gerar cobranca')
+    } finally {
+      setSetupLoading(false)
+    }
+  }
+
+  async function handleCreateSubscription() {
+    setSubLoading(true)
+    try {
+      const data = await api.post('/api/billing/subscription', {
+        company_id: companyId,
+        value: Math.round(subValue * 100),
+        day_generate_charge: subDay,
+      })
+      setSubscription(data.subscription)
+      setShowSubForm(false)
+      toast.success('Assinatura recorrente criada!')
+      onRefresh()
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao criar assinatura')
+    } finally {
+      setSubLoading(false)
+    }
+  }
+
+  async function handleCancelSubscription() {
+    if (!confirm('Tem certeza que deseja cancelar a assinatura?')) return
+    setSubLoading(true)
+    try {
+      await api.delete(`/api/billing/subscription/${companyId}`)
+      setSubscription(null)
+      toast.success('Assinatura cancelada')
+      onRefresh()
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao cancelar')
+    } finally {
+      setSubLoading(false)
+    }
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text)
+    toast.success('Copiado!')
+  }
+
+  return (
+    <div className="grid md:grid-cols-2 gap-4">
+      {/* ── Setup Fee (one-time) ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <QrCode className="w-4 h-4 text-primary-400" />
+            Cobranca de Setup (PIX)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {checkingSetup ? (
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Verificando...
+            </div>
+          ) : setupCharge ? (
+            <div className="space-y-4">
+              {/* Status banner */}
+              {setupCharge.status === 'COMPLETED' ? (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                  <div>
+                    <p className="text-sm font-medium text-emerald-300">Pagamento confirmado!</p>
+                    <p className="text-xs text-emerald-400/70">Setup pago via PIX</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-yellow-400 animate-pulse" />
+                  <div>
+                    <p className="text-sm font-medium text-yellow-300">Aguardando pagamento</p>
+                    <p className="text-xs text-yellow-400/70">Envie o QR Code ao cliente</p>
+                  </div>
+                </div>
+              )}
+
+              {/* QR Code */}
+              {setupCharge.qrCodeImage && setupCharge.status !== 'COMPLETED' && (
+                <div className="flex justify-center p-4 bg-white rounded-xl">
+                  <img src={setupCharge.qrCodeImage} alt="QR Code PIX" className="w-52 h-52" />
+                </div>
+              )}
+
+              {/* Info rows */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">Status</span>
+                  <Badge variant={setupCharge.status === 'COMPLETED' ? 'success' : 'warning'}>
+                    {setupCharge.status === 'COMPLETED' ? 'Pago' : 'Aguardando'}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">Valor</span>
+                  <span className="text-sm font-bold text-white">{formatCurrency((setupCharge.value || 0) / 100)}</span>
+                </div>
+                {setupCharge.identifier && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-400">Identificador</span>
+                    <code className="text-xs text-gray-500">{setupCharge.identifier}</code>
+                  </div>
+                )}
+                {setupCharge.correlationID && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-400">Correlation ID</span>
+                    <code className="text-xs text-gray-500">{setupCharge.correlationID.slice(0, 20)}...</code>
+                  </div>
+                )}
+              </div>
+
+              {/* PIX Copia e Cola */}
+              {setupCharge.brCode && setupCharge.status !== 'COMPLETED' && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-gray-500 font-medium">PIX Copia e Cola</p>
+                  <div className="flex gap-2">
+                    <code className="flex-1 text-xs text-gray-400 bg-brand-surface p-2.5 rounded-lg overflow-hidden text-ellipsis whitespace-nowrap">{setupCharge.brCode}</code>
+                    <Button size="icon" variant="outline" className="flex-shrink-0 h-9 w-9" onClick={() => copyToClipboard(setupCharge.brCode)}>
+                      <Copy className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              {setupCharge.status !== 'COMPLETED' && (
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Copy QR Code link */}
+                  {setupCharge.qrCodeImage && (
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => copyToClipboard(setupCharge.qrCodeImage)}>
+                      <QrCode className="w-3.5 h-3.5" />
+                      Copiar QR Code
+                    </Button>
+                  )}
+
+                  {/* Payment link */}
+                  {setupCharge.paymentLinkUrl && (
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs" asChild>
+                      <a href={setupCharge.paymentLinkUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Link pagamento
+                      </a>
+                    </Button>
+                  )}
+
+                  {/* Share via WhatsApp */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs col-span-2 text-green-400 border-green-500/30 hover:bg-green-500/10"
+                    onClick={() => {
+                      const phone = company.whatsapp?.replace(/\D/g, '') || ''
+                      const text = encodeURIComponent(
+                        `Ola ${company.responsible_name}! Segue o link para pagamento do setup do Soma.ai:\n\n` +
+                        `Valor: R$ ${((setupCharge.value || 0) / 100).toFixed(2).replace('.', ',')}\n` +
+                        `Link: ${setupCharge.paymentLinkUrl || ''}\n\n` +
+                        `Ou copie o codigo PIX:\n${setupCharge.brCode || ''}`
+                      )
+                      window.open(`https://wa.me/${phone.startsWith('55') ? phone : '55' + phone}?text=${text}`, '_blank')
+                    }}
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Enviar via WhatsApp
+                  </Button>
+                </div>
+              )}
+
+              {/* Refresh */}
+              <Button variant="outline" size="sm" className="w-full gap-2" onClick={async () => { await loadSetupStatus(); onRefresh() }}>
+                <RefreshCw className="w-3.5 h-3.5" />
+                Atualizar status
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-400">
+                Gere uma cobranca PIX unica para a taxa de setup da empresa.
+              </p>
+              <div className="p-3 rounded-lg bg-brand-surface border border-brand-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">Plano</span>
+                  <span className="text-sm text-white">{company.plan_id?.name || 'Starter'}</span>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-sm text-gray-400">Valor setup</span>
+                  <span className="text-lg font-bold text-primary-400">
+                    {formatCurrency(company.plan_id?.setup_price || company.setup_amount || 297)}
+                  </span>
+                </div>
+              </div>
+              <Button className="w-full gap-2" onClick={handleCreateSetupCharge} disabled={setupLoading}>
+                {setupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                Gerar PIX de Setup
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Subscription (recurring) ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Repeat className="w-4 h-4 text-primary-400" />
+            Assinatura Mensal
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {checkingSub ? (
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Verificando...
+            </div>
+          ) : subscription ? (
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-medium text-emerald-300">Assinatura ativa</span>
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Valor mensal</span>
+                    <span className="text-white font-medium">{formatCurrency((subscription.value || 0) / 100)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Dia da cobranca</span>
+                    <span className="text-white">Dia {subscription.dayGenerateCharge || '-'}</span>
+                  </div>
+                  {subscription.customer && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Cliente</span>
+                      <span className="text-white">{subscription.customer.name}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">ID</span>
+                    <code className="text-xs text-gray-500">{subscription.globalID?.slice(0, 20)}...</code>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={loadSubscriptionStatus}>
+                  <RefreshCw className="w-3 h-3" />
+                  Atualizar
+                </Button>
+                <Button variant="destructive" size="sm" className="flex-1 gap-1.5" onClick={handleCancelSubscription} disabled={subLoading}>
+                  <Trash2 className="w-3 h-3" />
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-300">Ativar assinatura recorrente</p>
+                  <p className="text-xs text-gray-500">Cobranca PIX automatica todo mes</p>
+                </div>
+                <Switch checked={showSubForm} onCheckedChange={setShowSubForm} />
+              </div>
+
+              {showSubForm && (
+                <div className="space-y-3 p-3 rounded-lg bg-brand-surface border border-brand-border animate-form-fade-in">
+                  <div>
+                    <Label className="text-gray-400 text-xs">Valor mensal (R$)</Label>
+                    <Input type="number" value={subValue} onChange={(e) => setSubValue(Number(e.target.value))} min={1} step={0.01} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-gray-400 text-xs">Dia da cobranca (1-27)</Label>
+                    <Input type="number" value={subDay} onChange={(e) => setSubDay(Number(e.target.value))} min={1} max={27} className="mt-1" />
+                  </div>
+                  <Button className="w-full gap-2" onClick={handleCreateSubscription} disabled={subLoading}>
+                    {subLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Repeat className="w-4 h-4" />}
+                    Criar Assinatura
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function AdminTrialBadge({ expiresAt, days }: { expiresAt: string; days: number }) {
+  const [text, setText] = useState('')
+  const [expired, setExpired] = useState(false)
+
+  useEffect(() => {
+    function update() {
+      const diff = new Date(expiresAt).getTime() - Date.now()
+      if (diff <= 0) {
+        setText('Expirado')
+        setExpired(true)
+        return
+      }
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      setText(d > 0 ? `${d}d ${h}h restantes` : `${h}h restantes`)
+      setExpired(false)
+    }
+    update()
+    const i = setInterval(update, 60000)
+    return () => clearInterval(i)
+  }, [expiresAt])
+
+  return (
+    <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', expired ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/15 text-yellow-400')}>
+      {days} dias — {text}
+    </span>
   )
 }
 

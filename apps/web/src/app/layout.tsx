@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 export const metadata: Metadata = {
   title: 'Soma.ai - Marketing Automatizado',
   description: 'Plataforma de marketing automatizado com IA para pequenos negócios',
-  icons: { icon: '/favicon.ico' },
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({

@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { AccessGate } from '@/components/company/AccessGate'
 import {
   LayoutDashboard,
   Sparkles,
@@ -238,7 +239,9 @@ export default function CompanyLayout({
 
         {/* Page content */}
         <main className="p-4 lg:p-6 pb-24 lg:pb-6">
-          {children}
+          <AccessGate>
+            {children}
+          </AccessGate>
         </main>
       </div>
 
