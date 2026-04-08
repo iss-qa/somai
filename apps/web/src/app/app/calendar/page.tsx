@@ -276,8 +276,13 @@ function CalendarPageInner() {
 
   // ── Day click ──────────────────────────────
   const handleDayClick = (day: number) => {
-    setSelectedDay(day)
-    setShowDayModal(true)
+    const dayPosts = getPostsForDay(day)
+    if (dayPosts.length === 1) {
+      handlePostClick(dayPosts[0])
+    } else {
+      setSelectedDay(day)
+      setShowDayModal(true)
+    }
   }
 
   // ── Post click (details) ───────────────────
@@ -588,7 +593,11 @@ function CalendarPageInner() {
                                   return (
                                     <div
                                       key={idx}
-                                      className="text-[10px] px-1.5 py-0.5 rounded truncate"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handlePostClick(post)
+                                      }}
+                                      className="text-[10px] px-1.5 py-0.5 rounded truncate hover:brightness-125 transition-[filter]"
                                       style={{
                                         backgroundColor: isInstagram ? 'rgba(236,72,153,0.15)' : 'rgba(59,130,246,0.15)',
                                         color: isInstagram ? '#f472b6' : '#60a5fa',

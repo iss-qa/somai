@@ -63,10 +63,15 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateY(12px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
+        dialogIn: {
+          from: { opacity: '0', transform: 'translateX(-50%) translateY(calc(-50% + 8px))' },
+          to: { opacity: '1', transform: 'translateX(-50%) translateY(-50%)' },
+        },
       },
       animation: {
         fadeIn: 'fadeIn 0.3s ease-out',
         slideIn: 'slideIn 0.3s ease-out',
+        'dialog-in': 'dialogIn 0.2s ease-out',
         slideInLeft: 'slideInLeft 0.3s ease-out',
         shimmer: 'shimmer 2s infinite',
         'panel-slide-right': 'panelSlideRight 0.5s cubic-bezier(0.16,1,0.3,1)',
