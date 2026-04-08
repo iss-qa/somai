@@ -166,6 +166,7 @@ function CalendarPageInner() {
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null)
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
   const [removing, setRemoving] = useState(false)
+  const [editingQueueId, setEditingQueueId] = useState<string | null>(null)
 
   // Data state
   const [posts, setPosts] = useState<ScheduledPost[]>([])
@@ -285,14 +286,31 @@ function CalendarPageInner() {
     setShowPostDetail(true)
   }
 
-  // ── Edit post (go to card generate with edit param) ───
+  // ── Edit post (open schedule modal pre-filled) ───
   const handleEditPost = () => {
     if (!selectedPost) return
     const cardId = typeof selectedPost.card_id === 'string'
       ? selectedPost.card_id
       : selectedPost.card_id._id
+
+    const dt = new Date(selectedPost.scheduled_at)
+    const dateStr = `${dt.getFullYear()}-${padZero(dt.getMonth() + 1)}-${padZero(dt.getDate())}`
+    const timeStr = `${padZero(dt.getHours())}:${padZero(dt.getMinutes())}`
+
+    // Find platform option from post_type
+    const platformOpt = PLATFORM_OPTIONS.find((p) => p.postType === selectedPost.post_type)
+
+    setEditingQueueId(selectedPost._id)
+    setFormCardId(cardId)
+    setFormDate(dateStr)
+    setFormTime(timeStr)
+    setFormPlatform(platformOpt?.value || '')
+    setFormCaption(selectedPost.caption || '')
+    setFormHashtags((selectedPost.hashtags || []).join(' '))
+    setFormRecurring(false)
     setShowPostDetail(false)
-    router.push(`/app/cards/generate?edit=${cardId}`)
+    if (!approvedCards.length) fetchApprovedCards()
+    setShowScheduleModal(true)
   }
 
   // ── Remove post from queue ─────────────────
@@ -431,6 +449,12 @@ function CalendarPageInner() {
 
     setSubmitting(true)
     try {
+      // If editing, cancel the old queue item first
+      if (editingQueueId) {
+        await api.delete(`/api/post-queue/${editingQueueId}`)
+        setEditingQueueId(null)
+      }
+
       for (const dt of dates) {
         await api.post('/api/post-queue', {
           card_id: formCardId,
@@ -444,9 +468,11 @@ function CalendarPageInner() {
 
       const count = dates.length
       toast.success(
-        count > 1
-          ? `${count} postagens recorrentes agendadas!`
-          : 'Post agendado com sucesso!'
+        editingQueueId
+          ? 'Agendamento atualizado!'
+          : count > 1
+            ? `${count} postagens recorrentes agendadas!`
+            : 'Post agendado com sucesso!'
       )
       setShowScheduleModal(false)
       fetchPosts()
@@ -696,10 +722,10 @@ function CalendarPageInner() {
       </Dialog>
 
       {/* ── Schedule post modal ─────────────── */}
-      <Dialog open={showScheduleModal} onOpenChange={setShowScheduleModal}>
+      <Dialog open={showScheduleModal} onOpenChange={(open) => { setShowScheduleModal(open); if (!open) setEditingQueueId(null) }}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle>Agendar Card</DialogTitle>
+            <DialogTitle>{editingQueueId ? 'Editar Agendamento' : 'Agendar Card'}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -885,9 +911,11 @@ function CalendarPageInner() {
               ) : (
                 <>
                   <CalendarIcon className="w-4 h-4" />
-                  {formRecurring
-                    ? `Agendar ${recurrenceCount} postagens recorrentes`
-                    : 'Agendar'}
+                  {editingQueueId
+                    ? 'Salvar alterações'
+                    : formRecurring
+                      ? `Agendar ${recurrenceCount} postagens recorrentes`
+                      : 'Agendar'}
                 </>
               )}
             </Button>
@@ -1008,7 +1036,7 @@ function CalendarPageInner() {
                     onClick={handleEditPost}
                   >
                     <Pencil className="w-3.5 h-3.5" />
-                    Editar card
+                    Editar agendamento
                   </Button>
                   <Button
                     variant="destructive"
