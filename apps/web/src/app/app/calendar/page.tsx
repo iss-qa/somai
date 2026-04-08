@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +39,9 @@ import {
   Sparkles,
   Info,
   Repeat,
+  Pencil,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react'
 
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
@@ -151,6 +154,7 @@ function padZero(n: number): string {
 // ── Inner Component (uses useSearchParams) ─────
 function CalendarPageInner() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const cardFromUrl = searchParams.get('card')
 
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -159,6 +163,8 @@ function CalendarPageInner() {
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [showPostDetail, setShowPostDetail] = useState(false)
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null)
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
+  const [removing, setRemoving] = useState(false)
 
   // Data state
   const [posts, setPosts] = useState<ScheduledPost[]>([])
@@ -276,6 +282,33 @@ function CalendarPageInner() {
   const handlePostClick = (post: ScheduledPost) => {
     setSelectedPost(post)
     setShowPostDetail(true)
+  }
+
+  // ── Edit post (go to card generate with edit param) ───
+  const handleEditPost = () => {
+    if (!selectedPost) return
+    const cardId = typeof selectedPost.card_id === 'string'
+      ? selectedPost.card_id
+      : selectedPost.card_id._id
+    setShowPostDetail(false)
+    router.push(`/app/cards/generate?edit=${cardId}`)
+  }
+
+  // ── Remove post from queue ─────────────────
+  const handleRemovePost = async () => {
+    if (!selectedPost) return
+    setRemoving(true)
+    try {
+      await api.delete(`/api/post-queue/${selectedPost._id}`)
+      setPosts((prev) => prev.filter((p) => p._id !== selectedPost._id))
+      setShowRemoveConfirm(false)
+      setShowPostDetail(false)
+      toast.success('Agendamento removido da fila')
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao remover agendamento')
+    } finally {
+      setRemoving(false)
+    }
   }
 
   // ── Open schedule modal ────────────────────
@@ -963,8 +996,65 @@ function CalendarPageInner() {
                   </div>
                 </div>
               )}
+
+              {/* Actions — only for queued posts */}
+              {(selectedPost.status === 'queued') && (
+                <div className="flex gap-2 pt-2 border-t border-brand-border">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-2"
+                    onClick={handleEditPost}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Editar card
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="flex-1 gap-2"
+                    onClick={() => setShowRemoveConfirm(true)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Remover da fila
+                  </Button>
+                </div>
+              )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Remove confirmation modal ───────────── */}
+      <Dialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-500" />
+              Remover agendamento?
+            </DialogTitle>
+            <DialogDescription>
+              O post será removido da fila e o card voltará para "Aprovado". Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setShowRemoveConfirm(false)}
+              disabled={removing}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={handleRemovePost}
+              disabled={removing}
+            >
+              {removing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar remoção'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
