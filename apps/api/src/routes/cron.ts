@@ -5,11 +5,11 @@ import { MetaService } from '../services/meta.service'
 
 export default async function cronRoutes(app: FastifyInstance) {
   /**
-   * POST /api/cron/publish-due
-   * Called by Vercel Cron every minute.
+   * GET /api/cron/publish-due
+   * Called by cron-job.org every minute.
    * Finds all queued posts past their scheduled_at and publishes them.
    */
-  app.post(
+  app.get(
     '/publish-due',
     async (request: FastifyRequest, reply: FastifyReply) => {
       const secret = process.env.CRON_SECRET
