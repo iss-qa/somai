@@ -1,6 +1,7 @@
 {
   "version": 2,
   "installCommand": "sh install-vercel.sh",
+  "buildCommand": "echo 'bundle pre-built by esbuild'",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index.js" }
   ]
