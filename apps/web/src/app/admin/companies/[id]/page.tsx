@@ -193,9 +193,9 @@ export default function CompanyDetailPage() {
         }
       } catch { /* fallback */ }
       setPlans([
-        { _id: '', slug: 'starter', name: 'Starter', setup_price: 297, monthly_price: 39.9 },
-        { _id: '', slug: 'pro', name: 'Pro', setup_price: 497, monthly_price: 69.9 },
-        { _id: '', slug: 'enterprise', name: 'Enterprise', setup_price: 720, monthly_price: 89.9 },
+        { _id: '', slug: 'starter', name: 'Starter', setup_price: 297, monthly_price: 39.90 },
+        { _id: '', slug: 'pro', name: 'Pro', setup_price: 497, monthly_price: 69.90 },
+        { _id: '', slug: 'enterprise', name: 'Enterprise', setup_price: 720, monthly_price: 89.90 },
       ])
     }
     loadPlans()
@@ -221,7 +221,7 @@ export default function CompanyDetailPage() {
         trial_days: editData.trial_days,
         notes: editData.notes,
         billing: {
-          monthly_amount: editData.monthly_amount,
+          monthly_amount: selectedPlan?.monthly_price ?? editData.monthly_amount ?? 0,
           due_day: editData.due_day,
           status: company.billing?.status || 'pending',
           last_paid_at: company.billing?.last_paid_at || null,
@@ -460,11 +460,12 @@ export default function CompanyDetailPage() {
 
       {/* ─── Edit Modal ──────────────────────── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar empresa</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
+            {/* Row 1: Nome + Responsavel */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-400">Nome da empresa</Label>
@@ -476,12 +477,12 @@ export default function CompanyDetailPage() {
               </div>
             </div>
 
-            <div>
-              <Label className="text-xs text-gray-400">CPF/CNPJ</Label>
-              <Input value={editData.document || ''} onChange={(e) => updateEdit('document', e.target.value)} placeholder="000.000.000-00" className="mt-1" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+            {/* Row 2: CPF/CNPJ + WhatsApp + Email */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs text-gray-400">CPF/CNPJ</Label>
+                <Input value={editData.document || ''} onChange={(e) => updateEdit('document', e.target.value)} placeholder="000.000.000-00" className="mt-1" />
+              </div>
               <div>
                 <Label className="text-xs text-gray-400">WhatsApp</Label>
                 <Input value={editData.whatsapp || ''} onChange={(e) => updateEdit('whatsapp', e.target.value)} className="mt-1" />
@@ -492,6 +493,7 @@ export default function CompanyDetailPage() {
               </div>
             </div>
 
+            {/* Row 3: Cidade + Estado + Nicho */}
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs text-gray-400">Cidade</Label>
@@ -507,9 +509,10 @@ export default function CompanyDetailPage() {
               </div>
             </div>
 
+            {/* Plano e Cobranca */}
             <div className="border-t border-brand-border pt-4">
               <p className="text-sm font-medium text-white mb-3">Plano e Cobranca</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label className="text-xs text-gray-400">Plano</Label>
                   <Select value={editData.plan_slug || 'starter'} onValueChange={onPlanChange}>
@@ -525,13 +528,18 @@ export default function CompanyDetailPage() {
                 </div>
                 <div>
                   <Label className="text-xs text-gray-400">Valor do Setup (R$)</Label>
-                  <Input type="number" value={editData.setup_amount || ''} onChange={(e) => updateEdit('setup_amount', Number(e.target.value))} className="mt-1" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <div>
-                  <Label className="text-xs text-gray-400">Mensalidade (R$)</Label>
-                  <Input type="number" value={editData.monthly_amount || ''} onChange={(e) => updateEdit('monthly_amount', Number(e.target.value))} className="mt-1" />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editData.setup_amount ?? ''}
+                    onChange={(e) => updateEdit('setup_amount', Number(e.target.value))}
+                    onBlur={(e) => {
+                      const v = parseFloat(e.target.value)
+                      if (!isNaN(v)) updateEdit('setup_amount', parseFloat(v.toFixed(2)))
+                    }}
+                    className="mt-1"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs text-gray-400">Dia da cobranca</Label>

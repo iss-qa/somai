@@ -78,8 +78,12 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
       timestamp: a.createdAt || a.created_at,
     }))
 
-    const totalPartners =
-      activeCount + trialCount + setupPendingCount + blockedCount
+    // Trial companies — for CTA banner
+    const trialCompanies = await Company.find({ status: 'trial' })
+      .select('name responsible_name trial_expires_at trial_days plan_id whatsapp')
+      .populate('plan_id', 'name slug')
+      .sort({ trial_expires_at: 1 })
+      .lean()
 
     return reply.send({
       metrics: {
@@ -100,6 +104,15 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
         blocked: blockedCount,
       },
       totalPartners: activeCount + trialCount + setupPendingCount + pendingSubCount + blockedCount,
+      trialCompanies: trialCompanies.map((c: any) => ({
+        _id: String(c._id),
+        name: c.name,
+        responsible_name: c.responsible_name,
+        plan: c.plan_id?.name || 'Sem plano',
+        trial_expires_at: c.trial_expires_at,
+        trial_days: c.trial_days,
+        whatsapp: c.whatsapp,
+      })),
     })
   })
 

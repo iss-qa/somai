@@ -2,7 +2,6 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { Company, Integration, Schedule, Plan } from '@soma-ai/db'
 import { CompanyStatus } from '@soma-ai/shared'
 import { authenticate, adminOnly } from '../plugins/auth'
-import { ComunicacaoService } from '../services/comunicacao.service'
 
 export default async function companiesRoutes(app: FastifyInstance) {
   // All routes require auth
@@ -112,8 +111,9 @@ export default async function companiesRoutes(app: FastifyInstance) {
         weekly_slots: [],
       })
 
-      // Send welcome message via WhatsApp
+      // Send welcome message via WhatsApp (lazy import to avoid Redis dependency at route registration)
       try {
+        const { ComunicacaoService } = await import('../services/comunicacao.service')
         await ComunicacaoService.enviarBoasVindas(String(company._id))
       } catch (err) {
         console.warn('[companies] WhatsApp welcome message failed:', err)

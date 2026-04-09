@@ -22,8 +22,6 @@ import adminFinancialRoutes from './routes/admin/financial'
 import adminHealthRoutes from './routes/admin/health'
 import adminLogsRoutes from './routes/admin/logs'
 import adminAppLogsRoutes from './routes/admin/applogs'
-import adminComunicacaoRoutes from './routes/admin/comunicacao'
-import notificationRoutes from './routes/notifications'
 import billingRoutes from './routes/billing'
 import cronRoutes from './routes/cron'
 
@@ -69,8 +67,21 @@ export async function getApp() {
   await app.register(adminHealthRoutes, { prefix: '/api/admin/health' })
   await app.register(adminLogsRoutes, { prefix: '/api/admin/logs' })
   await app.register(adminAppLogsRoutes, { prefix: '/api/admin/applogs' })
-  await app.register(adminComunicacaoRoutes, { prefix: '/api/admin/comunicacao' })
-  await app.register(notificationRoutes, { prefix: '/api/notifications' })
+  // Comunicacao & Notifications — lazy loaded to avoid breaking server if Redis/models aren't ready
+  try {
+    const { default: adminComunicacaoRoutes } = await import('./routes/admin/comunicacao')
+    await app.register(adminComunicacaoRoutes, { prefix: '/api/admin/comunicacao' })
+  } catch (err) {
+    console.warn('[app] Failed to register comunicacao routes:', (err as Error).message)
+  }
+
+  try {
+    const { default: notificationRoutes } = await import('./routes/notifications')
+    await app.register(notificationRoutes, { prefix: '/api/notifications' })
+  } catch (err) {
+    console.warn('[app] Failed to register notification routes:', (err as Error).message)
+  }
+
   await app.register(billingRoutes, { prefix: '/api/billing' })
   await app.register(cronRoutes, { prefix: '/api/cron' })
 

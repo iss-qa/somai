@@ -6,6 +6,7 @@ import { AlertItem } from '@/components/admin/AlertItem'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { api } from '@/lib/api'
+import { useRouter } from 'next/navigation'
 import {
   Building2,
   DollarSign,
@@ -14,7 +15,22 @@ import {
   Send,
   Loader2,
   TrendingUp,
+  Timer,
+  Sparkles,
+  ArrowRight,
+  User,
+  Phone,
 } from 'lucide-react'
+
+interface TrialCompany {
+  _id: string
+  name: string
+  responsible_name: string
+  plan: string
+  trial_expires_at: string | null
+  trial_days: number
+  whatsapp: string
+}
 
 interface AdminDashboard {
   metrics: {
@@ -38,9 +54,22 @@ interface AdminDashboard {
     setupPending: number
     pendingSubscription: number
   }
+  trialCompanies?: TrialCompany[]
+}
+
+function trialTimeLeft(expiresAt: string | null): { text: string; expired: boolean; urgency: 'ok' | 'warning' | 'critical' } {
+  if (!expiresAt) return { text: 'Sem data', expired: false, urgency: 'ok' }
+  const diff = new Date(expiresAt).getTime() - Date.now()
+  if (diff <= 0) return { text: 'Expirado', expired: true, urgency: 'critical' }
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  if (days > 1) return { text: `${days} dias restantes`, expired: false, urgency: 'ok' }
+  if (days === 1) return { text: `1 dia e ${hours}h`, expired: false, urgency: 'warning' }
+  return { text: `${hours}h restantes`, expired: false, urgency: 'critical' }
 }
 
 export default function AdminDashboardPage() {
+  const router = useRouter()
   const [data, setData] = useState<AdminDashboard | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -67,6 +96,7 @@ export default function AdminDashboardPage() {
             setupPending: 0,
             pendingSubscription: 0,
           },
+          trialCompanies: [],
         })
       } finally {
         setLoading(false)
@@ -137,6 +167,87 @@ export default function AdminDashboardPage() {
           className="col-span-2 lg:col-span-1"
         />
       </div>
+
+      {/* ── Trial Companies Banner ────────────────── */}
+      {(data?.trialCompanies?.length || 0) > 0 && (
+        <Card className="border-blue-500/30 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-primary-500/5">
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+              {/* Left — CTA */}
+              <div className="flex-shrink-0 lg:w-1/3">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                    <Timer className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-white">
+                      Empresas em Trial
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      {data!.trialCompanies!.length} empresa{data!.trialCompanies!.length > 1 ? 's' : ''} em periodo de teste
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-400 leading-relaxed mb-4">
+                  Estas empresas estao usando o Soma.ai gratuitamente. Entre em contato para converter em assinantes antes que o trial expire.
+                </p>
+                <button
+                  onClick={() => router.push('/admin/companies')}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors"
+                >
+                  Ver todas as empresas
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Right — Trial company cards */}
+              <div className="flex-1 grid sm:grid-cols-2 gap-3">
+                {data!.trialCompanies!.map((tc) => {
+                  const tl = trialTimeLeft(tc.trial_expires_at)
+                  return (
+                    <div
+                      key={tc._id}
+                      className="rounded-xl border border-brand-border bg-brand-dark/60 p-4 hover:border-blue-500/30 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/admin/companies/${tc._id}`)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                            <Building2 className="w-4 h-4 text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-200">{tc.name}</p>
+                            <p className="text-[11px] text-gray-500">{tc.plan}</p>
+                          </div>
+                        </div>
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                          tl.urgency === 'critical'
+                            ? 'bg-red-500/15 text-red-400'
+                            : tl.urgency === 'warning'
+                              ? 'bg-amber-500/15 text-amber-400'
+                              : 'bg-blue-500/15 text-blue-400'
+                        }`}>
+                          {tl.text}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-gray-500 mt-2">
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          {tc.responsible_name}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          {tc.whatsapp}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Alerts panel */}
