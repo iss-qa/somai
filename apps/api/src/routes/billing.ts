@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { Company } from '@soma-ai/db'
 import { authenticate, adminOnly } from '../plugins/auth'
 import { OpenPixService } from '../services/openpix.service'
+import { ComunicacaoService } from '../services/comunicacao.service'
 
 export default async function billingRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -64,6 +65,18 @@ export default async function billingRoutes(app: FastifyInstance) {
           ':',
           result.correlationID,
         )
+
+        // Send boleto setup notification via WhatsApp
+        try {
+          const link = result.charge.paymentLinkUrl || result.brCode || ''
+          await ComunicacaoService.enviarBoletoSetup(
+            company_id,
+            (chargeValue / 100).toFixed(2),
+            link,
+          )
+        } catch (err) {
+          console.warn('[billing] Boleto setup WhatsApp notification failed:', err)
+        }
 
         return reply.send({
           charge: result.charge,

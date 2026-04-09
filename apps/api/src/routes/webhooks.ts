@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { Company, Integration, Notification } from '@soma-ai/db'
 import { EncryptionService } from '../services/encryption.service'
 import { EvolutionService } from '../services/evolution.service'
+import { ComunicacaoService } from '../services/comunicacao.service'
 
 export default async function webhooksRoutes(app: FastifyInstance) {
   // ── GET /meta/callback ────────────────────────
@@ -246,17 +247,13 @@ export default async function webhooksRoutes(app: FastifyInstance) {
               read: false,
             })
 
-            // Send WhatsApp confirmation
+            // Send WhatsApp confirmation via ComunicacaoService (queued + history)
             try {
-              const instanceName = process.env.EVOLUTION_INSTANCE
-              if (instanceName && company.whatsapp) {
-                const phone = company.whatsapp.replace(/\D/g, '')
-                await EvolutionService.sendText(
-                  instanceName,
-                  phone.startsWith('55') ? phone : `55${phone}`,
-                  `Ola ${company.responsible_name}! Seu pagamento de setup do Soma.ai foi confirmado com sucesso! Seu acesso ja esta liberado. Acesse o painel e comece a criar conteudo com IA.`,
-                )
-              }
+              await ComunicacaoService.enviarConfirmacaoPagamento(
+                String(company._id),
+                (company.setup_amount || 0).toFixed(2),
+                'Setup',
+              )
             } catch (err) {
               console.warn('[OpenPixWebhook] WhatsApp notify failed:', err)
             }

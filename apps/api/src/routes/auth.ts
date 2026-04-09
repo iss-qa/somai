@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import { User, AdminUser, Company, Plan } from '@soma-ai/db'
 import { authenticate, adminOnly } from '../plugins/auth'
 import { EvolutionService } from '../services/evolution.service'
+import { ComunicacaoService } from '../services/comunicacao.service'
 import { LogService } from '../services/log.service'
 
 // In-memory recovery codes (in production use Redis)
@@ -354,17 +355,9 @@ export default async function authRoutes(app: FastifyInstance) {
         expiresIn: process.env.JWT_EXPIRES_IN || '7d',
       })
 
-      // Send welcome message via WhatsApp (if Evolution is configured)
+      // Send welcome message via ComunicacaoService (queued + history)
       try {
-        const instanceName = process.env.EVOLUTION_INSTANCE
-        if (instanceName && whatsapp) {
-          const cleanNumber = whatsapp.replace(/\D/g, '')
-          await EvolutionService.sendText(
-            instanceName,
-            cleanNumber,
-            `Ola ${responsible_name}! Bem-vindo(a) ao Soma.ai! Sua empresa "${company_name}" foi cadastrada com sucesso. Acesse o painel para comecar a criar conteudo com IA. Qualquer duvida, estamos aqui!`,
-          )
-        }
+        await ComunicacaoService.enviarBoasVindas(String(company._id))
       } catch (err) {
         console.warn('[auth] WhatsApp welcome message failed:', err)
       }
@@ -447,7 +440,7 @@ export default async function authRoutes(app: FastifyInstance) {
 
       // Send via WhatsApp
       try {
-        const instanceName = process.env.EVOLUTION_INSTANCE
+        const instanceName = process.env.EVOLUTION_INSTANCE_NAME || 'SOMA_AI'
         if (instanceName) {
           const cleanNumber = whatsappNumber.replace(/\D/g, '')
           await EvolutionService.sendText(

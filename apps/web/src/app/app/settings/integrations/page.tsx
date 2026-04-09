@@ -516,33 +516,35 @@ function IntegrationsContent() {
             />
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-3 pt-2">
-            <Button className="gap-2" disabled={saving} onClick={handleSaveCredentials}>
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              Salvar credenciais
-            </Button>
+          {/* Action buttons — only show when NOT from OAuth */}
+          {!(connected && igToken.startsWith('••')) && (
+            <div className="flex items-center gap-3 pt-2">
+              <Button className="gap-2" disabled={saving} onClick={handleSaveCredentials}>
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                Salvar credenciais
+              </Button>
 
-            <Button
-              variant="outline"
-              className="gap-2"
-              disabled={testing}
-              onClick={handleTestConnection}
-            >
-              {testing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : connected ? (
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              Testar conexao
-            </Button>
-          </div>
+              <Button
+                variant="outline"
+                className="gap-2"
+                disabled={testing}
+                onClick={handleTestConnection}
+              >
+                {testing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : connected ? (
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                Testar conexao
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
