@@ -7,7 +7,16 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "dist/**"]
+      "outputs": [".next/**", "dist/**"],
+      "passThroughEnv": [
+        "META_APP_ID",
+        "META_APP_SECRET",
+        "META_REDIRECT_URI",
+        "ENCRYPTION_KEY",
+        "MONGO_PRDUSER",
+        "MONGO_PRDPASS",
+        "VITE_FACEBOOK_APP_ID"
+      ]
     },
     "db:seed": {
       "cache": false
