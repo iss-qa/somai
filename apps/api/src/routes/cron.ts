@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { PostQueue, Card, Post } from '@soma-ai/db'
 import { QueueStatus, CardStatus, PostStatus } from '@soma-ai/shared'
 import { MetaService } from '../services/meta.service'
+import { LogService } from '../services/log.service'
 
 export default async function cronRoutes(app: FastifyInstance) {
   /**
@@ -98,6 +99,10 @@ export default async function cronRoutes(app: FastifyInstance) {
 
           results.push({ id: queueId, status: 'published' })
           console.log(`[Cron] Publicado: ${queueId}`)
+          await LogService.info('post', 'post.published', `Post publicado via cron: ${item.post_type} em ${item.platforms.join(', ')}`, {
+            company_id: companyId,
+            metadata: { queueId, postType: item.post_type, platforms: item.platforms },
+          }).catch(() => {})
         } catch (err: any) {
           const msg = err.message || 'Erro desconhecido'
           console.error(`[Cron] Falha ao publicar ${queueId}:`, msg)
@@ -120,6 +125,11 @@ export default async function cronRoutes(app: FastifyInstance) {
             status: newRetryCount < maxRetries ? QueueStatus.Queued : QueueStatus.Failed,
             retry_count: newRetryCount,
           })
+
+          await LogService.error('post', 'post.failed', `Falha ao publicar: ${msg}`, {
+            company_id: companyId,
+            metadata: { queueId, postType: item.post_type, platforms: item.platforms, error: msg, retryCount: newRetryCount },
+          }).catch(() => {})
 
           results.push({ id: queueId, status: 'failed', error: msg })
         }

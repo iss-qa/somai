@@ -10,7 +10,11 @@
       "Bash(xargs ls:*)",
       "Bash(curl -s 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBggvAia5mCk-Ve9fKMWA5C_rdJfaL_xHU' -H 'Content-Type: application/json' -d '{:*)",
       "Bash(python3 -c ':*)",
-      "Bash(node -e ':*)"
+      "Bash(node -e ':*)",
+      "Read(//Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/**)",
+      "Bash(ps -p 67481 -o lstart=)",
+      "Bash(cat docker-compose*.yml)",
+      "Bash(curl -s http://localhost:3001/api/cron/publish-due -H \"x-cron-secret: soma_ai_cron_2026_secret\")"
     ]
   }
 }

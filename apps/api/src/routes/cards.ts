@@ -121,8 +121,20 @@ export default async function cardsRoutes(app: FastifyInstance) {
           .send({ error: 'Campos obrigatorios: format, post_type' })
       }
 
-      // Non-admin users MUST have a companyId
-      if (role !== 'superadmin' && role !== 'support' && !companyId) {
+      // Resolve company_id: admin can specify via body, otherwise use JWT companyId
+      let resolvedCompanyId = companyId
+      if (!resolvedCompanyId && (role === 'superadmin' || role === 'support')) {
+        // Admin without company: use body.company_id or first active company
+        if ((body as any).company_id) {
+          resolvedCompanyId = (body as any).company_id
+        } else {
+          const { Company } = await import('@soma-ai/db')
+          const firstCompany: any = await Company.findOne({ access_enabled: true, status: 'active' }).lean()
+          resolvedCompanyId = firstCompany ? String(firstCompany._id) : null
+        }
+      }
+
+      if (!resolvedCompanyId) {
         await LogService.error('card', 'card_create_no_company', `Tentativa de criar card sem company_id (userId: ${request.user!.userId})`, {
           metadata: { userId: request.user!.userId, role },
         })
@@ -131,7 +143,7 @@ export default async function cardsRoutes(app: FastifyInstance) {
 
       // Create a draft card (actual AI generation is a placeholder)
       const card = await Card.create({
-        company_id: companyId,
+        company_id: resolvedCompanyId,
         template_id: body.template_id || null,
         format: body.format,
         post_type: body.post_type,

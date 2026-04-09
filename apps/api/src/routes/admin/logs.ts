@@ -55,7 +55,7 @@ export default async function adminLogsRoutes(app: FastifyInstance) {
       const limitNum = Math.min(100, Math.max(1, parseInt(limit)))
       const skip = (pageNum - 1) * limitNum
 
-      const [posts, total] = await Promise.all([
+      const [rawPosts, total] = await Promise.all([
         Post.find(query)
           .sort({ created_at: -1 })
           .skip(skip)
@@ -65,6 +65,20 @@ export default async function adminLogsRoutes(app: FastifyInstance) {
           .lean(),
         Post.countDocuments(query),
       ])
+
+      // Map to the format the frontend expects
+      const posts = rawPosts.map((p: any) => ({
+        id: String(p._id),
+        date: p.published_at || p.created_at,
+        companyName: p.company_id?.name || 'Desconhecida',
+        type: p.card_id?.post_type || p.post_type || '',
+        format: p.card_id?.format || '',
+        platforms: p.platforms || [],
+        status: p.status || 'unknown',
+        errorDetail: p.error_message || '',
+        thumbnail: p.card_id?.generated_image_url || '',
+        caption: p.caption || '',
+      }))
 
       return reply.send({
         posts,
