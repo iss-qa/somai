@@ -332,7 +332,7 @@ export default async function authRoutes(app: FastifyInstance) {
           status: 'trial',
           access_enabled: false,
           setup_paid: false,
-          setup_amount: plan?.setup_price || 297,
+          setup_amount: plan?.setup_price ?? 0,
           trial_days: trialDays,
           trial_expires_at: trialExpiresAt,
           billing: {

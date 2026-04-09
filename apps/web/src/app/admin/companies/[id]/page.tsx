@@ -174,7 +174,7 @@ export default function CompanyDetailPage() {
         status: company.status,
         plan_slug: company.plan_id?.slug || 'starter',
         plan_id: company.plan_id?._id || '',
-        setup_amount: company.setup_amount || company.plan_id?.setup_price || 297,
+        setup_amount: company.setup_amount || company.plan_id?.setup_price || 0,
         monthly_amount: company.billing?.monthly_amount || 0,
         due_day: company.billing?.due_day || 10,
         trial_days: company.trial_days || 3,

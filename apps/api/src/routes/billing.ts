@@ -30,7 +30,7 @@ export default async function billingRoutes(app: FastifyInstance) {
 
       // Value in cents — use provided or plan setup_price
       const chargeValue =
-        value || (company.plan_id?.setup_price || 297) * 100
+        value || (company.plan_id?.setup_price ?? company.setup_amount ?? 0) * 100
 
       try {
         // 1. Create customer in OpenPix first
