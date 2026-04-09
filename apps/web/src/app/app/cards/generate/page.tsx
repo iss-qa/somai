@@ -15,6 +15,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -44,6 +50,9 @@ import {
   ExternalLink,
   FolderOpen,
   X,
+  Send,
+  MessageSquare,
+  RotateCcw,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -67,6 +76,7 @@ type ImageLayout =
   | 'side-by-side'
   | 'side-frame'
 type LogoPosition = 'top-left' | 'top-right' | 'top-center' | 'hidden'
+type TypeBadgePosition = 'inline' | 'top-left' | 'top-center' | 'top-right'
 type FontFamily =
   | 'Inter'
   | 'Roboto'
@@ -96,6 +106,7 @@ interface CardConfig {
   promoPrice: string
   extraText: string
   cta: string
+  ctaUrl: string
   cardName: string
   palette: PaletteId
   customColors: { primary: string; secondary: string; bg: string }
@@ -112,6 +123,7 @@ interface CardConfig {
   titleColor: string
   textPosition: { vertical: 'top' | 'center' | 'bottom'; horizontal: 'left' | 'center' | 'right' }
   logoPosition: LogoPosition
+  typeBadgePosition: TypeBadgePosition
   carouselShape: CarouselShape
   carouselSlides: number
   objective: string
@@ -504,6 +516,7 @@ const DEFAULT_CONFIG: CardConfig = {
   promoPrice: '',
   extraText: '',
   cta: 'Compre agora',
+  ctaUrl: '',
   cardName: '',
   palette: 'vibrante',
   customColors: { primary: '#8B5CF6', secondary: '#EC4899', bg: '#1a1a2e' },
@@ -520,6 +533,7 @@ const DEFAULT_CONFIG: CardConfig = {
   titleColor: '#ffffff',
   textPosition: { vertical: 'center', horizontal: 'center' },
   logoPosition: 'top-left',
+  typeBadgePosition: 'inline',
   carouselShape: 'square',
   carouselSlides: 3,
   objective: '',
@@ -1041,8 +1055,9 @@ function CardPreview({
     )
   }
 
-  // Post type badge
+  // Post type badge (inline – rendered inside text flow)
   function renderTypeBadge() {
+    if (config.typeBadgePosition !== 'inline') return null
     return (
       <div
         style={{
@@ -1057,6 +1072,37 @@ function CardPreview({
           textTransform: 'uppercase',
           fontFamily: fontStack,
           marginBottom: 8,
+        }}
+      >
+        {ptConfig.badge}
+      </div>
+    )
+  }
+
+  // Post type badge (floating – absolutely positioned like logo)
+  function renderFloatingTypeBadge() {
+    if (config.typeBadgePosition === 'inline') return null
+    const posMap: Record<string, React.CSSProperties> = {
+      'top-left': { top: config.display.showLogo && config.logoPosition === 'top-left' ? 52 : 12, left: 12 },
+      'top-right': { top: config.display.showLogo && config.logoPosition === 'top-right' ? 52 : 12, right: 12 },
+      'top-center': { top: config.display.showLogo && config.logoPosition === 'top-center' ? 52 : 12, left: '50%', transform: 'translateX(-50%)' },
+    }
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          ...posMap[config.typeBadgePosition],
+          display: 'inline-block',
+          background: ptConfig.accentGradient,
+          color: '#fff',
+          fontSize: 9,
+          fontWeight: 700,
+          padding: '3px 10px',
+          borderRadius: 20,
+          letterSpacing: 1.5,
+          textTransform: 'uppercase',
+          fontFamily: fontStack,
+          zIndex: 10,
         }}
       >
         {ptConfig.badge}
@@ -1239,6 +1285,7 @@ function CardPreview({
       >
         {renderDecorations()}
         {renderLogo()}
+        {renderFloatingTypeBadge()}
         <div
           style={{
             position: 'absolute',
@@ -1322,6 +1369,7 @@ function CardPreview({
       >
         {renderDecorations()}
         {renderLogo()}
+        {renderFloatingTypeBadge()}
         <div style={{ zIndex: 5, textAlign: 'center', marginTop: config.display.showLogo ? 40 : 8 }}>
           {renderTypeBadge()}
           {config.headline && (
@@ -1388,6 +1436,7 @@ function CardPreview({
         }}
       >
         {renderLogo()}
+        {renderFloatingTypeBadge()}
         {/* Full image with frame */}
         <div
           style={{
@@ -1438,6 +1487,7 @@ function CardPreview({
     return (
       <div ref={previewRef} id="card-preview" style={{ width: w, height: h, position: 'relative', overflow: 'hidden', borderRadius: 12, background: pal.bg, fontFamily: fontStack, display: 'flex', flexDirection: 'column' }}>
         {renderLogo()}
+        {renderFloatingTypeBadge()}
         {/* Product 1 - Top */}
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, ...(img1 ? { backgroundImage: `url(${img1})` } : { background: placeholderBg }), backgroundSize: 'cover', backgroundPosition: 'center', opacity: config.imageOpacity / 100 }} />
@@ -1476,6 +1526,7 @@ function CardPreview({
     return (
       <div ref={previewRef} id="card-preview" style={{ width: w, height: h, position: 'relative', overflow: 'hidden', borderRadius: 12, background: ptConfig.gradient, fontFamily: fontStack, display: 'flex', flexDirection: 'column' }}>
         {renderLogo()}
+        {renderFloatingTypeBadge()}
         {renderDecorations()}
         {/* Two images side by side */}
         <div style={{ display: 'flex', gap: 4, padding: '12px 12px 0', flex: '0 0 50%' }}>
@@ -1515,6 +1566,7 @@ function CardPreview({
     return (
       <div ref={previewRef} id="card-preview" style={{ width: w, height: h, position: 'relative', overflow: 'hidden', borderRadius: 12, background: pal.bg, fontFamily: fontStack }}>
         {renderLogo()}
+        {renderFloatingTypeBadge()}
         {/* Colored frame border */}
         <div style={{ position: 'absolute', inset: 0, border: `6px solid ${pal.primary}`, borderRadius: 12, zIndex: 8, pointerEvents: 'none' }} />
         {/* Inner accent line */}
@@ -1568,6 +1620,7 @@ function CardPreview({
       >
         {renderDecorations()}
         {renderLogo()}
+        {renderFloatingTypeBadge()}
         {/* Image side */}
         <div
           style={{
@@ -1624,6 +1677,7 @@ function CardPreview({
         <div style={{ position: 'absolute', inset: 0, background: `${pal.bg}99`, zIndex: 2 }} />
       )}
       {renderLogo()}
+        {renderFloatingTypeBadge()}
 
       {isTopImgLayout && (
         <div
@@ -1699,6 +1753,11 @@ function GenerateCardPage() {
   const [loadingGallery, setLoadingGallery] = useState(true)
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [approveCardName, setApproveCardName] = useState('')
+  const [showAiModal, setShowAiModal] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiReferenceImage, setAiReferenceImage] = useState<string | null>(null)
+  const [generatingImage, setGeneratingImage] = useState(false)
+  const aiFileInputRef = useRef<HTMLInputElement>(null)
 
   // ---------- Load card for editing (from ?edit=ID) ----------
   const searchParams = useSearchParams()
@@ -1786,6 +1845,34 @@ function GenerateCardPage() {
     }))
   }, [])
 
+  // ---------- Auto-fill defaults on mount (when not editing) ----------
+  const [defaultsLoaded, setDefaultsLoaded] = useState(false)
+  useEffect(() => {
+    if (editCardId || defaultsLoaded) return
+    setDefaultsLoaded(true)
+    const defaults = getSmartDefaults(user?.niche, config.postType)
+    setConfig((prev) => ({
+      ...prev,
+      ...defaults,
+      cardName: generateCardName(prev.format, prev.postType, defaults.productName || ''),
+    }))
+  }, [editCardId, defaultsLoaded, user?.niche, config.postType])
+
+  // ---------- Refresh defaults when format changes (if not editing) ----------
+  const prevFormatRef = useRef(config.format)
+  useEffect(() => {
+    if (editCardId) return
+    if (prevFormatRef.current === config.format) return
+    prevFormatRef.current = config.format
+    const defaults = getSmartDefaults(user?.niche, config.postType)
+    setConfig((prev) => ({
+      ...prev,
+      ...defaults,
+      format: prev.format,
+      cardName: generateCardName(prev.format, prev.postType, defaults.productName || ''),
+    }))
+  }, [config.format, editCardId, user?.niche, config.postType])
+
   // ---------- Fetch gallery ----------
   useEffect(() => {
     async function fetchGallery() {
@@ -1801,46 +1888,80 @@ function GenerateCardPage() {
     fetchGallery()
   }, [savedCardId])
 
-  // ---------- Generate with AI ----------
-  const handleGenerate = useCallback(async () => {
-    // If fields are empty, auto-fill with smart defaults based on niche
-    let currentConfig = config
-    if (!config.productName.trim()) {
-      const defaults = getSmartDefaults(user?.niche, config.postType)
-      const newConfig = {
-        ...config,
-        ...defaults,
-        cardName: generateCardName(config.format, config.postType, defaults.productName || ''),
-      }
-      setConfig(newConfig)
-      currentConfig = newConfig
-      toast.success('Campos preenchidos automaticamente!')
+  // ---------- Open AI modal ----------
+  const handleOpenAiModal = useCallback(() => {
+    const dimensions = config.format === 'stories' ? '1080x1920 (vertical, story)' :
+                       config.format === 'carousel' ? '1080x1080 (quadrado, carrossel)' :
+                       '1080x1080 (quadrado, feed)'
+    const defaultPrompt = `Crie uma imagem profissional para post de ${config.format === 'stories' ? 'story do Instagram' : 'feed do Instagram'}.
+Dimensoes: ${dimensions}
+Produto: ${config.productName || 'produto'}
+Estilo: moderno, clean, com cores vibrantes
+${config.headline ? `Titulo: ${config.headline}` : ''}
+${config.extraText ? `Texto: ${config.extraText}` : ''}
+
+A imagem deve ser visualmente atrativa para redes sociais.`
+    setAiPrompt(defaultPrompt)
+    setAiReferenceImage(null)
+    setShowAiModal(true)
+  }, [config])
+
+  // ---------- Generate image with Gemini ----------
+  const handleGenerateImage = useCallback(async () => {
+    if (!aiPrompt.trim()) {
+      toast.error('Digite um prompt')
+      return
     }
 
+    setGeneratingImage(true)
+    try {
+      const result = await api.post<{ image: string }>('/api/cards/generate-image', {
+        prompt: aiPrompt,
+      })
+
+      if (result.image) {
+        setConfig((prev) => ({
+          ...prev,
+          includeImage: true,
+          imageUrl: result.image,
+          imageLayout: 'background',
+          imageOpacity: 100,
+          imageBlur: 0,
+        }))
+        toast.success('Imagem gerada com sucesso!')
+        setShowAiModal(false)
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao gerar imagem')
+    } finally {
+      setGeneratingImage(false)
+    }
+  }, [aiPrompt])
+
+  // ---------- Save card to API (draft) ----------
+  const handleSaveDraft = useCallback(async () => {
     setGenerating(true)
     setSavedCardId(null)
     setApproved(false)
     try {
       const result = await api.post<any>('/api/cards/generate', {
-        format: currentConfig.format,
-        post_type: currentConfig.postType,
-        product_name: currentConfig.productName,
-        headline: currentConfig.headline,
-        price_original: currentConfig.originalPrice ? Number(String(currentConfig.originalPrice).replace(',', '.')) : undefined,
-        price_promo: currentConfig.promoPrice ? Number(String(currentConfig.promoPrice).replace(',', '.')) : undefined,
-        subtext: currentConfig.extraText,
-        cta: currentConfig.cta,
+        format: config.format,
+        post_type: config.postType,
+        product_name: config.productName,
+        headline: config.headline,
+        price_original: config.originalPrice ? Number(String(config.originalPrice).replace(',', '.')) : undefined,
+        price_promo: config.promoPrice ? Number(String(config.promoPrice).replace(',', '.')) : undefined,
+        subtext: config.extraText,
+        cta: config.cta,
       })
       const cardId = result._id || result.card?._id || result.card?.id || result.id
       if (cardId) setSavedCardId(cardId)
-      toast.success('Card gerado com sucesso!')
-    } catch (err: any) {
-      // Still show the preview even if API fails - the visual card is rendered client-side
-      toast.success('Card gerado! (preview local)')
+    } catch {
+      // Card saved locally - preview still works
     } finally {
       setGenerating(false)
     }
-  }, [config, user?.niche])
+  }, [config])
 
   // ---------- Approve ----------
   const handleApprove = useCallback(async (cardName: string) => {
@@ -2006,16 +2127,11 @@ function GenerateCardPage() {
             <div className="flex flex-wrap items-center gap-3">
               {/* Generate button */}
               <Button
-                onClick={handleGenerate}
-                disabled={generating}
+                onClick={handleOpenAiModal}
                 className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-lg shadow-violet-600/25 gap-2"
               >
-                {generating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-                {generating ? 'Gerando...' : 'Gerar com IA'}
+                <Sparkles className="w-4 h-4" />
+                Gerar com IA
               </Button>
 
               {/* Divider */}
@@ -2067,6 +2183,41 @@ function GenerateCardPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Clear button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white hover:bg-gray-800 gap-1.5 h-8 text-xs"
+                onClick={() => {
+                  setConfig((prev) => ({
+                    ...DEFAULT_CONFIG,
+                    format: prev.format,
+                    postType: prev.postType,
+                    productName: '',
+                    headline: '',
+                    originalPrice: '',
+                    promoPrice: '',
+                    extraText: '',
+                    cta: '',
+                    ctaUrl: '',
+                    cardName: '',
+                    display: { showLogo: false, showCta: false, showPrice: false, showOriginalPrice: false },
+                    includeImage: prev.includeImage,
+                    imageUrl: prev.imageUrl,
+                    imageUrl2: prev.imageUrl2,
+                    imageLayout: prev.imageLayout,
+                    imageOpacity: prev.imageOpacity,
+                    imageBlur: prev.imageBlur,
+                  }))
+                  setSavedCardId(null)
+                  setApproved(false)
+                  setDirtyAfterApprove(false)
+                }}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Limpar
+              </Button>
             </div>
           </div>
         </div>
@@ -2192,7 +2343,7 @@ function GenerateCardPage() {
                   </div>
 
                   {/* Tema / Objetivo */}
-                  <div className="space-y-1.5 sm:col-span-2">
+                  <div className="space-y-1.5">
                     <Label>Tema / Objetivo</Label>
                     <Select
                       value={config.objective}
@@ -2210,7 +2361,7 @@ function GenerateCardPage() {
                   </div>
 
                   {/* Headline */}
-                  <div className="space-y-1.5 sm:col-span-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="headline">Headline (opcional)</Label>
                     <Input
                       id="headline"
@@ -2245,7 +2396,7 @@ function GenerateCardPage() {
                   )}
 
                   {/* Extra text */}
-                  <div className="space-y-1.5 sm:col-span-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="extraText">Texto adicional</Label>
                     <Input
                       id="extraText"
@@ -2255,34 +2406,48 @@ function GenerateCardPage() {
                     />
                   </div>
 
-                  {/* CTA Destination */}
-                  <div className="space-y-1.5 sm:col-span-2">
+                  {/* CTA */}
+                  <div className="space-y-1.5">
                     <Label>Destino do CTA</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Select value={config.cta} onValueChange={(v) => updateConfig('cta', v)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o CTA" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Compre agora">Compre agora</SelectItem>
-                          <SelectItem value="Saiba mais">Saiba mais</SelectItem>
-                          <SelectItem value="Visite nosso site">Visite nosso site</SelectItem>
-                          <SelectItem value="Chame no WhatsApp">Chame no WhatsApp</SelectItem>
-                          <SelectItem value="Ligue agora">Ligue agora</SelectItem>
-                          <SelectItem value="Siga no Instagram">Siga no Instagram</SelectItem>
-                          <SelectItem value="Confira">Confira</SelectItem>
-                          <SelectItem value="Aproveite">Aproveite</SelectItem>
-                          <SelectItem value="Garanta o seu">Garanta o seu</SelectItem>
-                          <SelectItem value="Agende agora">Agende agora</SelectItem>
-                          <SelectItem value="Acesse o link">Acesse o link</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        placeholder="Ou digite personalizado..."
-                        value={config.cta}
-                        onChange={(e) => updateConfig('cta', e.target.value)}
-                      />
-                    </div>
+                    <Select value={config.cta} onValueChange={(v) => updateConfig('cta', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o CTA" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Compre agora">Compre agora</SelectItem>
+                        <SelectItem value="Saiba mais">Saiba mais</SelectItem>
+                        <SelectItem value="Visite nosso site">Visite nosso site</SelectItem>
+                        <SelectItem value="Chame no WhatsApp">Chame no WhatsApp</SelectItem>
+                        <SelectItem value="Ligue agora">Ligue agora</SelectItem>
+                        <SelectItem value="Siga no Instagram">Siga no Instagram</SelectItem>
+                        <SelectItem value="Confira">Confira</SelectItem>
+                        <SelectItem value="Aproveite">Aproveite</SelectItem>
+                        <SelectItem value="Garanta o seu">Garanta o seu</SelectItem>
+                        <SelectItem value="Agende agora">Agende agora</SelectItem>
+                        <SelectItem value="Acesse o link">Acesse o link</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* CTA Destination URL */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="ctaUrl">
+                      {config.cta === 'Chame no WhatsApp' ? 'WhatsApp (com DDD)' :
+                       config.cta === 'Ligue agora' ? 'Telefone (com DDD)' :
+                       config.cta === 'Siga no Instagram' ? 'Perfil do Instagram' :
+                       'Link de destino'}
+                    </Label>
+                    <Input
+                      id="ctaUrl"
+                      placeholder={
+                        config.cta === 'Chame no WhatsApp' ? 'Ex: 71996838735' :
+                        config.cta === 'Ligue agora' ? 'Ex: 71996838735' :
+                        config.cta === 'Siga no Instagram' ? 'Ex: @seuperfil' :
+                        'Ex: https://seusite.com.br'
+                      }
+                      value={config.ctaUrl}
+                      onChange={(e) => updateConfig('ctaUrl', e.target.value)}
+                    />
                   </div>
                 </div>
               </Section>
@@ -2452,77 +2617,7 @@ function GenerateCardPage() {
               </Section>
 
               {/* ----------------------------------------------------------- */}
-              {/* Section 3: Opcoes de exibicao */}
-              {/* ----------------------------------------------------------- */}
-              <Section title="Opcoes de exibicao" icon={Eye}>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm">Incluir logo</Label>
-                    <Switch
-                      checked={config.display.showLogo}
-                      onCheckedChange={(v) => updateDisplay('showLogo', v)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm">Incluir CTA</Label>
-                    <Switch
-                      checked={config.display.showCta}
-                      onCheckedChange={(v) => updateDisplay('showCta', v)}
-                    />
-                  </div>
-                  {config.postType === 'promocao' && (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Incluir preco</Label>
-                        <Switch
-                          checked={config.display.showPrice}
-                          onCheckedChange={(v) => updateDisplay('showPrice', v)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm">Mostrar preco original riscado</Label>
-                        <Switch
-                          checked={config.display.showOriginalPrice}
-                          onCheckedChange={(v) => updateDisplay('showOriginalPrice', v)}
-                        />
-                      </div>
-                    </>
-                  )}
-                  {/* Logo position */}
-                  {config.display.showLogo && (
-                    <div className="space-y-2">
-                      <Label className="text-xs text-gray-400">Posicao do logo</Label>
-                      <div className="flex gap-2 flex-wrap">
-                        {(['top-left', 'top-center', 'top-right', 'hidden'] as LogoPosition[]).map((pos) => {
-                          const labels: Record<LogoPosition, string> = {
-                            'top-left': 'Esquerda',
-                            'top-center': 'Centro',
-                            'top-right': 'Direita',
-                            hidden: 'Oculto',
-                          }
-                          return (
-                            <button
-                              key={pos}
-                              onClick={() => updateConfig('logoPosition', pos)}
-                              className={cn(
-                                'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                                config.logoPosition === pos
-                                  ? 'bg-primary-500 text-white'
-                                  : 'bg-brand-surface text-gray-400 hover:text-gray-200 border border-brand-border'
-                              )}
-                            >
-                              {labels[pos]}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Section>
-
-              {/* ----------------------------------------------------------- */}
-              {/* Section 4: Imagem */}
+              {/* Section: Imagem */}
               {/* ----------------------------------------------------------- */}
               <Section title="Imagem" icon={ImageIcon} onToggle={(open) => updateConfig('includeImage', open)}>
                 <div className="space-y-4">
@@ -2692,7 +2787,106 @@ function GenerateCardPage() {
               </Section>
 
               {/* ----------------------------------------------------------- */}
-              {/* Section 5: Tipografia e cores do texto */}
+              {/* Section: Opcoes de exibicao */}
+              {/* ----------------------------------------------------------- */}
+              <Section title="Opcoes de exibicao" icon={Eye}>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">Incluir logo</Label>
+                    <Switch
+                      checked={config.display.showLogo}
+                      onCheckedChange={(v) => updateDisplay('showLogo', v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">Incluir CTA</Label>
+                    <Switch
+                      checked={config.display.showCta}
+                      onCheckedChange={(v) => updateDisplay('showCta', v)}
+                    />
+                  </div>
+                  {config.postType === 'promocao' && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">Incluir preco</Label>
+                        <Switch
+                          checked={config.display.showPrice}
+                          onCheckedChange={(v) => updateDisplay('showPrice', v)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">Mostrar preco original riscado</Label>
+                        <Switch
+                          checked={config.display.showOriginalPrice}
+                          onCheckedChange={(v) => updateDisplay('showOriginalPrice', v)}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {/* Type badge position */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-400">Posicao do tipo</Label>
+                    <div className="flex gap-2 flex-wrap">
+                      {(['inline', 'top-left', 'top-center', 'top-right'] as TypeBadgePosition[]).map((pos) => {
+                        const labels: Record<TypeBadgePosition, string> = {
+                          inline: 'Inline',
+                          'top-left': 'Esquerda',
+                          'top-center': 'Centro',
+                          'top-right': 'Direita',
+                        }
+                        return (
+                          <button
+                            key={pos}
+                            onClick={() => updateConfig('typeBadgePosition', pos)}
+                            className={cn(
+                              'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                              config.typeBadgePosition === pos
+                                ? 'bg-primary-500 text-white'
+                                : 'bg-brand-surface text-gray-400 hover:text-gray-200 border border-brand-border'
+                            )}
+                          >
+                            {labels[pos]}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Logo position */}
+                  {config.display.showLogo && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-gray-400">Posicao do logo</Label>
+                      <div className="flex gap-2 flex-wrap">
+                        {(['top-left', 'top-center', 'top-right', 'hidden'] as LogoPosition[]).map((pos) => {
+                          const labels: Record<LogoPosition, string> = {
+                            'top-left': 'Esquerda',
+                            'top-center': 'Centro',
+                            'top-right': 'Direita',
+                            hidden: 'Oculto',
+                          }
+                          return (
+                            <button
+                              key={pos}
+                              onClick={() => updateConfig('logoPosition', pos)}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                config.logoPosition === pos
+                                  ? 'bg-primary-500 text-white'
+                                  : 'bg-brand-surface text-gray-400 hover:text-gray-200 border border-brand-border'
+                              )}
+                            >
+                              {labels[pos]}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Section>
+
+              {/* ----------------------------------------------------------- */}
+              {/* Section 4: Tipografia e cores do texto */}
               {/* ----------------------------------------------------------- */}
               <Section title="Tipografia e cores do texto" icon={Type}>
                 <div className="space-y-4">
@@ -2949,6 +3143,57 @@ function GenerateCardPage() {
         </div>
         )}
       </div>
+      {/* AI Image Generation Modal */}
+      <Dialog open={showAiModal} onOpenChange={setShowAiModal}>
+        <DialogContent className="sm:max-w-lg bg-brand-card border-brand-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Sparkles className="w-5 h-5 text-violet-400" />
+              Gerar imagem com IA
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300">Descreva a imagem que deseja gerar</Label>
+              <textarea
+                className="w-full min-h-[180px] rounded-lg border border-brand-border bg-brand-surface p-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-y"
+                placeholder="Descreva o que deseja na imagem..."
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    handleGenerateImage()
+                  }
+                }}
+              />
+              <p className="text-xs text-gray-500">Dica: Cmd+Enter para enviar</p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowAiModal(false)}
+                disabled={generatingImage}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white gap-2"
+                onClick={handleGenerateImage}
+                disabled={generatingImage}
+              >
+                {generatingImage ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                {generatingImage ? 'Gerando...' : 'Gerar imagem'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Approve Modal */}
       {showApproveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowApproveModal(false)}>
