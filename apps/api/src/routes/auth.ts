@@ -357,13 +357,10 @@ export default async function authRoutes(app: FastifyInstance) {
         expiresIn: process.env.JWT_EXPIRES_IN || '7d',
       })
 
-      // Send welcome message via ComunicacaoService (queued + history)
-      try {
-        const { ComunicacaoService } = await import('../services/comunicacao.service')
-        await ComunicacaoService.enviarBoasVindas(String(company._id))
-      } catch (err) {
-        console.warn('[auth] WhatsApp welcome message failed:', err)
-      }
+      // Send welcome message (fire-and-forget — don't block signup response)
+      import('../services/comunicacao.service')
+        .then(({ ComunicacaoService }) => ComunicacaoService.enviarBoasVindas(String(company._id)))
+        .catch((err) => console.warn('[auth] WhatsApp welcome failed:', err))
 
       reply
         .setCookie('soma-token', token, {

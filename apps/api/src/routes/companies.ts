@@ -111,13 +111,10 @@ export default async function companiesRoutes(app: FastifyInstance) {
         weekly_slots: [],
       })
 
-      // Send welcome message via WhatsApp (lazy import to avoid Redis dependency at route registration)
-      try {
-        const { ComunicacaoService } = await import('../services/comunicacao.service')
-        await ComunicacaoService.enviarBoasVindas(String(company._id))
-      } catch (err) {
-        console.warn('[companies] WhatsApp welcome message failed:', err)
-      }
+      // Send welcome message (fire-and-forget — don't block response)
+      import('../services/comunicacao.service')
+        .then(({ ComunicacaoService }) => ComunicacaoService.enviarBoasVindas(String(company._id)))
+        .catch((err) => console.warn('[companies] WhatsApp welcome failed:', err))
 
       return reply.status(201).send(company)
     },
