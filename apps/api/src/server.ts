@@ -9,6 +9,7 @@ import { getApp } from './app'
 import './workers/video.worker'
 import './workers/campaign.worker'
 import './workers/post.worker'
+import './workers/whatsapp.worker'
 
 const PORT = Number(process.env.PORT) || 3001
 

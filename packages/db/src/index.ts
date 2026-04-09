@@ -52,3 +52,9 @@ export {
   type AppLogLevel,
   type AppLogCategory,
 } from './models/AppLog'
+export {
+  MessageHistory,
+  type IMessageHistory,
+  TipoMensagem,
+  StatusMensagem,
+} from './models/MessageHistory'

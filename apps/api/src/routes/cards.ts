@@ -379,95 +379,52 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
       }>,
       reply: FastifyReply,
     ) => {
-      const { companyId } = request.user!
-      const { prompt, referenceImage } = request.body
+      const { prompt } = request.body
 
       if (!prompt?.trim()) {
         return reply.status(400).send({ error: 'Prompt e obrigatorio' })
       }
 
-      // Get API key: try company BYOK first, then master key
-      let apiKey: string | undefined
-      try {
-        const integration: any = await Integration.findOne({ company_id: companyId }).lean()
-        const encryptedKey = integration?.gemini?.api_key
-        if (encryptedKey && integration?.gemini?.active) {
-          try {
-            apiKey = EncryptionService.decrypt(encryptedKey)
-          } catch {
-            // fallback to master key
-          }
-        }
-      } catch {
-        // fallback to master key
-      }
-
-      if (!apiKey) {
-        apiKey = process.env.GEMINI_API_KEY
-      }
-      if (!apiKey) {
-        return reply.status(400).send({
-          error: 'Nenhuma chave Gemini configurada. Adicione GEMINI_API_KEY no .env ou configure em Integracoes.',
+      const accountId = process.env.R2_ACCOUNT_ID
+      const apiToken = process.env.CLOUDFLARE_WORKER_KEY
+      if (!accountId || !apiToken) {
+        return reply.status(500).send({
+          error: 'Cloudflare nao configurado. Verifique R2_ACCOUNT_ID e CLOUDFLARE_WORKER_KEY no .env.',
         })
-      }
-
-      // Build multimodal parts: text + optional reference image
-      const contentParts: any[] = [{ text: prompt }]
-
-      if (referenceImage) {
-        // Extract base64 data and mime type from data URL
-        const match = referenceImage.match(/^data:(image\/\w+);base64,(.+)$/)
-        if (match) {
-          contentParts.push({
-            inlineData: {
-              mimeType: match[1],
-              data: match[2],
-            },
-          })
-        }
       }
 
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
+          `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/leonardo/lucid-origin`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: contentParts }],
-              generationConfig: {
-                responseModalities: ['TEXT', 'IMAGE'],
-              },
-            }),
+            headers: {
+              'Authorization': `Bearer ${apiToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt }),
           },
         )
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}))
-          console.error('[gemini-image] API error:', res.status, errData)
-          const errMsg = errData?.error?.message || ''
-          if (res.status === 429 || errMsg.includes('quota')) {
+          console.error('[cloudflare-image] API error:', res.status, errData)
+          if (res.status === 429) {
             return reply.status(429).send({ error: 'Limite de requisicoes atingido. Aguarde alguns minutos e tente novamente.' })
           }
-          return reply.status(502).send({ error: 'Erro ao gerar imagem com Gemini' })
+          return reply.status(502).send({ error: 'Erro ao gerar imagem com Cloudflare AI' })
         }
 
-        const data = await res.json()
-        const parts = data?.candidates?.[0]?.content?.parts || []
+        // Cloudflare Workers AI returns raw binary PNG
+        const buffer = Buffer.from(await res.arrayBuffer())
+        const b64 = buffer.toString('base64')
 
-        // Find the image part in the response
-        const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith('image/'))
-        if (!imagePart) {
-          return reply.status(502).send({ error: 'Gemini nao retornou uma imagem. Tente reformular o prompt.' })
-        }
-
-        const { mimeType, data: b64 } = imagePart.inlineData
         return reply.send({
-          image: `data:${mimeType};base64,${b64}`,
+          image: `data:image/png;base64,${b64}`,
         })
       } catch (err) {
-        console.error('[gemini-image] Error:', err)
-        return reply.status(502).send({ error: 'Erro de conexao com API Gemini' })
+        console.error('[cloudflare-image] Error:', err)
+        return reply.status(502).send({ error: 'Erro de conexao com Cloudflare AI' })
       }
     },
   )

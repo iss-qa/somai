@@ -7,7 +7,9 @@ export interface INotification extends Document {
   title: string
   message: string
   read: boolean
+  dismissed: boolean
   action_url: string
+  expires_at: Date | null
   created_at: Date
 }
 
@@ -18,7 +20,9 @@ const NotificationSchema = new Schema<INotification>({
   title: { type: String, required: true },
   message: { type: String, default: '' },
   read: { type: Boolean, default: false },
+  dismissed: { type: Boolean, default: false },
   action_url: { type: String, default: '' },
+  expires_at: { type: Date, default: null },
   created_at: { type: Date, default: Date.now },
 })
 

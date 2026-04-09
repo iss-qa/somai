@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AccessGate } from '@/components/company/AccessGate'
+import { NotificationBell } from '@/components/NotificationBell'
 import {
   LayoutDashboard,
   Sparkles,
@@ -200,10 +201,7 @@ export default function CompanyLayout({
 
             <div className="flex items-center gap-2">
               {/* Notifications */}
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-4.5 h-4.5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary-500 rounded-full" />
-              </Button>
+              <NotificationBell />
 
               {/* User menu */}
               <DropdownMenu>

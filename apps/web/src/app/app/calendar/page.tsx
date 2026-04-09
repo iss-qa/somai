@@ -133,17 +133,22 @@ function getCardThumbnail(card: PopulatedCard | string | null): string | undefin
 }
 
 function toPostItemFormat(post: ScheduledPost) {
+  const statusMapping: Record<string, 'published' | 'failed' | 'cancelled' | 'queued' | 'processing'> = {
+    done: 'published',
+    failed: 'failed',
+    cancelled: 'cancelled',
+    queued: 'queued',
+    processing: 'processing',
+  }
   return {
     _id: post._id,
     title: getCardName(post.card_id, post.caption),
     caption: post.caption,
     card_id: typeof post.card_id === 'object' && post.card_id ? { generated_image_url: post.card_id.generated_image_url } : undefined,
     platforms: post.platforms,
-    published_at: null as string | null,
+    published_at: post.status === 'done' ? post.scheduled_at : null as string | null,
     created_at: post.scheduled_at,
-    status: post.status === 'done' ? 'published' as const
-      : post.status === 'failed' ? 'failed' as const
-      : 'cancelled' as const,
+    status: statusMapping[post.status] || post.status as any,
   }
 }
 

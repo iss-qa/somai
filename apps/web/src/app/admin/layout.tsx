@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { NotificationBell } from '@/components/NotificationBell'
 import {
   LayoutDashboard,
   Building2,
@@ -33,6 +34,7 @@ import {
   Sparkles,
   Plug,
   ScrollText,
+  MessageSquare,
 } from 'lucide-react'
 
 const navItems = [
@@ -40,6 +42,7 @@ const navItems = [
   { href: '/admin/companies', label: 'Parceiros', icon: Building2 },
   { href: '/admin/financial', label: 'Financeiro', icon: DollarSign },
   { href: '/admin/health', label: 'Saude do Sistema', icon: Activity },
+  { href: '/admin/comunicacao', label: 'Comunicacao', icon: MessageSquare },
   { href: '/admin/integrations', label: 'Integracoes', icon: Plug },
   { href: '/admin/logs', label: 'Logs', icon: ScrollText },
   { href: '/admin/settings', label: 'Configuracoes', icon: Settings },
@@ -184,10 +187,7 @@ export default function AdminLayout({
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-4.5 h-4.5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-              </Button>
+              <NotificationBell />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

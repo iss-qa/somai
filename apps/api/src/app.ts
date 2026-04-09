@@ -22,6 +22,8 @@ import adminFinancialRoutes from './routes/admin/financial'
 import adminHealthRoutes from './routes/admin/health'
 import adminLogsRoutes from './routes/admin/logs'
 import adminAppLogsRoutes from './routes/admin/applogs'
+import adminComunicacaoRoutes from './routes/admin/comunicacao'
+import notificationRoutes from './routes/notifications'
 import billingRoutes from './routes/billing'
 import cronRoutes from './routes/cron'
 
@@ -67,6 +69,8 @@ export async function getApp() {
   await app.register(adminHealthRoutes, { prefix: '/api/admin/health' })
   await app.register(adminLogsRoutes, { prefix: '/api/admin/logs' })
   await app.register(adminAppLogsRoutes, { prefix: '/api/admin/applogs' })
+  await app.register(adminComunicacaoRoutes, { prefix: '/api/admin/comunicacao' })
+  await app.register(notificationRoutes, { prefix: '/api/notifications' })
   await app.register(billingRoutes, { prefix: '/api/billing' })
   await app.register(cronRoutes, { prefix: '/api/cron' })
 

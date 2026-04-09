@@ -13,7 +13,7 @@ interface PostItemProps {
     platforms: string[]
     published_at: string | null
     created_at: string
-    status: 'published' | 'failed' | 'cancelled'
+    status: 'published' | 'failed' | 'cancelled' | 'queued' | 'processing'
   }
   compact?: boolean
 }
@@ -22,6 +22,8 @@ const statusMap = {
   published: { label: 'Publicado', variant: 'success' as const },
   failed: { label: 'Falhou', variant: 'destructive' as const },
   cancelled: { label: 'Cancelado', variant: 'secondary' as const },
+  queued: { label: 'Na fila', variant: 'info' as const },
+  processing: { label: 'Processando', variant: 'warning' as const },
 }
 
 const platformIcons: Record<string, React.ElementType> = {

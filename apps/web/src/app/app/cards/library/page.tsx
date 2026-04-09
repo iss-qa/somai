@@ -282,7 +282,7 @@ export default function CardLibraryPage() {
 
                   {/* Thumbnail */}
                   <div
-                    className={`aspect-video bg-brand-dark flex items-center justify-center overflow-hidden relative ${
+                    className={`aspect-[4/5] bg-brand-dark flex items-center justify-center overflow-hidden relative ${
                       isArchived ? 'grayscale' : ''
                     }`}
                   >
@@ -324,69 +324,29 @@ export default function CardLibraryPage() {
                   </div>
 
                   {/* Card info */}
-                  <CardContent className="p-2.5 space-y-1.5">
-                    {/* Product name */}
-                    {card.product_name && (
-                      <p className="text-xs font-medium text-gray-200 truncate">
-                        {card.product_name}
-                      </p>
-                    )}
-
-                    {/* Headline */}
-                    <p className="text-[11px] text-gray-400 line-clamp-1">
-                      {card.headline}
+                  <CardContent className="px-2.5 py-2 space-y-1">
+                    {/* Line 1: Card name */}
+                    <p className="text-sm font-medium text-gray-200 truncate">
+                      {card.product_name || card.headline}
                     </p>
 
-                    {/* Badges row */}
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {/* Format badge */}
-                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                    {/* Line 2: Format + Status + Date */}
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
                         {formatLabels[card.format] || card.format}
                       </Badge>
-
-                      {/* Status badge */}
-                      <Badge variant={status.variant} className="text-[9px] px-1.5 py-0 gap-0.5">
+                      <Badge variant={status.variant} className="text-[10px] px-1.5 py-0 gap-0.5 shrink-0">
                         {status.dot && (
-                          <span
-                            className={`inline-block w-1.5 h-1.5 rounded-full ${status.dot}`}
-                          />
+                          <span className={`inline-block w-1.5 h-1.5 rounded-full ${status.dot}`} />
                         )}
                         {card.status === 'approved' && (
                           <Check className="w-2.5 h-2.5" />
                         )}
                         {status.label}
                       </Badge>
-                    </div>
-
-                    {/* Date */}
-                    <p className="text-[10px] text-gray-500">
-                      {formatDate(card.createdAt)}
-                    </p>
-
-                    {/* Mobile actions */}
-                    <div className="flex items-center gap-1.5 pt-1 sm:hidden">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 gap-1 text-[10px] h-7"
-                        onClick={() =>
-                          router.push(`/app/cards/generate?edit=${card._id}`)
-                        }
-                      >
-                        <Pencil className="w-3 h-3" />
-                        Editar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 gap-1 text-[10px] h-7"
-                        onClick={() =>
-                          router.push(`/app/calendar?card=${card._id}`)
-                        }
-                      >
-                        <Calendar className="w-3 h-3" />
-                        Agendar
-                      </Button>
+                      <span className="text-[11px] text-gray-500 ml-auto shrink-0">
+                        {formatDate(card.createdAt)}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
