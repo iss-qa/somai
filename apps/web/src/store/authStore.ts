@@ -14,6 +14,7 @@ export interface User {
   niche?: string
   accessEnabled?: boolean
   trialExpiresAt?: string | null
+  logo_url?: string
 }
 
 interface AuthState {

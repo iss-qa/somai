@@ -75,6 +75,7 @@ export default async function authRoutes(app: FastifyInstance) {
       let niche: string | null = null
       let accessEnabled = true
       let trialExpiresAt: string | null = null
+      let logoUrl: string | null = null
 
       if (!isAdmin && foundUser.company_id) {
         const company: any = await Company.findById(foundUser.company_id)
@@ -88,6 +89,7 @@ export default async function authRoutes(app: FastifyInstance) {
           trialExpiresAt = company.trial_expires_at
             ? new Date(company.trial_expires_at).toISOString()
             : null
+          logoUrl = company.logo_url || null
         }
       }
 
@@ -119,6 +121,7 @@ export default async function authRoutes(app: FastifyInstance) {
             niche,
             accessEnabled,
             trialExpiresAt,
+            logo_url: logoUrl,
           },
         })
     },
@@ -400,6 +403,7 @@ export default async function authRoutes(app: FastifyInstance) {
             niche: niche || 'outro',
             accessEnabled: false,
             trialExpiresAt: trialExpiresAt.toISOString(),
+            logo_url: null,
           },
         })
       } catch (err: any) {

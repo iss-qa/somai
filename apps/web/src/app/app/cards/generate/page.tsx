@@ -61,7 +61,7 @@ import {
 
 type Format = 'feed' | 'stories' | 'reels' | 'carousel'
 type CarouselShape = 'square' | 'vertical'
-type PostType = 'promocao' | 'dica' | 'novidade' | 'institucional' | 'data_comemorativa'
+type PostType = 'promocao' | 'dica' | 'novidade' | 'institucional' | 'data_comemorativa' | 'nenhum'
 type PaletteId = 'vibrante' | 'profissional' | 'quente' | 'elegante' | 'custom'
 type ImageLayout =
   | 'background'
@@ -127,6 +127,8 @@ interface CardConfig {
   carouselShape: CarouselShape
   carouselSlides: number
   objective: string
+  logoUrl: string
+  logoSize: number
 }
 
 interface GalleryCard {
@@ -162,6 +164,7 @@ const FORMAT_OPTIONS: { id: Format; label: string; icon: typeof Square; hint: st
 ]
 
 const POST_TYPES: { value: PostType; label: string }[] = [
+  { value: 'nenhum', label: 'Nenhum' },
   { value: 'promocao', label: 'Promocao' },
   { value: 'dica', label: 'Dica' },
   { value: 'novidade', label: 'Novidade' },
@@ -455,7 +458,164 @@ const RANDOM_EXTRAS: Record<string, string[]> = {
   outro: ['Oferta por tempo limitado.', 'Nao perca essa oportunidade!', 'Qualidade garantida.', 'Atendimento personalizado.', 'Melhor custo-beneficio.'],
 }
 
-function getSmartDefaults(niche: string | undefined, postType: PostType): Partial<CardConfig> {
+// ---------------------------------------------------------------------------
+// Visual Themes per PostType
+// ---------------------------------------------------------------------------
+
+interface CardTheme {
+  id: string
+  label: string
+  description: string
+  postTypes: PostType[]
+  colors: { primary: string; secondary: string; bg: string }
+  apply: Partial<CardConfig>
+}
+
+const CARD_THEMES: CardTheme[] = [
+  // ── Promocao ───────────────────────────────────────────────────────────────
+  {
+    id: 'hot_sale',
+    label: 'Hot Sale 🔥',
+    description: 'Para promocoes com urgencia e destaque',
+    postTypes: ['promocao'],
+    colors: { primary: '#EF4444', secondary: '#F59E0B', bg: '#1c0000' },
+    apply: { palette: 'quente', fontFamily: 'Bebas Neue', imageLayout: 'big-sale', textPosition: { vertical: 'top', horizontal: 'left' } },
+  },
+  {
+    id: 'promo_clean',
+    label: 'Promo Clean ✨',
+    description: 'Promocao minimalista e elegante',
+    postTypes: ['promocao'],
+    colors: { primary: '#A855F7', secondary: '#6366F1', bg: '#0c0a1a' },
+    apply: { palette: 'elegante', fontFamily: 'Montserrat', imageLayout: 'super-sale', textPosition: { vertical: 'center', horizontal: 'center' } },
+  },
+  {
+    id: 'promo_tech',
+    label: 'Promo Tech 💻',
+    description: 'Estilo tecnologico e moderno',
+    postTypes: ['promocao'],
+    colors: { primary: '#3B82F6', secondary: '#10B981', bg: '#0f172a' },
+    apply: { palette: 'profissional', fontFamily: 'Roboto', imageLayout: 'side-by-side', textPosition: { vertical: 'bottom', horizontal: 'left' } },
+  },
+  {
+    id: 'promo_fashion',
+    label: 'Fashion Sale 👗',
+    description: 'Para moda e beleza com estilo vibrante',
+    postTypes: ['promocao'],
+    colors: { primary: '#EC4899', secondary: '#F59E0B', bg: '#1a0a1e' },
+    apply: { palette: 'vibrante', fontFamily: 'Raleway', imageLayout: 'frame', textPosition: { vertical: 'bottom', horizontal: 'center' } },
+  },
+  // ── Dica ───────────────────────────────────────────────────────────────────
+  {
+    id: 'dica_clean',
+    label: 'Dica Clean 📝',
+    description: 'Dica com fundo limpo e texto principal',
+    postTypes: ['dica'],
+    colors: { primary: '#3B82F6', secondary: '#10B981', bg: '#0f172a' },
+    apply: { palette: 'profissional', fontFamily: 'Open Sans', imageLayout: 'background', textPosition: { vertical: 'center', horizontal: 'center' } },
+  },
+  {
+    id: 'dica_bold',
+    label: 'Dica Bold 💡',
+    description: 'Dica com destaque visual forte',
+    postTypes: ['dica'],
+    colors: { primary: '#F59E0B', secondary: '#EF4444', bg: '#1c1917' },
+    apply: { palette: 'quente', fontFamily: 'Poppins', imageLayout: 'top', textPosition: { vertical: 'bottom', horizontal: 'left' } },
+  },
+  // ── Novidade ───────────────────────────────────────────────────────────────
+  {
+    id: 'novidade_launch',
+    label: 'Lancamento 🚀',
+    description: 'Para divulgar novidades e lancamentos',
+    postTypes: ['novidade'],
+    colors: { primary: '#8B5CF6', secondary: '#EC4899', bg: '#1a1a2e' },
+    apply: { palette: 'vibrante', fontFamily: 'Montserrat', imageLayout: 'super-sale', textPosition: { vertical: 'top', horizontal: 'center' } },
+  },
+  {
+    id: 'novidade_elegante',
+    label: 'Novidade Elegante 🌟',
+    description: 'Para produtos premium e exclusivos',
+    postTypes: ['novidade'],
+    colors: { primary: '#A855F7', secondary: '#6366F1', bg: '#0c0a1a' },
+    apply: { palette: 'elegante', fontFamily: 'Playfair Display', imageLayout: 'frame', textPosition: { vertical: 'bottom', horizontal: 'center' } },
+  },
+  // ── Institucional ──────────────────────────────────────────────────────────
+  {
+    id: 'institucional_corp',
+    label: 'Corporativo 🏢',
+    description: 'Tom profissional e sobrio',
+    postTypes: ['institucional'],
+    colors: { primary: '#3B82F6', secondary: '#10B981', bg: '#0f172a' },
+    apply: { palette: 'profissional', fontFamily: 'Inter', imageLayout: 'left', textPosition: { vertical: 'center', horizontal: 'left' } },
+  },
+  {
+    id: 'institucional_clean',
+    label: 'Clean Minimalista 🎯',
+    description: 'Menos e mais — foco na mensagem',
+    postTypes: ['institucional'],
+    colors: { primary: '#A855F7', secondary: '#6366F1', bg: '#0c0a1a' },
+    apply: { palette: 'elegante', fontFamily: 'Raleway', imageLayout: 'background', textPosition: { vertical: 'center', horizontal: 'center' } },
+  },
+  {
+    id: 'institucional_comunicado',
+    label: 'Comunicado 📢',
+    description: 'Para avisos, comunicados e horarios',
+    postTypes: ['institucional'],
+    colors: { primary: '#F59E0B', secondary: '#EF4444', bg: '#1c1917' },
+    apply: { palette: 'quente', fontFamily: 'Oswald', imageLayout: 'top', textPosition: { vertical: 'bottom', horizontal: 'center' } },
+  },
+  // ── Data Comemorativa ─────────────────────────────────────────────────────
+  {
+    id: 'data_festivo',
+    label: 'Festivo 🎉',
+    description: 'Para datas comemorativas e celebracoes',
+    postTypes: ['data_comemorativa'],
+    colors: { primary: '#EC4899', secondary: '#F59E0B', bg: '#1a0a1e' },
+    apply: { palette: 'vibrante', fontFamily: 'Bebas Neue', imageLayout: 'background', textPosition: { vertical: 'center', horizontal: 'center' } },
+  },
+  {
+    id: 'data_elegante',
+    label: 'Data Elegante 🥂',
+    description: 'Para datas com tom sofisticado',
+    postTypes: ['data_comemorativa'],
+    colors: { primary: '#A855F7', secondary: '#6366F1', bg: '#0c0a1a' },
+    apply: { palette: 'elegante', fontFamily: 'Playfair Display', imageLayout: 'frame', textPosition: { vertical: 'center', horizontal: 'center' } },
+  },
+  // ── Universal ─────────────────────────────────────────────────────────────
+  {
+    id: 'dark_premium',
+    label: 'Dark Premium 🖤',
+    description: 'Estilo escuro premium para qualquer conteudo',
+    postTypes: ['promocao', 'dica', 'novidade', 'institucional', 'data_comemorativa', 'nenhum'],
+    colors: { primary: '#A855F7', secondary: '#6366F1', bg: '#050508' },
+    apply: { palette: 'elegante', fontFamily: 'Poppins', imageLayout: 'background', textPosition: { vertical: 'center', horizontal: 'center' } },
+  },
+  {
+    id: 'natural_clean',
+    label: 'Natural & Clean 🌿',
+    description: 'Tom natural, ideal para saude e beleza',
+    postTypes: ['promocao', 'dica', 'novidade', 'institucional', 'data_comemorativa', 'nenhum'],
+    colors: { primary: '#10B981', secondary: '#3B82F6', bg: '#022c22' },
+    apply: { palette: 'profissional', fontFamily: 'Lato', imageLayout: 'side-frame', textPosition: { vertical: 'center', horizontal: 'left' } },
+  },
+  {
+    id: 'urban_street',
+    label: 'Urban Street 🏙️',
+    description: 'Para barbearia, moda e lifestyle urbano',
+    postTypes: ['promocao', 'dica', 'novidade', 'institucional', 'data_comemorativa', 'nenhum'],
+    colors: { primary: '#EF4444', secondary: '#1F2937', bg: '#000000' },
+    apply: { palette: 'quente', fontFamily: 'Oswald', imageLayout: 'right', textPosition: { vertical: 'center', horizontal: 'left' } },
+  },
+]
+
+function getThemesForPostType(postType: PostType): CardTheme[] {
+  const specific = CARD_THEMES.filter((t) => t.postTypes.includes(postType) && t.postTypes.length < 5)
+  const universal = CARD_THEMES.filter((t) => t.postTypes.length >= 5)
+  return [...specific, ...universal]
+}
+
+function getSmartDefaults(niche: string | undefined, postType: PostType | 'nenhum'): Partial<CardConfig> {
+  if (postType === 'nenhum') return {}
   const n = niche || 'outro'
 
   const products = RANDOM_PRODUCTS[n] || RANDOM_PRODUCTS.outro
@@ -509,7 +669,7 @@ function getSmartDefaults(niche: string | undefined, postType: PostType): Partia
 
 const DEFAULT_CONFIG: CardConfig = {
   format: 'feed',
-  postType: 'promocao',
+  postType: 'nenhum',
   productName: '',
   headline: '',
   originalPrice: '',
@@ -537,6 +697,8 @@ const DEFAULT_CONFIG: CardConfig = {
   carouselShape: 'square',
   carouselSlides: 3,
   objective: '',
+  logoUrl: '',
+  logoSize: 36,
 }
 
 // ---------------------------------------------------------------------------
@@ -597,7 +759,7 @@ function getFontStack(fontFamily: FontFamily): string {
 
 function generateCardName(format: Format, postType: PostType, productName: string): string {
   const formatLabel = FORMAT_OPTIONS.find((f) => f.id === format)?.label || format
-  const typeLabel = POST_TYPES.find((t) => t.value === postType)?.label || postType
+  const typeLabel = postType === 'nenhum' ? 'Card' : (POST_TYPES.find((t) => t.value === postType)?.label || postType)
   const name = productName.trim() || 'Sem nome'
   return `${formatLabel} - ${typeLabel} - ${name}`
 }
@@ -859,6 +1021,12 @@ function CardPreview({
 
   // Post type styling
   const postTypeConfig: Record<PostType, { badge: string; gradient: string; icon: string; accentGradient: string }> = {
+    nenhum: {
+      badge: '',
+      gradient: `linear-gradient(135deg, ${pal.bg} 0%, ${pal.bg} 100%)`,
+      icon: '',
+      accentGradient: `linear-gradient(135deg, ${pal.primary}, ${pal.secondary})`,
+    },
     promocao: {
       badge: 'PROMOCAO',
       gradient: `linear-gradient(135deg, ${pal.bg} 0%, ${pal.primary}22 50%, ${pal.secondary}33 100%)`,
@@ -1030,33 +1198,40 @@ function CardPreview({
       'top-right': { top: 12, right: 12 },
       'top-center': { top: 12, left: '50%', transform: 'translateX(-50%)' },
     }
+    const size = config.logoSize || 36
     return (
       <div
         style={{
           position: 'absolute',
           ...posMap[config.logoPosition],
-          width: 36,
-          height: 36,
+          width: size,
+          height: size,
           borderRadius: '50%',
-          background: ptConfig.accentGradient,
+          background: config.logoUrl ? 'transparent' : ptConfig.accentGradient,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 13,
+          fontSize: Math.round(size * 0.36),
           fontWeight: 700,
           color: '#fff',
           fontFamily: fontStack,
           zIndex: 10,
           boxShadow: `0 2px 8px ${pal.primary}40`,
+          overflow: 'hidden',
         }}
       >
-        {initials}
+        {config.logoUrl ? (
+          <img src={config.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+        ) : (
+          initials
+        )}
       </div>
     )
   }
 
   // Post type badge (inline – rendered inside text flow)
   function renderTypeBadge() {
+    if (config.postType === 'nenhum') return null
     if (config.typeBadgePosition !== 'inline') return null
     if (!config.productName && !config.headline && !config.extraText) return null
     return (
@@ -1082,6 +1257,7 @@ function CardPreview({
 
   // Post type badge (floating – absolutely positioned like logo)
   function renderFloatingTypeBadge() {
+    if (config.postType === 'nenhum') return null
     if (config.typeBadgePosition === 'inline') return null
     if (!config.productName && !config.headline && !config.extraText) return null
     const posMap: Record<string, React.CSSProperties> = {
@@ -2641,10 +2817,63 @@ A imagem deve ser visualmente atrativa para redes sociais.`
               </Section>
 
               {/* ----------------------------------------------------------- */}
+              {/* Section: Temas */}
+              {/* ----------------------------------------------------------- */}
+              <Section title="Temas visuais" icon={Palette} defaultOpen={false}>
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-400">Aplique um tema visual ao card. O tema ajusta cores, fonte e layout automaticamente.</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {getThemesForPostType(config.postType).map((theme) => (
+                      <button
+                        key={theme.id}
+                        onClick={() => {
+                          const overrides: Partial<CardConfig> = { ...theme.apply }
+                          setConfig((prev) => ({
+                            ...prev,
+                            ...overrides,
+                            customColors: theme.apply.palette ? prev.customColors : theme.colors,
+                          }))
+                          setDirtyAfterApprove(true)
+                          toast.success(`Tema "${theme.label}" aplicado!`)
+                        }}
+                        className="flex items-center gap-3 p-3 rounded-xl border border-brand-border hover:border-primary-500/50 hover:bg-brand-surface transition-all text-left group"
+                      >
+                        {/* Color preview */}
+                        <div className="flex-shrink-0 flex gap-1">
+                          <div className="w-6 h-10 rounded-md" style={{ backgroundColor: theme.colors.bg }} />
+                          <div className="flex flex-col gap-1">
+                            <div className="w-4 h-4 rounded" style={{ backgroundColor: theme.colors.primary }} />
+                            <div className="w-4 h-4 rounded" style={{ backgroundColor: theme.colors.secondary }} />
+                          </div>
+                        </div>
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-200 group-hover:text-white">{theme.label}</p>
+                          <p className="text-xs text-gray-500 truncate">{theme.description}</p>
+                        </div>
+                        {/* Apply arrow */}
+                        <div className="text-gray-600 group-hover:text-primary-400 transition-colors text-xs">
+                          Aplicar →
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </Section>
+
+              {/* ----------------------------------------------------------- */}
               {/* Section: Imagem */}
               {/* ----------------------------------------------------------- */}
-              <Section title="Imagem" icon={ImageIcon} onToggle={(open) => updateConfig('includeImage', open)}>
+              <Section title="Imagem" icon={ImageIcon}>
                 <div className="space-y-4">
+                      {/* Toggle incluir imagem */}
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">Incluir imagem no card</Label>
+                        <Switch
+                          checked={config.includeImage}
+                          onCheckedChange={(v) => updateConfig('includeImage', v)}
+                        />
+                      </div>
                       {/* Image URL + Library side by side */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1.5">
@@ -2819,7 +3048,12 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                     <Label className="text-sm">Incluir logo</Label>
                     <Switch
                       checked={config.display.showLogo}
-                      onCheckedChange={(v) => updateDisplay('showLogo', v)}
+                      onCheckedChange={(v) => {
+                        updateDisplay('showLogo', v)
+                        if (v && user?.logo_url && !config.logoUrl) {
+                          updateConfig('logoUrl', user.logo_url)
+                        }
+                      }}
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -2876,9 +3110,55 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                     </div>
                   </div>
 
-                  {/* Logo position */}
+                  {/* Logo URL, size and position */}
                   {config.display.showLogo && (
-                    <div className="space-y-2">
+                    <div className="space-y-4">
+                      {/* Logo URL auto-fill */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-gray-400">Logo da empresa</Label>
+                          {user?.logo_url && (
+                            <button
+                              onClick={() => updateConfig('logoUrl', user.logo_url || '')}
+                              className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                            >
+                              Usar logo da empresa
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            placeholder="URL da logo"
+                            value={config.logoUrl}
+                            onChange={(e) => updateConfig('logoUrl', e.target.value)}
+                            className="flex-1 text-xs h-8"
+                          />
+                          {config.logoUrl && (
+                            <button onClick={() => updateConfig('logoUrl', '')} className="text-gray-500 hover:text-red-400 transition-colors">
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Logo size */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-gray-400">Tamanho do logo</Label>
+                          <span className="text-xs text-gray-500">{config.logoSize || 36}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="24"
+                          max="80"
+                          value={config.logoSize || 36}
+                          onChange={(e) => updateConfig('logoSize', Number(e.target.value))}
+                          className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                        />
+                      </div>
+
+                      {/* Logo position */}
+                      <div className="space-y-2">
                       <Label className="text-xs text-gray-400">Posicao do logo</Label>
                       <div className="flex gap-2 flex-wrap">
                         {(['top-left', 'top-center', 'top-right', 'hidden'] as LogoPosition[]).map((pos) => {
@@ -2903,6 +3183,7 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                             </button>
                           )
                         })}
+                      </div>
                       </div>
                     </div>
                   )}
