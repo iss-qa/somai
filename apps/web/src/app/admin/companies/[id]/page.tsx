@@ -171,6 +171,7 @@ export default function CompanyDetailPage() {
         niche: company.niche,
         city: company.city,
         state: company.state,
+        status: company.status,
         plan_slug: company.plan_id?.slug || 'starter',
         plan_id: company.plan_id?._id || '',
         setup_amount: company.setup_amount || company.plan_id?.setup_price || 297,
@@ -217,6 +218,7 @@ export default function CompanyDetailPage() {
         niche: editData.niche,
         city: editData.city,
         state: editData.state,
+        status: editData.status,
         setup_amount: editData.setup_amount,
         trial_days: editData.trial_days,
         notes: editData.notes,
@@ -460,7 +462,7 @@ export default function CompanyDetailPage() {
 
       {/* ─── Edit Modal ──────────────────────── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="!max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar empresa</DialogTitle>
           </DialogHeader>
@@ -493,15 +495,33 @@ export default function CompanyDetailPage() {
               </div>
             </div>
 
-            {/* Row 3: Cidade + Estado + Nicho */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* Row 3: Cidade + Estado */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-400">Cidade</Label>
                 <Input value={editData.city || ''} onChange={(e) => updateEdit('city', e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-xs text-gray-400">Estado</Label>
-                <Input value={editData.state || ''} onChange={(e) => updateEdit('state', e.target.value)} className="mt-1" />
+                <Label className="text-xs text-gray-400">Estado (UF)</Label>
+                <Input value={editData.state || ''} onChange={(e) => updateEdit('state', e.target.value)} placeholder="BA" maxLength={2} className="mt-1" />
+              </div>
+            </div>
+
+            {/* Row 4: Status */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-gray-400">Status da empresa</Label>
+                <Select value={editData.status || 'trial'} onValueChange={(v) => updateEdit('status', v)}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="trial">Trial</SelectItem>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="setup_pending">Setup Pendente</SelectItem>
+                    <SelectItem value="pending_subscription">Aguardando Assinatura</SelectItem>
+                    <SelectItem value="blocked">Bloqueado</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label className="text-xs text-gray-400">Nicho</Label>
@@ -638,7 +658,15 @@ function BillingSection({
       const data = await api.post('/api/billing/setup-charge', {
         company_id: companyId,
       })
-      setSetupCharge(data.charge)
+      // Merge top-level fields (brCode, qrCodeImage, paymentLinkUrl) into charge object
+      // because OpenPix returns brCode at the response root, not always inside charge
+      setSetupCharge({
+        ...data.charge,
+        brCode: data.brCode || data.charge?.brCode,
+        qrCodeImage: data.qrCodeImage || data.charge?.qrCodeImage,
+        paymentLinkUrl: data.paymentLinkUrl || data.charge?.paymentLinkUrl,
+        value: data.charge?.value ?? (data.value ? data.value * 100 : undefined),
+      })
       toast.success('Cobranca PIX de setup gerada!')
       onRefresh()
     } catch (err: any) {

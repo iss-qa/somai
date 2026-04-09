@@ -216,21 +216,42 @@ export class ComunicacaoService {
       metadata: params.metadata || {},
     })
 
-    await whatsappQueue.add(
-      'send_text',
-      {
-        historicoId: historico._id.toString(),
-        phoneNumber: params.destinatario_telefone,
-        message: params.conteudo,
-        instanceName: EVOLUTION_INSTANCE,
-      },
-      {
-        priority: params.priority || 5,
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 2000 },
-        delay: params.delay || 0,
-      },
-    )
+    try {
+      await whatsappQueue.add(
+        'send_text',
+        {
+          historicoId: historico._id.toString(),
+          phoneNumber: params.destinatario_telefone,
+          message: params.conteudo,
+          instanceName: EVOLUTION_INSTANCE,
+        },
+        {
+          priority: params.priority || 5,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 2000 },
+          delay: params.delay || 0,
+        },
+      )
+    } catch (queueErr: any) {
+      // Queue unavailable (e.g. Redis down) — fallback to direct send
+      console.warn('[comunicacao] Queue unavailable, trying direct send:', queueErr.message)
+      try {
+        const cleaned = params.destinatario_telefone.replace(/\D/g, '')
+        const phone = cleaned.length <= 11 ? '55' + cleaned : cleaned
+        await EvolutionService.sendText(EVOLUTION_INSTANCE, phone, params.conteudo)
+        await MessageHistory.findByIdAndUpdate(historico._id, {
+          status: StatusMensagem.ENVIADO,
+          data_envio: new Date(),
+        })
+        console.log('[comunicacao] Direct send succeeded for', params.destinatario_nome)
+      } catch (directErr: any) {
+        console.error('[comunicacao] Direct send also failed:', directErr.message)
+        await MessageHistory.findByIdAndUpdate(historico._id, {
+          status: StatusMensagem.FALHA,
+          error_message: `Queue: ${queueErr.message} | Direct: ${directErr.message}`,
+        })
+      }
+    }
 
     return historico
   }

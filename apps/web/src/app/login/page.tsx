@@ -136,6 +136,7 @@ export default function LoginPage() {
   const [niche, setNiche] = useState('')
   const [city, setCity] = useState('')
   const [selectedPlan, setSelectedPlan] = useState('starter')
+  const [signupState, setSignupState] = useState('')
   const [signupLoading, setSignupLoading] = useState(false)
   const [locating, setLocating] = useState(false)
 
@@ -172,7 +173,12 @@ export default function LoginPage() {
             data.address?.village ||
             data.address?.municipality ||
             ''
+          const detectedState =
+            data.address?.['ISO3166-2-lvl4']?.split('-').pop() ||
+            data.address?.state_code ||
+            ''
           if (detectedCity) setCity(detectedCity)
+          if (detectedState) setSignupState(detectedState)
         } catch {
           toast.error('Nao foi possivel detectar a cidade')
         } finally {
@@ -243,7 +249,7 @@ export default function LoginPage() {
         password: signupPassword,
         niche: niche || 'outro',
         city,
-        state: '',
+        state: signupState,
         plan: selectedPlan,
         trial_days: 3,
       })
