@@ -22,6 +22,8 @@ import adminDashboardRoutes from '../../../../../../apps/api/src/routes/admin/da
 import adminFinancialRoutes from '../../../../../../apps/api/src/routes/admin/financial'
 import adminHealthRoutes from '../../../../../../apps/api/src/routes/admin/health'
 import adminLogsRoutes from '../../../../../../apps/api/src/routes/admin/logs'
+import adminAppLogsRoutes from '../../../../../../apps/api/src/routes/admin/applogs'
+import billingRoutes from '../../../../../../apps/api/src/routes/billing'
 import cronRoutes from '../../../../../../apps/api/src/routes/cron'
 
 let app: ReturnType<typeof Fastify> | null = null
@@ -29,7 +31,7 @@ let app: ReturnType<typeof Fastify> | null = null
 async function getApp() {
   if (app) return app
 
-  app = Fastify({ logger: false })
+  app = Fastify({ logger: false, bodyLimit: 15 * 1024 * 1024 })
 
   await app.register(cors, { origin: true, credentials: true, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] })
   await app.register(cookie)
@@ -53,6 +55,8 @@ async function getApp() {
   await app.register(adminFinancialRoutes, { prefix: '/api/admin/financial' })
   await app.register(adminHealthRoutes, { prefix: '/api/admin/health' })
   await app.register(adminLogsRoutes, { prefix: '/api/admin/logs' })
+  await app.register(adminAppLogsRoutes, { prefix: '/api/admin/applogs' })
+  await app.register(billingRoutes, { prefix: '/api/billing' })
   await app.register(cronRoutes, { prefix: '/api/cron' })
 
   await app.ready()

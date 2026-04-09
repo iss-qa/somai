@@ -6,7 +6,11 @@
       "Bash(grep -l \"try\\\\|catch\" /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes/*.ts)",
       "Bash(grep -n \"LogService\" /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes/*.ts)",
       "Bash(wc -l /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes/*.ts)",
-      "Bash(find /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes -name \"*.ts\" -exec grep -l \"\\\\.lean\\(\\)\\\\|\\\\.exec\\(\\)\" {} \\\\;)"
+      "Bash(find /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes -name \"*.ts\" -exec grep -l \"\\\\.lean\\(\\)\\\\|\\\\.exec\\(\\)\" {} \\\\;)",
+      "Bash(xargs ls:*)",
+      "Bash(curl -s 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBggvAia5mCk-Ve9fKMWA5C_rdJfaL_xHU' -H 'Content-Type: application/json' -d '{:*)",
+      "Bash(python3 -c ':*)",
+      "Bash(node -e ':*)"
     ]
   }
 }

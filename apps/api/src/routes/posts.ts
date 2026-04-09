@@ -105,26 +105,36 @@ export default async function postsRoutes(app: FastifyInstance) {
         status: QueueStatus.Queued,
       })
 
-      const job = await postQueue.add('publish', {
-        queueId: String(queueItem._id),
-        companyId: String(post.company_id),
-        cardId: String(post.card_id),
-        videoId: post.video_id ? String(post.video_id) : undefined,
-        platforms: post.platforms,
-        postType: post.post_type,
-        caption: post.caption,
-        hashtags: post.hashtags,
-        imageUrl: card?.generated_image_url || '',
-      })
-
-      await PostQueue.findByIdAndUpdate(queueItem._id, {
-        bullmq_job_id: job.id,
-      })
+      // Best-effort BullMQ with 5s timeout (cron handles it if Redis unavailable)
+      let jobId: string | undefined
+      try {
+        const jobPromise = postQueue.add('publish', {
+          queueId: String(queueItem._id),
+          companyId: String(post.company_id),
+          cardId: String(post.card_id),
+          videoId: post.video_id ? String(post.video_id) : undefined,
+          platforms: post.platforms,
+          postType: post.post_type,
+          caption: post.caption,
+          hashtags: post.hashtags,
+          imageUrl: card?.generated_image_url || '',
+        })
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Redis timeout')), 5000),
+        )
+        const job = await Promise.race([jobPromise, timeoutPromise])
+        jobId = job.id
+        await PostQueue.findByIdAndUpdate(queueItem._id, {
+          bullmq_job_id: jobId,
+        })
+      } catch {
+        // Redis unavailable — cron will pick it up
+      }
 
       return reply.send({
         message: 'Post reenfileirado para publicacao',
         queueId: String(queueItem._id),
-        jobId: job.id,
+        jobId,
       })
     },
   )

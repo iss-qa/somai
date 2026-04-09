@@ -79,7 +79,7 @@ export default function CompanyLayout({
     clearUser()
     // Call API to clear httpOnly cookie, then hard redirect
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/logout`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       })
