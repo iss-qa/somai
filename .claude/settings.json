@@ -25,7 +25,11 @@
       "Bash(curl -s http://localhost:3001/)",
       "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\" \"https://evo2.wastezero.com.br/instance/connectionState/JUNTIX\" -H \"apikey: 80177F674F92-4A40-A533-F26BC35BAB1C\")",
       "Bash(curl -sk -w \"\\\\nHTTP_STATUS: %{http_code}\" \"https://evo2.wastezero.com.br/instance/connectionState/JUNTIX\" -H \"apikey: 80177F674F92-4A40-A533-F26BC35BAB1C\")",
-      "Bash(curl -sk -w '\\\\nHTTP_STATUS: %{http_code}' https://evo2.wastezero.com.br/message/sendText/JUNTIX -H 'apikey: 80177F674F92-4A40-A533-F26BC35BAB1C' -H 'Content-Type: application/json' -d '{\"number\":\"5571996838735\",\"text\":\"🧪 *Teste Soma.ai*\\\\n\\\\nOla! Esta e uma mensagem de teste do sistema de comunicacao do Soma.ai.\\\\n\\\\nSe voce recebeu esta mensagem, o envio esta funcionando corretamente! ✅\\\\n\\\\n_Mensagem automatica - Soma.ai_\"}')"
+      "Bash(curl -sk -w '\\\\nHTTP_STATUS: %{http_code}' https://evo2.wastezero.com.br/message/sendText/JUNTIX -H 'apikey: 80177F674F92-4A40-A533-F26BC35BAB1C' -H 'Content-Type: application/json' -d '{\"number\":\"5571996838735\",\"text\":\"🧪 *Teste Soma.ai*\\\\n\\\\nOla! Esta e uma mensagem de teste do sistema de comunicacao do Soma.ai.\\\\n\\\\nSe voce recebeu esta mensagem, o envio esta funcionando corretamente! ✅\\\\n\\\\n_Mensagem automatica - Soma.ai_\"}')",
+      "Bash(npx -y @vercel/ncc --version)",
+      "Bash(npx @vercel/ncc build apps/api/src/server.ts -o apps/api/api --minify)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(grep -r \"setup\\\\|onboard\\\\|block\" /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes/*.ts --include=\"*.ts\")"
     ]
   }
 }

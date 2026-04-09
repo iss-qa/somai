@@ -13,6 +13,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user)
   const hasAccess = useAuthStore((s) => s.hasAccess)
   const isAdmin = useAuthStore((s) => s.isAdmin)
+  const isInTrial = useAuthStore((s) => s.isInTrial)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -24,12 +25,13 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>
   }
 
-  // User has access (enabled or within trial)
+  // Only accessEnabled grants real access
   if (hasAccess()) {
     return <>{children}</>
   }
 
-  // Check if trial expired or never had access
+  // Determine state for overlay message
+  const trialActive = isInTrial()
   const trialExpired =
     user.trialExpiresAt && new Date(user.trialExpiresAt) <= new Date()
 
@@ -68,10 +70,9 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
                 Estamos preparando tudo para voce!
               </h3>
               <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                Sua conta esta sendo configurada pela nossa equipe. Em ate{' '}
-                <span className="text-primary-300 font-medium">24 horas</span>{' '}
-                seu acesso sera liberado e voce podera comecar a criar
-                conteudo incrivel com IA.
+                Sua conta esta sendo configurada pela nossa equipe. Apos a
+                confirmacao do pagamento do setup, seu acesso sera liberado e
+                voce podera comecar a criar conteudo incrivel com IA.
               </p>
             </>
           )}
@@ -86,7 +87,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
             </span>
           </div>
 
-          {user.trialExpiresAt && !trialExpired && (
+          {user.trialExpiresAt && trialActive && (
             <TrialCountdown expiresAt={user.trialExpiresAt} />
           )}
         </div>

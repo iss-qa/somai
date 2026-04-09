@@ -24,6 +24,7 @@ interface AuthState {
   isPro: () => boolean
   isEnterprise: () => boolean
   hasAccess: () => boolean
+  isInTrial: () => boolean
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -49,13 +50,14 @@ export const useAuthStore = create<AuthState>()(
         if (!user) return false
         // Admin always has access
         if (user.role === 'superadmin' || user.role === 'support') return true
-        // Check access_enabled
-        if (user.accessEnabled) return true
-        // Check trial period
-        if (user.trialExpiresAt) {
-          return new Date(user.trialExpiresAt) > new Date()
-        }
-        return false
+        // Only access_enabled grants access (set by admin after setup payment)
+        return user.accessEnabled === true
+      },
+      isInTrial: () => {
+        const { user } = get()
+        if (!user) return false
+        if (!user.trialExpiresAt) return false
+        return new Date(user.trialExpiresAt) > new Date()
       },
     }),
     {

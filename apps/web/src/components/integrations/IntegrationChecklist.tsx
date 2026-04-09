@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { useAuthStore } from '@/store/authStore'
 import {
   CheckCircle2,
   ExternalLink,
@@ -86,7 +87,7 @@ const STEPS: Step[] = [
   { id: 'connect', title: 'Conectar com Facebook/Instagram', shortTitle: '4. Conectar', icon: LogIn },
 ]
 
-const STORAGE_KEY = 'soma_integration_checklist'
+const STORAGE_KEY_PREFIX = 'soma_integration_checklist'
 
 /* ── Props ───────────────────────────────────── */
 interface IntegrationChecklistProps {
@@ -112,21 +113,24 @@ export default function IntegrationChecklist({
   onToggleShowAppSecret,
   onSaveAppCredentials,
 }: IntegrationChecklistProps) {
+  const companyId = useAuthStore((s) => s.user?.companyId)
+  const storageKey = `${STORAGE_KEY_PREFIX}_${companyId || 'default'}`
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState(STEPS[0].id)
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY)
+      const saved = localStorage.getItem(storageKey)
       if (saved) setCompletedSteps(JSON.parse(saved))
+      else setCompletedSteps({})
     } catch {}
-  }, [])
+  }, [storageKey])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(completedSteps))
+    localStorage.setItem(storageKey, JSON.stringify(completedSteps))
     const allDone = STEPS.every((s) => completedSteps[s.id])
     onAllCompleted?.(allDone)
-  }, [completedSteps, onAllCompleted])
+  }, [completedSteps, onAllCompleted, storageKey])
 
   const completedCount = STEPS.filter((s) => completedSteps[s.id]).length
   const percentage = Math.round((completedCount / STEPS.length) * 100)

@@ -28,6 +28,7 @@ import {
   Lock,
   Target,
   MessageSquare,
+  Timer,
 } from 'lucide-react'
 
 interface DashNotification {
@@ -105,6 +106,62 @@ interface DashboardData {
   }>
 }
 
+function TrialBanner() {
+  const user = useAuthStore((s) => s.user)
+  const [timeLeft, setTimeLeft] = useState('')
+
+  useEffect(() => {
+    if (!user?.trialExpiresAt) return
+    function update() {
+      const diff = new Date(user!.trialExpiresAt!).getTime() - Date.now()
+      if (diff <= 0) {
+        setTimeLeft('Expirado')
+        return
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      if (days > 0) {
+        setTimeLeft(`${days} dia${days > 1 ? 's' : ''} e ${hours}h ${mins}min`)
+      } else {
+        setTimeLeft(`${hours}h ${mins}min`)
+      }
+    }
+    update()
+    const interval = setInterval(update, 60000)
+    return () => clearInterval(interval)
+  }, [user?.trialExpiresAt])
+
+  if (!user?.trialExpiresAt || !timeLeft) return null
+
+  const expired = timeLeft === 'Expirado'
+
+  return (
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
+      expired
+        ? 'bg-red-500/10 border-red-500/20'
+        : 'bg-amber-500/10 border-amber-500/20'
+    }`}>
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+        expired ? 'bg-red-500/15' : 'bg-amber-500/15'
+      }`}>
+        <Timer className={`w-5 h-5 ${expired ? 'text-red-400' : 'text-amber-400'}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-medium ${expired ? 'text-red-300' : 'text-amber-300'}`}>
+          {expired ? 'Periodo de teste encerrado' : 'Periodo de teste ativo'}
+        </p>
+        <p className={`text-xs ${expired ? 'text-red-400/70' : 'text-amber-400/70'}`}>
+          {expired
+            ? 'Entre em contato para ativar seu plano.'
+            : `Tempo restante: ${timeLeft}`
+          }
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
@@ -173,6 +230,9 @@ export default function DashboardPage() {
           Aqui esta o resumo do seu marketing hoje.
         </p>
       </div>
+
+      {/* Trial countdown banner */}
+      <TrialBanner />
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">

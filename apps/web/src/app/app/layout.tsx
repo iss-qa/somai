@@ -140,6 +140,24 @@ export default function CompanyLayout({
           {navItems.map((item) => {
             const isActive = pathname.startsWith(item.href)
             const Icon = item.icon
+            const isProLocked = item.pro && user?.plan !== 'pro' && user?.plan !== 'enterprise' && user?.role !== 'superadmin' && user?.role !== 'support'
+
+            if (isProLocked) {
+              return (
+                <div
+                  key={item.href}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 cursor-not-allowed opacity-60"
+                  title={`Disponivel no plano Pro`}
+                >
+                  <Icon className="w-4.5 h-4.5 flex-shrink-0" />
+                  <span className="flex-1">{item.label}</span>
+                  <Badge variant="default" className="text-[10px] px-1.5 py-0 opacity-70">
+                    Pro
+                  </Badge>
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={item.href}
