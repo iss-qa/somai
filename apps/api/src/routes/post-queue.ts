@@ -123,11 +123,11 @@ export default async function postQueueRoutes(app: FastifyInstance) {
         status: QueueStatus.Queued,
       })
 
-      // Schedule BullMQ job (best-effort: cron handles publishing if Redis unavailable)
+      // Schedule BullMQ job (best-effort with 5s timeout: cron handles publishing if Redis unavailable)
       let jobId: string | undefined
       try {
         const delay = Math.max(0, scheduledAt.getTime() - Date.now())
-        const job = await postQueue.add(
+        const jobPromise = postQueue.add(
           'publish',
           {
             queueId: String(queueItem._id),
@@ -142,6 +142,10 @@ export default async function postQueueRoutes(app: FastifyInstance) {
           },
           { delay },
         )
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Redis timeout')), 5000),
+        )
+        const job = await Promise.race([jobPromise, timeoutPromise])
         jobId = job.id
         await PostQueue.findByIdAndUpdate(queueItem._id, { bullmq_job_id: jobId })
       } catch (redisErr: any) {

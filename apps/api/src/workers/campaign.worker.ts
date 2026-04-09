@@ -2,6 +2,7 @@ import { Worker, Job, Queue } from 'bullmq'
 import redis from '../plugins/redis'
 import { Campaign, Notification } from '@soma-ai/db'
 import { MetaAdsService } from '../services/meta-ads.service'
+import { LogService } from '../services/log.service'
 
 // Queue for campaign metric syncing
 export const campaignMetricsQueue = new Queue('campaign-metrics-queue', {
@@ -70,6 +71,10 @@ const campaignWorker = new Worker(
             `[campaign-worker] Error syncing metrics for ${campaign._id}:`,
             err.message,
           )
+          await LogService.error('integration', 'campaign_sync_failed', `Erro ao sincronizar metricas da campanha ${campaign._id}: ${err.message}`, {
+            company_id: String(campaign.company_id),
+            metadata: { campaignId: String(campaign._id), error: err.message },
+          })
         }
       }
     }
@@ -127,8 +132,11 @@ const campaignWorker = new Worker(
   },
 )
 
-campaignWorker.on('failed', (job, error) => {
+campaignWorker.on('failed', async (job, error) => {
   console.error(`[campaign-worker] Job ${job?.id} failed:`, error.message)
+  await LogService.error('worker', 'campaign_worker_failed', `Campaign job ${job?.id} falhou: ${error.message}`, {
+    metadata: { jobId: job?.id, error: error.message },
+  })
 })
 
 // Start the scheduled job

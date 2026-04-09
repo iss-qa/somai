@@ -3,6 +3,7 @@ import redis from '../plugins/redis'
 import { Video, Company, Notification } from '@soma-ai/db'
 import { GeminiVideoService } from '../services/gemini-video.service'
 import { TTSService } from '../services/tts.service'
+import { LogService } from '../services/log.service'
 
 const videoWorker = new Worker(
   'video-queue',
@@ -12,12 +13,23 @@ const videoWorker = new Worker(
 
     console.log(`[video-worker] Processing video ${videoId}`)
 
+    await LogService.info('worker', 'video_start', `Iniciando geracao de video ${videoId}`, {
+      company_id: companyId,
+      metadata: { videoId, jobId: job.id },
+    })
+
     // 1. Load video and company
     const video: any = await Video.findById(videoId)
     if (!video) throw new Error('Video nao encontrado')
 
     const company: any = await Company.findById(companyId).lean()
-    if (!company?.access_enabled) throw new Error('ACCESS_DISABLED')
+    if (!company?.access_enabled) {
+      await LogService.warn('worker', 'video_access_blocked', `Acesso bloqueado para company ${companyId}`, {
+        company_id: companyId,
+        company_name: company?.name,
+      })
+      throw new Error('ACCESS_DISABLED')
+    }
 
     // 2. Update status to generating
     await Video.findByIdAndUpdate(videoId, {
@@ -192,6 +204,13 @@ const videoWorker = new Worker(
       read: false,
     })
 
+    await LogService.info('worker', 'video_ready', `Video ${videoId} gerado em ${Math.round(generationTimeMs / 1000)}s`, {
+      company_id: companyId,
+      company_name: company.name,
+      duration_ms: generationTimeMs,
+      metadata: { videoId, method: video.use_gemini_veo ? 'gemini_veo' : 'template' },
+    })
+
     console.log(
       `[video-worker] Video ${videoId} ready in ${generationTimeMs}ms`,
     )
@@ -208,6 +227,11 @@ const videoWorker = new Worker(
 
 videoWorker.on('failed', async (job, error) => {
   console.error(`[video-worker] Job ${job?.id} failed:`, error.message)
+
+  await LogService.error('worker', 'video_failed', `Video job ${job?.id} falhou: ${error.message}`, {
+    company_id: job?.data?.companyId,
+    metadata: { videoId: job?.data?.videoId, jobId: job?.id, error: error.message },
+  })
 
   if (job?.data?.videoId) {
     await Video.findByIdAndUpdate(job.data.videoId, {

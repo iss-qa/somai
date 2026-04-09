@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python3 -c \"import py_compile; py_compile.compile\\(''ws/events.py'', doraise=True\\); py_compile.compile\\(''ai/vision_analyzer.py'', doraise=True\\); py_compile.compile\\(''ai/image_step_mapper.py'', doraise=True\\); py_compile.compile\\(''android/executor.py'', doraise=True\\); py_compile.compile\\(''ai/orchestrator.py'', doraise=True\\); py_compile.compile\\(''main.py'', doraise=True\\); print\\(''All Python files compiled successfully''\\)\")",
-      "Bash(python3 -c \"import py_compile; py_compile.compile\\(''ai/orchestrator.py'', doraise=True\\); py_compile.compile\\(''ai/vision_analyzer.py'', doraise=True\\); py_compile.compile\\(''android/executor.py'', doraise=True\\); print\\(''OK''\\)\")"
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\(''ai/orchestrator.py'', doraise=True\\); py_compile.compile\\(''ai/vision_analyzer.py'', doraise=True\\); py_compile.compile\\(''android/executor.py'', doraise=True\\); print\\(''OK''\\)\")",
+      "Bash(grep -l \"try\\\\|catch\" /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes/*.ts)",
+      "Bash(grep -n \"LogService\" /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes/*.ts)",
+      "Bash(wc -l /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes/*.ts)",
+      "Bash(find /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes -name \"*.ts\" -exec grep -l \"\\\\.lean\\(\\)\\\\|\\\\.exec\\(\\)\" {} \\\\;)"
     ]
   }
 }

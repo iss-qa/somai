@@ -7,6 +7,7 @@ import {
   NotificationType,
 } from '@soma-ai/shared'
 import { NotificationService } from '../services/notification.service'
+import { LogService } from '../services/log.service'
 import billingQueue from '../queues/billing.queue'
 
 interface BillingJobData {
@@ -89,6 +90,12 @@ export const billingWorker = new Worker<BillingJobData>(
           action_url: '/admin/financial',
         })
 
+        await LogService.warn('billing', 'company_blocked', `Empresa bloqueada por inadimplencia: ${company.name} (${overdueDays} dias)`, {
+          company_id: String(company._id),
+          company_name: company.name,
+          metadata: { overdueDays },
+        })
+
         console.log(
           `[BillingWorker] Blocked company ${company.name} - ${overdueDays} days overdue`,
         )
@@ -130,8 +137,11 @@ billingWorker.on('completed', (job) => {
   console.log(`[BillingWorker] Job ${job.id} completed`)
 })
 
-billingWorker.on('failed', (job, err) => {
+billingWorker.on('failed', async (job, err) => {
   console.error(`[BillingWorker] Job ${job?.id} failed:`, err.message)
+  await LogService.error('billing', 'billing_worker_failed', `Billing job ${job?.id} falhou: ${err.message}`, {
+    metadata: { jobId: job?.id, error: err.message },
+  })
 })
 
 export default billingWorker

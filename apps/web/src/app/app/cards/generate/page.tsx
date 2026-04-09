@@ -1981,8 +1981,9 @@ A imagem deve ser visualmente atrativa para redes sociais.`
       })
       const cardId = result._id || result.card?._id || result.card?.id || result.id
       if (cardId) setSavedCardId(cardId)
-    } catch {
-      // Card saved locally - preview still works
+    } catch (err: any) {
+      console.error('[cards] Erro ao salvar draft:', err)
+      toast.error(err.message || 'Erro ao salvar card. Verifique sua conexao.')
     } finally {
       setGenerating(false)
     }

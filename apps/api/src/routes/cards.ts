@@ -3,6 +3,7 @@ import { Card, Integration } from '@soma-ai/db'
 import { CardStatus } from '@soma-ai/shared'
 import { authenticate } from '../plugins/auth'
 import { EncryptionService } from '../services/encryption.service'
+import { LogService } from '../services/log.service'
 
 export default async function cardsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -111,7 +112,7 @@ export default async function cardsRoutes(app: FastifyInstance) {
       }>,
       reply: FastifyReply,
     ) => {
-      const { companyId } = request.user!
+      const { companyId, role } = request.user!
       const body = request.body
 
       if (!body.format || !body.post_type) {
@@ -120,9 +121,17 @@ export default async function cardsRoutes(app: FastifyInstance) {
           .send({ error: 'Campos obrigatorios: format, post_type' })
       }
 
+      // Non-admin users MUST have a companyId
+      if (role !== 'superadmin' && role !== 'support' && !companyId) {
+        await LogService.error('card', 'card_create_no_company', `Tentativa de criar card sem company_id (userId: ${request.user!.userId})`, {
+          metadata: { userId: request.user!.userId, role },
+        })
+        return reply.status(400).send({ error: 'Empresa nao encontrada. Faca login novamente.' })
+      }
+
       // Create a draft card (actual AI generation is a placeholder)
       const card = await Card.create({
-        company_id: companyId || null,
+        company_id: companyId,
         template_id: body.template_id || null,
         format: body.format,
         post_type: body.post_type,
@@ -138,6 +147,11 @@ export default async function cardsRoutes(app: FastifyInstance) {
         status: CardStatus.Draft,
         ai_prompt_used: `Generate ${body.post_type} card for ${body.product_name || 'product'}`,
         generated_image_url: '', // Placeholder - AI generation would fill this
+      })
+
+      await LogService.info('card', 'card_created', `Card criado: ${body.post_type} (${body.format})`, {
+        company_id: companyId || undefined,
+        metadata: { cardId: String(card._id), format: body.format, postType: body.post_type },
       })
 
       return reply.status(201).send(card)
@@ -403,7 +417,7 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
 
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -419,6 +433,10 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}))
           console.error('[gemini-image] API error:', res.status, errData)
+          const errMsg = errData?.error?.message || ''
+          if (res.status === 429 || errMsg.includes('quota')) {
+            return reply.status(429).send({ error: 'Limite de requisicoes atingido. Aguarde alguns minutos e tente novamente.' })
+          }
           return reply.status(502).send({ error: 'Erro ao gerar imagem com Gemini' })
         }
 

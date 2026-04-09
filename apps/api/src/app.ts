@@ -1,8 +1,9 @@
-import Fastify from 'fastify'
+import Fastify, { type FastifyError, type FastifyRequest, type FastifyReply } from 'fastify'
 import cors from '@fastify/cors'
 import cookie from '@fastify/cookie'
 import jwt from '@fastify/jwt'
 import { connectDB } from '@soma-ai/db'
+import { LogService } from './services/log.service'
 
 import dashboardRoutes from './routes/dashboard'
 import authRoutes from './routes/auth'
@@ -68,6 +69,58 @@ export async function getApp() {
   await app.register(adminAppLogsRoutes, { prefix: '/api/admin/applogs' })
   await app.register(billingRoutes, { prefix: '/api/billing' })
   await app.register(cronRoutes, { prefix: '/api/cron' })
+
+  // ── Global error handler — log all unhandled route errors ──
+  app.setErrorHandler(async (error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
+    const statusCode = error.statusCode || 500
+
+    // Log all 5xx errors and unexpected 4xx
+    if (statusCode >= 500) {
+      await LogService.error('api', 'unhandled_error', error.message, {
+        metadata: {
+          method: request.method,
+          url: request.url,
+          statusCode,
+          stack: error.stack?.slice(0, 500),
+          userId: (request as any).user?.userId,
+          companyId: (request as any).user?.companyId,
+        },
+        ip: request.ip,
+      })
+    }
+
+    reply.status(statusCode).send({
+      error: statusCode >= 500 ? 'Erro interno do servidor' : error.message,
+    })
+  })
+
+  // ── Request logging hook — log key API operations ──
+  app.addHook('onResponse', async (request: FastifyRequest, reply: FastifyReply) => {
+    const status = reply.statusCode
+    const method = request.method
+    const url = request.url
+
+    // Log errors (4xx/5xx) on mutating routes
+    if (status >= 400 && method !== 'GET' && method !== 'OPTIONS') {
+      const category = url.includes('/auth') ? 'auth'
+        : url.includes('/cards') ? 'card'
+        : url.includes('/post') ? 'post'
+        : url.includes('/video') ? 'worker'
+        : url.includes('/billing') ? 'billing'
+        : 'api' as any
+
+      await LogService.warn(category, 'request_error', `${method} ${url} → ${status}`, {
+        metadata: {
+          method,
+          url,
+          statusCode: status,
+          userId: (request as any).user?.userId,
+          companyId: (request as any).user?.companyId,
+        },
+        ip: request.ip,
+      })
+    }
+  })
 
   await app.ready()
   return app

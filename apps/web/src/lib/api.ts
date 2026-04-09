@@ -31,6 +31,14 @@ async function fetcher<T = any>(path: string, options?: RequestInit): Promise<T>
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: 'Erro de rede' }))
+
+    // Token expired or invalid — redirect to login
+    if (res.status === 401 && typeof window !== 'undefined') {
+      document.cookie = 'soma-token=; path=/; max-age=0'
+      window.location.href = '/login'
+      throw new Error('Sessao expirada. Redirecionando para login...')
+    }
+
     throw new Error(error.error || error.message || 'Erro na requisição')
   }
 

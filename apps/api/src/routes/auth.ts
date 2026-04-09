@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import { User, AdminUser, Company, Plan } from '@soma-ai/db'
 import { authenticate, adminOnly } from '../plugins/auth'
 import { EvolutionService } from '../services/evolution.service'
+import { LogService } from '../services/log.service'
 
 // In-memory recovery codes (in production use Redis)
 const recoveryCodes = new Map<
@@ -89,6 +90,13 @@ export default async function authRoutes(app: FastifyInstance) {
             : null
         }
       }
+
+      await LogService.info('auth', 'login_success', `Login: ${foundUser.email} (${foundUser.role})`, {
+        company_id: isAdmin ? undefined : String(foundUser.company_id),
+        company_name: companyName || undefined,
+        ip: request.ip,
+        metadata: { userId: String(foundUser._id), isAdmin },
+      })
 
       reply
         .setCookie('soma-token', token, {
@@ -317,6 +325,13 @@ export default async function authRoutes(app: FastifyInstance) {
         })
 
         console.log('[partner-signup] Company criada:', String(company._id))
+
+        await LogService.info('auth', 'partner_signup', `Nova empresa cadastrada: ${company_name}`, {
+          company_id: String(company._id),
+          company_name,
+          ip: request.ip,
+          metadata: { email, niche: niche || 'outro', plan: planSlug, trialDays },
+        })
 
       // Create user (owner)
       const password_hash = await bcrypt.hash(password, 12)
