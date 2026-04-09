@@ -4,7 +4,6 @@ import crypto from 'node:crypto'
 import { User, AdminUser, Company, Plan } from '@soma-ai/db'
 import { authenticate, adminOnly } from '../plugins/auth'
 import { EvolutionService } from '../services/evolution.service'
-import { ComunicacaoService } from '../services/comunicacao.service'
 import { LogService } from '../services/log.service'
 
 // In-memory recovery codes (in production use Redis)
@@ -206,6 +205,7 @@ export default async function authRoutes(app: FastifyInstance) {
           company_name: string
           responsible_name: string
           email: string
+          document?: string
           whatsapp: string
           password: string
           niche: string
@@ -221,6 +221,7 @@ export default async function authRoutes(app: FastifyInstance) {
         company_name,
         responsible_name,
         email,
+        document: docField,
         whatsapp,
         password,
         niche,
@@ -307,6 +308,7 @@ export default async function authRoutes(app: FastifyInstance) {
           city: city || '',
           state: state || '',
           responsible_name,
+          document: docField || '',
           whatsapp,
           email,
           logo_url: '',
@@ -357,6 +359,7 @@ export default async function authRoutes(app: FastifyInstance) {
 
       // Send welcome message via ComunicacaoService (queued + history)
       try {
+        const { ComunicacaoService } = await import('../services/comunicacao.service')
         await ComunicacaoService.enviarBoasVindas(String(company._id))
       } catch (err) {
         console.warn('[auth] WhatsApp welcome message failed:', err)

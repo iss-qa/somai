@@ -35,6 +35,7 @@ import {
   Instagram,
   MessageCircle,
   FileText,
+  LocateFixed,
 } from 'lucide-react'
 
 // ─── Helpers ────────────────────────────────────
@@ -136,6 +137,7 @@ export default function LoginPage() {
   const [city, setCity] = useState('')
   const [selectedPlan, setSelectedPlan] = useState('starter')
   const [signupLoading, setSignupLoading] = useState(false)
+  const [locating, setLocating] = useState(false)
 
   // Recovery
   const [recoveryEmail, setRecoveryEmail] = useState('')
@@ -150,6 +152,40 @@ export default function LoginPage() {
   const switchPanel = useCallback((to: Panel) => {
     setPanel(to)
   }, [])
+
+  async function detectCity() {
+    if (!navigator.geolocation) {
+      toast.error('Geolocalizacao nao suportada neste navegador')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&accept-language=pt`,
+          )
+          const data = await res.json()
+          const detectedCity =
+            data.address?.city ||
+            data.address?.town ||
+            data.address?.village ||
+            data.address?.municipality ||
+            ''
+          if (detectedCity) setCity(detectedCity)
+        } catch {
+          toast.error('Nao foi possivel detectar a cidade')
+        } finally {
+          setLocating(false)
+        }
+      },
+      () => {
+        toast.error('Permissao de localizacao negada')
+        setLocating(false)
+      },
+      { timeout: 10000 },
+    )
+  }
 
   const isSignup = panel === 'signup'
 
@@ -425,19 +461,18 @@ export default function LoginPage() {
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <Input placeholder="Seu nome completo *" value={responsibleName} onChange={(e) => setResponsibleName(e.target.value)} className="pl-10" disabled={signupLoading} />
                   </div>
-                  {/* Email + Documento */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <Input type="email" placeholder="E-mail *" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="pl-10" autoComplete="email" disabled={signupLoading} />
-                    </div>
-                    <div className="relative">
-                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <Input placeholder="CPF ou CNPJ" value={signupDocument} onChange={(e) => setSignupDocument(e.target.value)} className="pl-10" disabled={signupLoading} />
-                    </div>
+                  {/* Email */}
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Input type="email" placeholder="E-mail *" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="pl-10" autoComplete="email" disabled={signupLoading} />
                   </div>
-                  {/* Telefone + Senha */}
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Documento */}
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Input placeholder="CPF ou CNPJ" value={signupDocument} onChange={(e) => setSignupDocument(e.target.value)} className="pl-10" disabled={signupLoading} />
+                  </div>
+                  {/* Telefone + Senha — grid-cols-1 mobile, grid-cols-2 desktop */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                       <Input placeholder="(71) 99999-9999 *" value={whatsapp} onChange={(e) => setWhatsapp(formatPhone(e.target.value))} className="pl-10" disabled={signupLoading} maxLength={15} />
@@ -450,8 +485,8 @@ export default function LoginPage() {
                       </button>
                     </div>
                   </div>
-                  {/* Segmento + Cidade */}
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Segmento + Cidade — grid-cols-1 mobile, grid-cols-2 desktop */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Select value={niche} onValueChange={setNiche} disabled={signupLoading}>
                       <SelectTrigger><SelectValue placeholder="Segmento" /></SelectTrigger>
                       <SelectContent>
@@ -460,11 +495,20 @@ export default function LoginPage() {
                     </Select>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <Input placeholder="Cidade" value={city} onChange={(e) => setCity(e.target.value)} className="pl-10" disabled={signupLoading} />
+                      <Input placeholder="Cidade" value={city} onChange={(e) => setCity(e.target.value)} className="pl-10 pr-10" disabled={signupLoading} />
+                      <button
+                        type="button"
+                        onClick={detectCity}
+                        disabled={locating}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-primary-400 transition-colors p-1"
+                        title="Detectar minha cidade"
+                      >
+                        {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
                   {/* Plan selector — destaque */}
-                  <div className="space-y-2 pt-1">
+                  <div className="space-y-2 pt-2">
                     <p className="text-xs text-gray-400 font-medium">Escolha seu plano — 3 dias gratis</p>
                     <div className="grid grid-cols-3 gap-2">
                       {PLANS.map((p) => (
@@ -490,9 +534,11 @@ export default function LoginPage() {
                       ))}
                     </div>
                   </div>
-                  <Button type="submit" className="w-full h-11 mt-1" disabled={signupLoading}>
-                    {signupLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Cadastrando...</> : <><Sparkles className="mr-2 h-4 w-4" />Comecar gratis</>}
-                  </Button>
+                  <div className="pt-3">
+                    <Button type="submit" className="w-full h-11" disabled={signupLoading}>
+                      {signupLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Cadastrando...</> : <><Sparkles className="mr-2 h-4 w-4" />Comecar gratis</>}
+                    </Button>
+                  </div>
                 </form>
                 <div className="mt-4 text-center lg:hidden">
                   <button onClick={() => switchPanel('login')} className="text-sm text-gray-500">
