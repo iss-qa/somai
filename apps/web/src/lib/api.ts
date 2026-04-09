@@ -19,11 +19,15 @@ async function fetcher<T = any>(path: string, options?: RequestInit): Promise<T>
     headers['Authorization'] = `Bearer ${token}`
   }
 
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15000)
+
   const res = await fetch(`${API_URL}${path}`, {
     credentials: 'include',
     headers,
+    signal: controller.signal,
     ...options,
-  })
+  }).finally(() => clearTimeout(timeout))
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: 'Erro de rede' }))
