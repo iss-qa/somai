@@ -32,7 +32,8 @@ export default async function dashboardRoutes(app: FastifyInstance) {
         Video.countDocuments({ ...query }),
       ])
 
-    const upcomingPosts = await PostQueue.find({
+    // Upcoming queued posts
+    const queuedPosts = await PostQueue.find({
       ...query,
       status: QueueStatus.Queued,
       scheduled_at: { $gte: new Date() },
@@ -42,13 +43,33 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       .populate('card_id', 'headline generated_image_url')
       .lean()
 
-    const posts = upcomingPosts.map((p: any) => ({
+    // Recently published or failed (last 24h)
+    const recentDone = await PostQueue.find({
+      ...query,
+      status: { $in: [QueueStatus.Done, QueueStatus.Failed] },
+      scheduled_at: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    })
+      .sort({ scheduled_at: -1 })
+      .limit(5)
+      .populate('card_id', 'headline generated_image_url')
+      .lean()
+
+    const statusToLabel: Record<string, string> = {
+      [QueueStatus.Done]: 'published',
+      [QueueStatus.Failed]: 'failed',
+      [QueueStatus.Queued]: 'queued',
+      [QueueStatus.Processing]: 'queued',
+    }
+
+    const allPosts = [...recentDone, ...queuedPosts].slice(0, 10)
+
+    const posts = allPosts.map((p: any) => ({
       id: String(p._id),
       caption: p.caption || p.card_id?.headline || '',
       thumbnail: p.card_id?.generated_image_url || null,
       platforms: p.platforms || [],
       scheduledAt: p.scheduled_at,
-      status: p.status,
+      status: statusToLabel[p.status] || p.status,
     }))
 
     return reply.send({
