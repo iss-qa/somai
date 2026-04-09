@@ -153,6 +153,15 @@ export enum Niche {
   Papelaria = 'papelaria',
   Automotivo = 'automotivo',
   Construcao = 'construcao',
+  Igreja = 'igreja',
+  Advocacia = 'advocacia',
+  Saude = 'saude',
+  Tecnologia = 'tecnologia',
+  Consultoria = 'consultoria',
+  Fotografia = 'fotografia',
+  Joalheria = 'joalheria',
+  Floricultura = 'floricultura',
+  Otica = 'otica',
   Outro = 'outro',
 }
 

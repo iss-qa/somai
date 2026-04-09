@@ -34,6 +34,7 @@ import {
   Calendar,
   Instagram,
   MessageCircle,
+  FileText,
 } from 'lucide-react'
 
 // ─── Helpers ────────────────────────────────────
@@ -55,33 +56,42 @@ function unformatPhone(value: string): string {
 type Panel = 'login' | 'signup' | 'recovery' | 'recovery-verify'
 
 const NICHES = [
-  { value: 'farmacia', label: 'Farmácia' },
+  { value: 'farmacia', label: 'Farmacia' },
   { value: 'pet', label: 'Pet Shop' },
   { value: 'moda', label: 'Moda' },
-  { value: 'cosmeticos', label: 'Cosméticos' },
+  { value: 'cosmeticos', label: 'Cosmeticos' },
   { value: 'mercearia', label: 'Mercearia' },
-  { value: 'calcados', label: 'Calçados' },
+  { value: 'calcados', label: 'Calcados' },
   { value: 'restaurante', label: 'Restaurante' },
   { value: 'confeitaria', label: 'Confeitaria e Doceria' },
   { value: 'hamburgueria', label: 'Hamburgueria' },
   { value: 'cafeteria', label: 'Cafeteria' },
-  { value: 'suplementos', label: 'Suplementos e Vida Saudável' },
-  { value: 'estetica', label: 'Clínica de Estética' },
+  { value: 'suplementos', label: 'Suplementos e Vida Saudavel' },
+  { value: 'estetica', label: 'Clinica de Estetica' },
   { value: 'odontologia', label: 'Odontologia' },
   { value: 'academia', label: 'Academia e Fitness' },
-  { value: 'salao_beleza', label: 'Salão de Beleza' },
+  { value: 'salao_beleza', label: 'Salao de Beleza' },
   { value: 'barbearia', label: 'Barbearia' },
-  { value: 'imobiliaria', label: 'Imobiliária' },
-  { value: 'educacao', label: 'Educação e Cursos' },
+  { value: 'imobiliaria', label: 'Imobiliaria' },
+  { value: 'educacao', label: 'Educacao e Cursos' },
   { value: 'arquitetura', label: 'Arquitetura e Interiores' },
   { value: 'contabilidade', label: 'Contabilidade' },
   { value: 'viagens', label: 'Turismo e Viagens' },
-  { value: 'eletronicos', label: 'Eletrônicos e Celulares' },
-  { value: 'decoracao', label: 'Móveis e Decoração' },
+  { value: 'eletronicos', label: 'Eletronicos e Celulares' },
+  { value: 'decoracao', label: 'Moveis e Decoracao' },
   { value: 'papelaria', label: 'Papelaria e Presentes' },
   { value: 'automotivo', label: 'Automotivo' },
-  { value: 'construcao', label: 'Material de Construção' },
-  { value: 'outro', label: 'Outro' }
+  { value: 'construcao', label: 'Material de Construcao' },
+  { value: 'igreja', label: 'Igreja e Ministerio' },
+  { value: 'advocacia', label: 'Advocacia' },
+  { value: 'saude', label: 'Saude e Bem-estar' },
+  { value: 'tecnologia', label: 'Tecnologia e Software' },
+  { value: 'consultoria', label: 'Consultoria' },
+  { value: 'fotografia', label: 'Fotografia e Video' },
+  { value: 'joalheria', label: 'Joalheria e Relojoaria' },
+  { value: 'floricultura', label: 'Floricultura' },
+  { value: 'otica', label: 'Otica' },
+  { value: 'outro', label: 'Outro' },
 ];
 
 const FEATURES = [
@@ -118,6 +128,7 @@ export default function LoginPage() {
   const [companyName, setCompanyName] = useState('')
   const [responsibleName, setResponsibleName] = useState('')
   const [signupEmail, setSignupEmail] = useState('')
+  const [signupDocument, setSignupDocument] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [signupPassword, setSignupPassword] = useState('')
   const [showSignupPw, setShowSignupPw] = useState(false)
@@ -191,6 +202,7 @@ export default function LoginPage() {
         company_name: companyName,
         responsible_name: responsibleName,
         email: signupEmail,
+        document: signupDocument,
         whatsapp: cleanPhone,
         password: signupPassword,
         niche: niche || 'outro',
@@ -413,21 +425,32 @@ export default function LoginPage() {
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <Input placeholder="Seu nome completo *" value={responsibleName} onChange={(e) => setResponsibleName(e.target.value)} className="pl-10" disabled={signupLoading} />
                   </div>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <Input type="email" placeholder="E-mail *" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="pl-10" autoComplete="email" disabled={signupLoading} />
+                  {/* Email + Documento */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <Input type="email" placeholder="E-mail *" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="pl-10" autoComplete="email" disabled={signupLoading} />
+                    </div>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <Input placeholder="CPF ou CNPJ" value={signupDocument} onChange={(e) => setSignupDocument(e.target.value)} className="pl-10" disabled={signupLoading} />
+                    </div>
                   </div>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <Input placeholder="(71) 99999-9999 *" value={whatsapp} onChange={(e) => setWhatsapp(formatPhone(e.target.value))} className="pl-10" disabled={signupLoading} maxLength={15} />
+                  {/* Telefone + Senha */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <Input placeholder="(71) 99999-9999 *" value={whatsapp} onChange={(e) => setWhatsapp(formatPhone(e.target.value))} className="pl-10" disabled={signupLoading} maxLength={15} />
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <Input type={showSignupPw ? 'text' : 'password'} placeholder="Crie uma senha (min. 6) *" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} className="pl-10 pr-10" autoComplete="new-password" disabled={signupLoading} />
+                      <button type="button" onClick={() => setShowSignupPw(!showSignupPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+                        {showSignupPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <Input type={showSignupPw ? 'text' : 'password'} placeholder="Crie uma senha (min. 6) *" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} className="pl-10 pr-10" autoComplete="new-password" disabled={signupLoading} />
-                    <button type="button" onClick={() => setShowSignupPw(!showSignupPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
-                      {showSignupPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
+                  {/* Segmento + Cidade */}
                   <div className="grid grid-cols-2 gap-3">
                     <Select value={niche} onValueChange={setNiche} disabled={signupLoading}>
                       <SelectTrigger><SelectValue placeholder="Segmento" /></SelectTrigger>
@@ -440,8 +463,8 @@ export default function LoginPage() {
                       <Input placeholder="Cidade" value={city} onChange={(e) => setCity(e.target.value)} className="pl-10" disabled={signupLoading} />
                     </div>
                   </div>
-                  {/* Plan selector */}
-                  <div className="space-y-2">
+                  {/* Plan selector — destaque */}
+                  <div className="space-y-2 pt-1">
                     <p className="text-xs text-gray-400 font-medium">Escolha seu plano — 3 dias gratis</p>
                     <div className="grid grid-cols-3 gap-2">
                       {PLANS.map((p) => (
@@ -450,14 +473,19 @@ export default function LoginPage() {
                           type="button"
                           onClick={() => setSelectedPlan(p.value)}
                           className={cn(
-                            'p-2 rounded-lg border text-center transition-all',
+                            'py-3 px-2 rounded-xl border text-center transition-all relative',
                             selectedPlan === p.value
-                              ? 'border-primary-500 bg-primary-500/10'
+                              ? 'border-primary-500 bg-primary-500/10 shadow-lg shadow-primary-500/10'
                               : 'border-brand-border hover:border-gray-600',
                           )}
                         >
-                          <p className="text-xs font-semibold text-white">{p.label}</p>
-                          <p className="text-[10px] text-gray-500">{p.price}</p>
+                          {p.value === 'pro' && (
+                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-bold bg-primary-500 text-white px-2 py-0.5 rounded-full">
+                              Popular
+                            </span>
+                          )}
+                          <p className="text-sm font-bold text-white">{p.label}</p>
+                          <p className="text-xs text-primary-400 font-semibold mt-0.5">{p.price}</p>
                         </button>
                       ))}
                     </div>
