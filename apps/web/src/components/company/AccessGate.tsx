@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { Clock, Lock, Sparkles } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
@@ -14,6 +15,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
   const hasAccess = useAuthStore((s) => s.hasAccess)
   const isAdmin = useAuthStore((s) => s.isAdmin)
   const isInTrial = useAuthStore((s) => s.isInTrial)
+  const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -22,6 +24,11 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
 
   // Before hydration or if admin, render children
   if (!mounted || !user || isAdmin()) {
+    return <>{children}</>
+  }
+
+  // Integracoes always accessible (needed for initial setup)
+  if (pathname?.startsWith('/app/settings/integrations')) {
     return <>{children}</>
   }
 
