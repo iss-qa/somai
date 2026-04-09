@@ -29,7 +29,7 @@ let app: ReturnType<typeof Fastify> | null = null
 export async function getApp() {
   if (app) return app
 
-  app = Fastify({ logger: false })
+  app = Fastify({ logger: false, bodyLimit: 15 * 1024 * 1024 })
 
   await app.register(cors, {
     origin: true,

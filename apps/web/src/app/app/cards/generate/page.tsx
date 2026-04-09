@@ -1058,6 +1058,7 @@ function CardPreview({
   // Post type badge (inline – rendered inside text flow)
   function renderTypeBadge() {
     if (config.typeBadgePosition !== 'inline') return null
+    if (!config.productName && !config.headline && !config.extraText) return null
     return (
       <div
         style={{
@@ -1082,6 +1083,7 @@ function CardPreview({
   // Post type badge (floating – absolutely positioned like logo)
   function renderFloatingTypeBadge() {
     if (config.typeBadgePosition === 'inline') return null
+    if (!config.productName && !config.headline && !config.extraText) return null
     const posMap: Record<string, React.CSSProperties> = {
       'top-left': { top: config.display.showLogo && config.logoPosition === 'top-left' ? 52 : 12, left: 12 },
       'top-right': { top: config.display.showLogo && config.logoPosition === 'top-right' ? 52 : 12, right: 12 },
@@ -1150,7 +1152,7 @@ function CardPreview({
             fontFamily: fontStack,
           }}
         >
-          {config.productName || 'Nome do Produto'}
+          {config.productName}
         </div>
 
         {config.extraText && (
@@ -1308,7 +1310,7 @@ function CardPreview({
             </div>
           )}
           <div style={{ fontSize: config.fontSizes.title * 1.1, fontWeight: 900, color: config.titleColor, lineHeight: 1.05, fontFamily: fontStack }}>
-            {config.productName || 'Nome do Produto'}
+            {config.productName}
           </div>
           {config.postType === 'promocao' && config.display.showPrice && config.promoPrice && (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
@@ -1378,7 +1380,7 @@ function CardPreview({
             </div>
           )}
           <div style={{ fontSize: config.fontSizes.title, fontWeight: 900, color: config.titleColor, lineHeight: 1.1, fontFamily: fontStack }}>
-            {config.productName || 'Nome do Produto'}
+            {config.productName}
           </div>
           {config.extraText && (
             <div style={{ fontSize: config.fontSizes.subtitle * 0.85, color: config.textColor, opacity: 0.8, marginTop: 4, fontFamily: fontStack }}>{config.extraText}</div>
@@ -1493,7 +1495,7 @@ function CardPreview({
           <div style={{ position: 'absolute', inset: 0, ...(img1 ? { backgroundImage: `url(${img1})` } : { background: placeholderBg }), backgroundSize: 'cover', backgroundPosition: 'center', opacity: config.imageOpacity / 100 }} />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent 60%)' }} />
           <div style={{ position: 'absolute', bottom: 12, left: 16, right: 16, zIndex: 5 }}>
-            <div style={{ fontSize: config.fontSizes.title * 0.8, fontWeight: 900, color: '#fff', fontFamily: fontStack }}>{config.productName || 'Produto 1'}</div>
+            <div style={{ fontSize: config.fontSizes.title * 0.8, fontWeight: 900, color: '#fff', fontFamily: fontStack }}>{config.productName}</div>
             {config.postType === 'promocao' && config.display.showPrice && config.originalPrice && (
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
                 <span style={{ fontSize: config.fontSizes.price * 0.4, color: '#fff', opacity: 0.6, textDecoration: 'line-through', fontFamily: fontStack }}>R$ {config.originalPrice}</span>
@@ -1539,7 +1541,7 @@ function CardPreview({
           {config.headline && (
             <div style={{ fontSize: config.fontSizes.subtitle * 0.75, fontWeight: 600, color: hexToRgba(config.titleColor, 0.7), textTransform: 'uppercase', letterSpacing: 2, fontFamily: fontStack, marginBottom: 2 }}>{config.headline}</div>
           )}
-          <div style={{ fontSize: config.fontSizes.title * 0.9, fontWeight: 900, color: config.titleColor, lineHeight: 1.1, fontFamily: fontStack }}>{config.productName || 'Nome do Produto'}</div>
+          <div style={{ fontSize: config.fontSizes.title * 0.9, fontWeight: 900, color: config.titleColor, lineHeight: 1.1, fontFamily: fontStack }}>{config.productName}</div>
           {config.extraText && (
             <div style={{ fontSize: config.fontSizes.subtitle * 0.85, color: config.textColor, opacity: 0.8, marginTop: 4, fontFamily: fontStack, lineHeight: 1.3 }}>{config.extraText}</div>
           )}
@@ -1579,7 +1581,7 @@ function CardPreview({
         {/* Text below images */}
         <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', justifyContent: posStyles.justifyContent, alignItems: posStyles.alignItems, textAlign: posStyles.textAlign as any, flex: 1, zIndex: 5 }}>
           {renderTypeBadge()}
-          <div style={{ fontSize: config.fontSizes.title * 0.85, fontWeight: 900, color: config.titleColor, lineHeight: 1.1, fontFamily: fontStack }}>{config.productName || 'Nome do Produto'}</div>
+          <div style={{ fontSize: config.fontSizes.title * 0.85, fontWeight: 900, color: config.titleColor, lineHeight: 1.1, fontFamily: fontStack }}>{config.productName}</div>
           {config.extraText && (
             <div style={{ fontSize: config.fontSizes.subtitle * 0.85, color: config.textColor, opacity: 0.8, marginTop: 6, fontFamily: fontStack, lineHeight: 1.3 }}>{config.extraText}</div>
           )}
@@ -1906,6 +1908,26 @@ A imagem deve ser visualmente atrativa para redes sociais.`
     setShowAiModal(true)
   }, [config])
 
+  // ---------- Handle AI reference image upload ----------
+  const handleAiImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione um arquivo de imagem')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Imagem muito grande (max 10MB)')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setAiReferenceImage(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }, [])
+
   // ---------- Generate image with Gemini ----------
   const handleGenerateImage = useCallback(async () => {
     if (!aiPrompt.trim()) {
@@ -1915,9 +1937,12 @@ A imagem deve ser visualmente atrativa para redes sociais.`
 
     setGeneratingImage(true)
     try {
-      const result = await api.post<{ image: string }>('/api/cards/generate-image', {
-        prompt: aiPrompt,
-      })
+      const payload: { prompt: string; referenceImage?: string } = { prompt: aiPrompt }
+      if (aiReferenceImage) {
+        payload.referenceImage = aiReferenceImage
+      }
+
+      const result = await api.post<{ image: string }>('/api/cards/generate-image', payload)
 
       if (result.image) {
         setConfig((prev) => ({
@@ -1936,7 +1961,7 @@ A imagem deve ser visualmente atrativa para redes sociais.`
     } finally {
       setGeneratingImage(false)
     }
-  }, [aiPrompt])
+  }, [aiPrompt, aiReferenceImage])
 
   // ---------- Save card to API (draft) ----------
   const handleSaveDraft = useCallback(async () => {
@@ -3145,7 +3170,7 @@ A imagem deve ser visualmente atrativa para redes sociais.`
       </div>
       {/* AI Image Generation Modal */}
       <Dialog open={showAiModal} onOpenChange={setShowAiModal}>
-        <DialogContent className="sm:max-w-lg bg-brand-card border-brand-border">
+        <DialogContent className="sm:max-w-2xl bg-brand-card border-brand-border">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-white">
               <Sparkles className="w-5 h-5 text-violet-400" />
@@ -3153,10 +3178,11 @@ A imagem deve ser visualmente atrativa para redes sociais.`
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Prompt */}
             <div className="space-y-2">
               <Label className="text-gray-300">Descreva a imagem que deseja gerar</Label>
               <textarea
-                className="w-full min-h-[180px] rounded-lg border border-brand-border bg-brand-surface p-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-y"
+                className="w-full min-h-[160px] rounded-lg border border-brand-border bg-brand-surface p-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-y"
                 placeholder="Descreva o que deseja na imagem..."
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
@@ -3166,8 +3192,45 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                   }
                 }}
               />
-              <p className="text-xs text-gray-500">Dica: Cmd+Enter para enviar</p>
             </div>
+
+            {/* Reference image upload */}
+            <div className="space-y-2">
+              <Label className="text-gray-300">Imagem de referencia (opcional)</Label>
+              <input
+                ref={aiFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAiImageUpload}
+              />
+              {aiReferenceImage ? (
+                <div className="relative inline-block">
+                  <img
+                    src={aiReferenceImage}
+                    alt="Referencia"
+                    className="h-28 rounded-lg border border-brand-border object-cover"
+                  />
+                  <button
+                    onClick={() => setAiReferenceImage(null)}
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500/90 text-white flex items-center justify-center hover:bg-red-400 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => aiFileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-dashed border-brand-border bg-brand-surface/50 text-sm text-gray-400 hover:text-gray-200 hover:border-gray-600 transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  Anexar imagem de referencia
+                </button>
+              )}
+              <p className="text-xs text-gray-500">A IA usara a imagem como base para gerar o resultado. Cmd+Enter para enviar.</p>
+            </div>
+
+            {/* Actions */}
             <div className="flex gap-3">
               <Button
                 variant="outline"

@@ -14,6 +14,7 @@ import {
   Image,
   Calendar,
   Video,
+  CheckCircle2,
   Sparkles,
   Clock,
   ArrowRight,
@@ -26,14 +27,16 @@ interface DashboardData {
     approvedCards: number
     scheduledToday: number
     videosGenerated: number
+    publishedCards: number
   }
   upcomingPosts: Array<{
-    id: string
+    _id: string
     caption: string
-    thumbnail?: string
+    card_id?: { generated_image_url?: string }
     platforms: string[]
-    scheduledAt: string
-    status: 'scheduled' | 'published' | 'failed' | 'draft' | 'queued'
+    published_at: string | null
+    created_at: string
+    status: 'published' | 'failed' | 'cancelled'
   }>
 }
 
@@ -56,6 +59,7 @@ export default function DashboardPage() {
             approvedCards: 0,
             scheduledToday: 0,
             videosGenerated: 0,
+            publishedCards: 0,
           },
           upcomingPosts: [],
         })
@@ -79,6 +83,7 @@ export default function DashboardPage() {
     approvedCards: 0,
     scheduledToday: 0,
     videosGenerated: 0,
+    publishedCards: 0,
   }
 
   return (
@@ -94,7 +99,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
           title="Posts este mes"
           value={metrics.postsThisMonth}
@@ -106,6 +111,12 @@ export default function DashboardPage() {
           value={metrics.approvedCards}
           icon={Image}
           color="green"
+        />
+        <MetricCard
+          title="Publicados"
+          value={metrics.publishedCards}
+          icon={CheckCircle2}
+          color="pink"
         />
         <MetricCard
           title="Agendados hoje"
@@ -143,7 +154,7 @@ export default function DashboardPage() {
             {data?.upcomingPosts && data.upcomingPosts.length > 0 ? (
               <div className="space-y-3">
                 {data.upcomingPosts.slice(0, 5).map((post) => (
-                  <PostItem key={post.id} post={post} />
+                  <PostItem key={post._id} post={post} />
                 ))}
               </div>
             ) : (

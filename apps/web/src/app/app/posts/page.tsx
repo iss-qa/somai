@@ -30,18 +30,20 @@ import {
 } from 'lucide-react'
 
 interface Post {
-  id: string
+  _id: string
   caption: string
   thumbnail?: string
   platforms: string[]
-  scheduledAt: string
-  status: 'scheduled' | 'published' | 'failed' | 'draft' | 'queued'
+  published_at: string | null
+  created_at: string
+  status: 'published' | 'failed' | 'cancelled'
+  card_id?: { generated_image_url?: string }
 }
 
 interface PostMetrics {
   total: number
   published: number
-  scheduled: number
+  cancelled: number
   failed: number
 }
 
@@ -50,7 +52,7 @@ export default function PostsPage() {
   const [metrics, setMetrics] = useState<PostMetrics>({
     total: 0,
     published: 0,
-    scheduled: 0,
+    cancelled: 0,
     failed: 0,
   })
   const [loading, setLoading] = useState(true)
@@ -61,7 +63,14 @@ export default function PostsPage() {
     async function loadPosts() {
       try {
         const data = await api.get<{ posts: Post[]; pagination: any }>('/api/posts')
-        setPosts(data.posts || [])
+        const loadedPosts = data.posts || []
+        setPosts(loadedPosts)
+        setMetrics({
+          total: loadedPosts.length,
+          published: loadedPosts.filter((p) => p.status === 'published').length,
+          cancelled: loadedPosts.filter((p) => p.status === 'cancelled').length,
+          failed: loadedPosts.filter((p) => p.status === 'failed').length,
+        })
       } catch {
         setPosts([])
       } finally {
@@ -98,7 +107,7 @@ export default function PostsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard title="Total" value={metrics.total} icon={Send} color="blue" />
         <MetricCard title="Publicados" value={metrics.published} icon={CheckCircle} color="green" />
-        <MetricCard title="Agendados" value={metrics.scheduled} icon={Calendar} color="yellow" />
+        <MetricCard title="Cancelados" value={metrics.cancelled} icon={Calendar} color="yellow" />
         <MetricCard title="Falhas" value={metrics.failed} icon={AlertCircle} color="red" />
       </div>
 
@@ -112,10 +121,8 @@ export default function PostsPage() {
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
             <SelectItem value="published">Publicados</SelectItem>
-            <SelectItem value="scheduled">Agendados</SelectItem>
             <SelectItem value="failed">Falhas</SelectItem>
-            <SelectItem value="queued">Na fila</SelectItem>
-            <SelectItem value="draft">Rascunhos</SelectItem>
+            <SelectItem value="cancelled">Cancelados</SelectItem>
           </SelectContent>
         </Select>
 
@@ -158,12 +165,12 @@ export default function PostsPage() {
               <tbody className="divide-y divide-brand-border">
                 {filteredPosts.length > 0 ? (
                   filteredPosts.map((post) => (
-                    <tr key={post.id} className="hover:bg-brand-surface/50 transition-colors">
+                    <tr key={post._id} className="hover:bg-brand-surface/50 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                            {post.thumbnail ? (
-                              <img src={post.thumbnail} alt="" className="w-full h-full object-cover" />
+                            {post.card_id?.generated_image_url ? (
+                              <img src={post.card_id.generated_image_url} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <ImageIcon className="w-4 h-4 text-gray-600" />
                             )}
@@ -185,7 +192,7 @@ export default function PostsPage() {
                       </td>
                       <td className="p-4">
                         <span className="text-sm text-gray-400">
-                          {formatDateTime(post.scheduledAt)}
+                          {formatDateTime(post.published_at || post.created_at)}
                         </span>
                       </td>
                       <td className="p-4">
@@ -195,16 +202,12 @@ export default function PostsPage() {
                               ? 'success'
                               : post.status === 'failed'
                               ? 'destructive'
-                              : post.status === 'scheduled'
-                              ? 'warning'
                               : 'secondary'
                           }
                         >
                           {post.status === 'published' && 'Publicado'}
                           {post.status === 'failed' && 'Falhou'}
-                          {post.status === 'scheduled' && 'Agendado'}
-                          {post.status === 'queued' && 'Na fila'}
-                          {post.status === 'draft' && 'Rascunho'}
+                          {post.status === 'cancelled' && 'Cancelado'}
                         </Badge>
                       </td>
                       <td className="p-4 text-right">
@@ -241,7 +244,7 @@ export default function PostsPage() {
       <div className="md:hidden space-y-3">
         {filteredPosts.length > 0 ? (
           filteredPosts.map((post) => (
-            <PostItem key={post.id} post={post} />
+            <PostItem key={post._id} post={post} />
           ))
         ) : (
           <div className="text-center py-12">

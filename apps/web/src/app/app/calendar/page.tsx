@@ -134,17 +134,16 @@ function getCardThumbnail(card: PopulatedCard | string | null): string | undefin
 
 function toPostItemFormat(post: ScheduledPost) {
   return {
-    id: post._id,
+    _id: post._id,
     title: getCardName(post.card_id, post.caption),
     caption: post.caption,
-    thumbnail: getCardThumbnail(post.card_id),
+    card_id: typeof post.card_id === 'object' && post.card_id ? { generated_image_url: post.card_id.generated_image_url } : undefined,
     platforms: post.platforms,
-    scheduledAt: post.scheduled_at,
-    status: post.status === 'queued' ? 'queued' as const
-      : post.status === 'done' ? 'published' as const
+    published_at: null as string | null,
+    created_at: post.scheduled_at,
+    status: post.status === 'done' ? 'published' as const
       : post.status === 'failed' ? 'failed' as const
-      : post.status === 'cancelled' ? 'draft' as const
-      : 'scheduled' as const,
+      : 'cancelled' as const,
   }
 }
 
@@ -428,12 +427,20 @@ function CalendarPageInner() {
       toast.error('Selecione uma data')
       return
     }
-    if (!formPlatform) {
+
+    // Auto-resolve platform from card format when it wasn't set yet (race condition)
+    let resolvedPlatform = formPlatform
+    if (!resolvedPlatform && selectedCard?.format) {
+      resolvedPlatform = getPlatformValueFromFormat(selectedCard.format)
+      if (resolvedPlatform) setFormPlatform(resolvedPlatform)
+    }
+
+    if (!resolvedPlatform) {
       toast.error('Selecione uma plataforma')
       return
     }
 
-    const platformOption = PLATFORM_OPTIONS.find((p) => p.value === formPlatform)
+    const platformOption = PLATFORM_OPTIONS.find((p) => p.value === resolvedPlatform)
     if (!platformOption) {
       toast.error('Plataforma invalida')
       return
@@ -845,7 +852,9 @@ function CalendarPageInner() {
               <Label>Plataforma</Label>
               {platformLocked ? (
                 <div className="flex items-center h-10 px-3 rounded-lg border border-gray-800 bg-brand-surface/50 text-sm text-gray-300">
-                  {PLATFORM_OPTIONS.find((p) => p.value === formPlatform)?.label || 'Instagram Story'}
+                  {PLATFORM_OPTIONS.find((p) => p.value === formPlatform)?.label
+                    || (selectedCard?.format ? PLATFORM_OPTIONS.find((p) => p.value === getPlatformValueFromFormat(selectedCard.format))?.label : null)
+                    || 'Carregando...'}
                 </div>
               ) : (
                 <Select value={formPlatform} onValueChange={setFormPlatform}>

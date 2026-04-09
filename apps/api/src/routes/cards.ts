@@ -340,4 +340,105 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
       }
     },
   )
+
+  // ── POST /generate-image ─────────────────────
+  app.post(
+    '/generate-image',
+    async (
+      request: FastifyRequest<{
+        Body: {
+          prompt: string
+          referenceImage?: string
+        }
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { companyId } = request.user!
+      const { prompt, referenceImage } = request.body
+
+      if (!prompt?.trim()) {
+        return reply.status(400).send({ error: 'Prompt e obrigatorio' })
+      }
+
+      // Get API key: try company BYOK first, then master key
+      let apiKey: string | undefined
+      try {
+        const integration: any = await Integration.findOne({ company_id: companyId }).lean()
+        const encryptedKey = integration?.gemini?.api_key
+        if (encryptedKey && integration?.gemini?.active) {
+          try {
+            apiKey = EncryptionService.decrypt(encryptedKey)
+          } catch {
+            // fallback to master key
+          }
+        }
+      } catch {
+        // fallback to master key
+      }
+
+      if (!apiKey) {
+        apiKey = process.env.GEMINI_API_KEY
+      }
+      if (!apiKey) {
+        return reply.status(400).send({
+          error: 'Nenhuma chave Gemini configurada. Adicione GEMINI_API_KEY no .env ou configure em Integracoes.',
+        })
+      }
+
+      // Build multimodal parts: text + optional reference image
+      const contentParts: any[] = [{ text: prompt }]
+
+      if (referenceImage) {
+        // Extract base64 data and mime type from data URL
+        const match = referenceImage.match(/^data:(image\/\w+);base64,(.+)$/)
+        if (match) {
+          contentParts.push({
+            inlineData: {
+              mimeType: match[1],
+              data: match[2],
+            },
+          })
+        }
+      }
+
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: contentParts }],
+              generationConfig: {
+                responseModalities: ['TEXT', 'IMAGE'],
+              },
+            }),
+          },
+        )
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          console.error('[gemini-image] API error:', res.status, errData)
+          return reply.status(502).send({ error: 'Erro ao gerar imagem com Gemini' })
+        }
+
+        const data = await res.json()
+        const parts = data?.candidates?.[0]?.content?.parts || []
+
+        // Find the image part in the response
+        const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith('image/'))
+        if (!imagePart) {
+          return reply.status(502).send({ error: 'Gemini nao retornou uma imagem. Tente reformular o prompt.' })
+        }
+
+        const { mimeType, data: b64 } = imagePart.inlineData
+        return reply.send({
+          image: `data:${mimeType};base64,${b64}`,
+        })
+      } catch (err) {
+        console.error('[gemini-image] Error:', err)
+        return reply.status(502).send({ error: 'Erro de conexao com API Gemini' })
+      }
+    },
+  )
 }

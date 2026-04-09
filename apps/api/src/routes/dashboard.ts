@@ -16,7 +16,7 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     const query: Record<string, unknown> = {}
     if (companyId) query.company_id = companyId
 
-    const [postsThisMonth, approvedCards, scheduledToday, videosGenerated] =
+    const [postsThisMonth, approvedCards, scheduledToday, videosGenerated, publishedCards] =
       await Promise.all([
         Post.countDocuments({
           ...query,
@@ -30,6 +30,7 @@ export default async function dashboardRoutes(app: FastifyInstance) {
           scheduled_at: { $gte: todayStart, $lte: todayEnd },
         }),
         Video.countDocuments({ ...query }),
+        Card.countDocuments({ ...query, status: CardStatus.Posted }),
       ])
 
     // Upcoming queued posts
@@ -64,16 +65,17 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     const allPosts = [...recentDone, ...queuedPosts].slice(0, 10)
 
     const posts = allPosts.map((p: any) => ({
-      id: String(p._id),
+      _id: String(p._id),
       caption: p.caption || p.card_id?.headline || '',
-      thumbnail: p.card_id?.generated_image_url || null,
+      card_id: p.card_id && typeof p.card_id === 'object' ? { generated_image_url: p.card_id.generated_image_url } : undefined,
       platforms: p.platforms || [],
-      scheduledAt: p.scheduled_at,
+      published_at: p.status === QueueStatus.Done ? p.scheduled_at : null,
+      created_at: p.scheduled_at,
       status: statusToLabel[p.status] || p.status,
     }))
 
     return reply.send({
-      metrics: { postsThisMonth, approvedCards, scheduledToday, videosGenerated },
+      metrics: { postsThisMonth, approvedCards, scheduledToday, videosGenerated, publishedCards },
       upcomingPosts: posts,
     })
   })

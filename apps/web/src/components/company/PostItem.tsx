@@ -6,23 +6,22 @@ import { Instagram, Facebook, Clock, Image as ImageIcon } from 'lucide-react'
 
 interface PostItemProps {
   post: {
-    id: string
+    _id: string
     title?: string
     caption: string
-    thumbnail?: string
+    card_id?: { generated_image_url?: string }
     platforms: string[]
-    scheduledAt: string
-    status: 'scheduled' | 'published' | 'failed' | 'draft' | 'queued'
+    published_at: string | null
+    created_at: string
+    status: 'published' | 'failed' | 'cancelled'
   }
   compact?: boolean
 }
 
 const statusMap = {
-  scheduled: { label: 'Agendado', variant: 'warning' as const },
   published: { label: 'Publicado', variant: 'success' as const },
   failed: { label: 'Falhou', variant: 'destructive' as const },
-  draft: { label: 'Rascunho', variant: 'secondary' as const },
-  queued: { label: 'Na fila', variant: 'info' as const },
+  cancelled: { label: 'Cancelado', variant: 'secondary' as const },
 }
 
 const platformIcons: Record<string, React.ElementType> = {
@@ -31,7 +30,7 @@ const platformIcons: Record<string, React.ElementType> = {
 }
 
 export function PostItem({ post, compact = false }: PostItemProps) {
-  const status = statusMap[post.status] || statusMap.draft
+  const status = statusMap[post.status] || statusMap.cancelled
 
   return (
     <div
@@ -45,8 +44,8 @@ export function PostItem({ post, compact = false }: PostItemProps) {
         'flex-shrink-0 rounded-lg bg-gray-800 flex items-center justify-center overflow-hidden',
         compact ? 'w-10 h-10' : 'w-14 h-14'
       )}>
-        {post.thumbnail ? (
-          <img src={post.thumbnail} alt="" className="w-full h-full object-cover" />
+        {post.card_id?.generated_image_url ? (
+          <img src={post.card_id.generated_image_url} alt="" className="w-full h-full object-cover" />
         ) : (
           <ImageIcon className="w-5 h-5 text-gray-600" />
         )}
@@ -75,7 +74,7 @@ export function PostItem({ post, compact = false }: PostItemProps) {
           </div>
           <span className="text-xs text-gray-500 flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            {formatDateTime(post.scheduledAt)}
+            {formatDateTime(post.published_at || post.created_at)}
           </span>
         </div>
       </div>
