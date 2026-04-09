@@ -22,6 +22,7 @@ import adminFinancialRoutes from './routes/admin/financial'
 import adminHealthRoutes from './routes/admin/health'
 import adminLogsRoutes from './routes/admin/logs'
 import adminAppLogsRoutes from './routes/admin/applogs'
+import adminIntegrationsRoutes from './routes/admin/integrations'
 import billingRoutes from './routes/billing'
 import cronRoutes from './routes/cron'
 
@@ -67,6 +68,7 @@ export async function getApp() {
   await app.register(adminHealthRoutes, { prefix: '/api/admin/health' })
   await app.register(adminLogsRoutes, { prefix: '/api/admin/logs' })
   await app.register(adminAppLogsRoutes, { prefix: '/api/admin/applogs' })
+  await app.register(adminIntegrationsRoutes, { prefix: '/api/admin/integrations' })
   // Comunicacao & Notifications — lazy loaded to avoid breaking server if Redis/models aren't ready
   try {
     const { default: adminComunicacaoRoutes } = await import('./routes/admin/comunicacao')

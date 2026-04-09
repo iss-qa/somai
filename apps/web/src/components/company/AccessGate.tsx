@@ -5,11 +5,6 @@ import { usePathname } from 'next/navigation'
 import { Clock, Lock, Sparkles } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
-/**
- * AccessGate — blocks ALL content for users without access.
- * Shows a setup-pending or trial-expired overlay.
- * Admin users always pass through.
- */
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user)
   const hasAccess = useAuthStore((s) => s.hasAccess)
@@ -22,41 +17,37 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     setMounted(true)
   }, [])
 
-  // Before hydration or if admin, render children
   if (!mounted || !user || isAdmin()) {
     return <>{children}</>
   }
 
-  // Integracoes always accessible (needed for initial setup)
   if (pathname?.startsWith('/app/settings/integrations')) {
     return <>{children}</>
   }
 
-  // Only accessEnabled grants real access
   if (hasAccess()) {
     return <>{children}</>
   }
 
-  // Determine state for overlay message
   const trialActive = isInTrial()
   const trialExpired =
     user.trialExpiresAt && new Date(user.trialExpiresAt) <= new Date()
 
   return (
     <div className="relative min-h-[60vh]">
-      {/* Blurred content behind */}
       <div className="blur-md pointer-events-none select-none opacity-20">
         {children}
       </div>
 
-      {/* Overlay */}
       <div className="absolute inset-0 flex items-center justify-center z-20">
         <div className="text-center p-10 rounded-2xl bg-brand-card/95 backdrop-blur-sm border border-brand-border max-w-md mx-4 shadow-2xl animate-form-fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-primary-500/15 flex items-center justify-center mx-auto mb-5">
+
+          {/* Icon */}
+          <div className="w-14 h-14 rounded-2xl bg-primary-500/15 flex items-center justify-center mx-auto mb-5">
             {trialExpired ? (
-              <Clock className="w-8 h-8 text-yellow-400" />
+              <Clock className="w-7 h-7 text-yellow-400" />
             ) : (
-              <Lock className="w-8 h-8 text-primary-400" />
+              <Lock className="w-7 h-7 text-primary-400" />
             )}
           </div>
 
@@ -84,7 +75,13 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
             </>
           )}
 
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+          {/* Trial countdown */}
+          {user.trialExpiresAt && trialActive && (
+            <TrialCountdown expiresAt={user.trialExpiresAt} />
+          )}
+
+          {/* Plan badge */}
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500 mt-5">
             <Sparkles className="w-4 h-4 text-primary-500" />
             <span>
               Plano{' '}
@@ -93,46 +90,120 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
               </span>
             </span>
           </div>
-
-          {user.trialExpiresAt && trialActive && (
-            <TrialCountdown expiresAt={user.trialExpiresAt} />
-          )}
         </div>
       </div>
     </div>
   )
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function pad(n: number) {
+  return String(n).padStart(2, '0')
+}
+
+function getTimeLeft(expiresAt: string) {
+  const diff = new Date(expiresAt).getTime() - Date.now()
+  if (diff <= 0) return null
+
+  const days = Math.floor(diff / 86_400_000)
+  const hours = Math.floor((diff % 86_400_000) / 3_600_000)
+  const minutes = Math.floor((diff % 3_600_000) / 60_000)
+  const seconds = Math.floor((diff % 60_000) / 1_000)
+
+  return { days, hours, minutes, seconds }
+}
+
+// ─── Countdown display ───────────────────────────────────────────────────────
+
 function TrialCountdown({ expiresAt }: { expiresAt: string }) {
-  const [timeLeft, setTimeLeft] = useState('')
+  const [time, setTime] = useState(() => getTimeLeft(expiresAt))
+  const [colonVisible, setColonVisible] = useState(true)
 
   useEffect(() => {
-    function update() {
-      const diff = new Date(expiresAt).getTime() - Date.now()
-      if (diff <= 0) {
-        setTimeLeft('Expirado')
-        return
-      }
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      if (days > 0) {
-        setTimeLeft(`${days}d ${hours}h restantes`)
-      } else {
-        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-        setTimeLeft(`${hours}h ${mins}m restantes`)
-      }
-    }
-    update()
-    const interval = setInterval(update, 60000)
+    const interval = setInterval(() => {
+      setTime(getTimeLeft(expiresAt))
+      setColonVisible((v) => !v)
+    }, 1000)
     return () => clearInterval(interval)
   }, [expiresAt])
 
-  if (!timeLeft) return null
+  if (!time) {
+    return (
+      <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20">
+        <Clock className="w-3.5 h-3.5 text-red-400" />
+        <span className="text-xs text-red-300 font-medium">Expirado</span>
+      </div>
+    )
+  }
+
+  const showDays = time.days > 0
 
   return (
-    <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20">
-      <Clock className="w-3.5 h-3.5 text-yellow-400" />
-      <span className="text-xs text-yellow-300 font-medium">{timeLeft}</span>
+    <div className="mt-2 mb-1">
+      {/* Label */}
+      <p className="text-xs text-gray-500 mb-3 tracking-wide uppercase">
+        Tempo restante
+      </p>
+
+      {/* Digit blocks */}
+      <div className="flex items-end justify-center gap-1.5">
+        {showDays && (
+          <>
+            <DigitBlock value={pad(time.days)} label="dias" />
+            <Separator visible={colonVisible} />
+          </>
+        )}
+        <DigitBlock value={pad(time.hours)} label="horas" />
+        <Separator visible={colonVisible} />
+        <DigitBlock value={pad(time.minutes)} label="minutos" />
+        <Separator visible={colonVisible} />
+        <DigitBlock value={pad(time.seconds)} label="segundos" accent />
+      </div>
     </div>
+  )
+}
+
+function DigitBlock({
+  value,
+  label,
+  accent = false,
+}: {
+  value: string
+  label: string
+  accent?: boolean
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      {/* Card with mid-line divider */}
+      <div
+        className={[
+          'relative font-mono text-[38px] font-bold leading-none tracking-tight',
+          'rounded-xl px-3.5 py-2.5 min-w-[68px] text-center',
+          'border border-white/10 bg-white/5',
+          accent ? 'text-yellow-300' : 'text-white',
+        ].join(' ')}
+      >
+        {value}
+        {/* Horizontal mid-line */}
+        <span className="absolute inset-x-0 top-1/2 -translate-y-px h-px bg-white/[0.07] pointer-events-none" />
+      </div>
+      <span className="text-[10px] font-medium tracking-[0.1em] uppercase text-gray-500">
+        {label}
+      </span>
+    </div>
+  )
+}
+
+function Separator({ visible }: { visible: boolean }) {
+  return (
+    <span
+      className={[
+        'text-3xl font-bold pb-6 text-yellow-400/40 transition-opacity duration-150 select-none',
+        visible ? 'opacity-100' : 'opacity-20',
+      ].join(' ')}
+    >
+      :
+    </span>
   )
 }

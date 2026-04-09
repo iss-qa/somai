@@ -29,7 +29,22 @@
       "Bash(npx -y @vercel/ncc --version)",
       "Bash(npx @vercel/ncc build apps/api/src/server.ts -o apps/api/api --minify)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(grep -r \"setup\\\\|onboard\\\\|block\" /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes/*.ts --include=\"*.ts\")"
+      "Bash(grep -r \"setup\\\\|onboard\\\\|block\" /Users/isaiassilva/development/projects/issqa/soma.ai/apps/api/src/routes/*.ts --include=\"*.ts\")",
+      "Bash(curl -sL \"https://developers.woovi.com/docs/subscription-recurrence/subscription-recurrence-create-api\")",
+      "Bash(curl -s -L \"https://developers.woovi.com/docs/subscription-recurrence/subscription-recurrence-create-api\")",
+      "Bash(curl -s -L \"https://developers.woovi.com/docs/subscription-recurrence/subscription-recurrence-get-api\")",
+      "Bash(curl -s -L \"https://developers.woovi.com/docs/subscription-recurrence/subscription-recurrence-create\")",
+      "Bash(grep -r \"setup\" /Users/isaiassilva/development/projects/issqa/soma.ai/apps/web/src/app/admin/companies/[id]/page.tsx)",
+      "Bash(curl -s \"https://api.woovi.com/api/v1/subscriptions\" -H \"Content-Type: application/json\")",
+      "Bash(node -e \"const mongoose = require\\('mongoose'\\); const s = new mongoose.Schema\\({ document: { type: String, default: '' } }\\); console.log\\('Schema OK:', Object.keys\\(s.paths\\)\\)\")",
+      "Bash(node -e \"const mongoose = require\\('mongoose'\\)\" --require packages/db/node_modules/mongoose)",
+      "Bash(node -e \"const mongoose = require\\('mongoose'\\); const s = new mongoose.Schema\\({ document: { type: String, default: '' } }\\); console.log\\('OK'\\)\")",
+      "Bash(git -C /Users/isaiassilva/development/projects/issqa/soma.ai status)",
+      "Bash(git -C /Users/isaiassilva/development/projects/issqa/soma.ai diff --stat)",
+      "Bash(git -C /Users/isaiassilva/development/projects/issqa/soma.ai log --oneline -5)",
+      "Bash(git -C /Users/isaiassilva/development/projects/issqa/soma.ai add apps/api/src/app.ts apps/api/src/routes/admin/dashboard.ts apps/api/src/routes/admin/financial.ts apps/api/src/routes/companies.ts apps/web/package.json apps/web/src/app/admin/companies/[id]/page.tsx apps/web/src/app/admin/dashboard/page.tsx apps/web/src/app/admin/financial/page.tsx pnpm-lock.yaml)",
+      "Bash(git status:*)",
+      "Bash(gh api:*)"
     ]
   }
 }
