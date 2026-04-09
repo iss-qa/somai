@@ -175,13 +175,18 @@ export default async function billingRoutes(app: FastifyInstance) {
           console.warn('[billing] Customer creation skipped:', err.message)
         })
 
+        const customerData: any = {
+          name: company.responsible_name,
+          email: company.email,
+          phone: formattedPhone,
+        }
+        if (company.document) {
+          customerData.taxID = company.document.replace(/\D/g, '')
+        }
+
         const result = await OpenPixService.createSubscription({
           value: Math.round(subValue),
-          customer: {
-            name: company.responsible_name,
-            email: company.email,
-            phone: formattedPhone,
-          },
+          customer: customerData,
           dayGenerateCharge:
             day_generate_charge || company.billing?.due_day || 10,
         })

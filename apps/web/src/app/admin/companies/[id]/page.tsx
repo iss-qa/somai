@@ -51,6 +51,7 @@ import {
   Trash2,
   Clock,
   MessageCircle,
+  FileText,
 } from 'lucide-react'
 
 interface CompanyPlan {
@@ -78,6 +79,7 @@ interface CompanyData {
   city: string
   state: string
   responsible_name: string
+  document: string
   whatsapp: string
   email: string
   logo_url: string
@@ -163,6 +165,7 @@ export default function CompanyDetailPage() {
       setEditData({
         name: company.name,
         responsible_name: company.responsible_name,
+        document: company.document || '',
         whatsapp: company.whatsapp,
         email: company.email,
         niche: company.niche,
@@ -208,6 +211,7 @@ export default function CompanyDetailPage() {
       const update: Record<string, any> = {
         name: editData.name,
         responsible_name: editData.responsible_name,
+        document: editData.document,
         whatsapp: editData.whatsapp,
         email: editData.email,
         niche: editData.niche,
@@ -335,6 +339,7 @@ export default function CompanyDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <InfoRow icon={User} label="Responsavel" value={company.responsible_name} />
+            {company.document && <InfoRow icon={FileText} label="CPF/CNPJ" value={company.document} />}
             <InfoRow icon={Phone} label="WhatsApp" value={company.whatsapp} />
             <InfoRow icon={Mail} label="Email" value={company.email} />
             <InfoRow icon={MapPin} label="Cidade" value={`${company.city}/${company.state}`} />
@@ -469,6 +474,11 @@ export default function CompanyDetailPage() {
                 <Label className="text-xs text-gray-400">Responsavel</Label>
                 <Input value={editData.responsible_name || ''} onChange={(e) => updateEdit('responsible_name', e.target.value)} className="mt-1" />
               </div>
+            </div>
+
+            <div>
+              <Label className="text-xs text-gray-400">CPF/CNPJ</Label>
+              <Input value={editData.document || ''} onChange={(e) => updateEdit('document', e.target.value)} placeholder="000.000.000-00" className="mt-1" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

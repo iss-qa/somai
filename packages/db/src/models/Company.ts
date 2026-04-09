@@ -21,6 +21,7 @@ export interface ICompany extends Document {
   city: string
   state: string
   responsible_name: string
+  document: string
   whatsapp: string
   email: string
   logo_url: string
@@ -79,6 +80,7 @@ const CompanySchema = new Schema<ICompany>(
     city: { type: String, default: '' },
     state: { type: String, default: '' },
     responsible_name: { type: String, required: true },
+    document: { type: String, default: '' },
     whatsapp: { type: String, required: true },
     email: { type: String, required: true },
     logo_url: { type: String, default: '' },

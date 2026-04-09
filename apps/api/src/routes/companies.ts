@@ -68,6 +68,7 @@ export default async function companiesRoutes(app: FastifyInstance) {
       city: string
       state: string
       responsible_name: string
+      document?: string
       whatsapp: string
       email: string
       plan: string

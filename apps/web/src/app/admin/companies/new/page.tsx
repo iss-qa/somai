@@ -85,6 +85,7 @@ export default function NewCompanyPage() {
     city: '',
     state: '',
     responsible_name: '',
+    document: '',
     whatsapp: '',
     email: '',
     plan: 'starter',
@@ -127,6 +128,7 @@ export default function NewCompanyPage() {
         city: form.city,
         state: form.state,
         responsible_name: form.responsible_name,
+        document: form.document,
         whatsapp: form.whatsapp,
         email: form.email,
         plan: form.plan,
@@ -239,6 +241,17 @@ export default function NewCompanyPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label>CPF/CNPJ</Label>
+              <Input
+                placeholder="000.000.000-00"
+                value={form.document}
+                onChange={(e) => updateForm('document', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label>WhatsApp</Label>
               <Input
                 placeholder="(11) 99999-9999"
@@ -247,16 +260,15 @@ export default function NewCompanyPage() {
                 inputMode="numeric"
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>E-mail *</Label>
-            <Input
-              type="email"
-              placeholder="empresa@email.com"
-              value={form.email}
-              onChange={(e) => updateForm('email', e.target.value)}
-            />
+            <div className="space-y-2">
+              <Label>E-mail *</Label>
+              <Input
+                type="email"
+                placeholder="empresa@email.com"
+                value={form.email}
+                onChange={(e) => updateForm('email', e.target.value)}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
