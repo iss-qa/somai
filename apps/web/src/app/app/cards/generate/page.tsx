@@ -1928,7 +1928,7 @@ A imagem deve ser visualmente atrativa para redes sociais.`
     e.target.value = ''
   }, [])
 
-  // ---------- Generate image with Gemini ----------
+  // ---------- Generate image with Cloudflare AI ----------
   const handleGenerateImage = useCallback(async () => {
     if (!aiPrompt.trim()) {
       toast.error('Digite um prompt')
@@ -1937,12 +1937,10 @@ A imagem deve ser visualmente atrativa para redes sociais.`
 
     setGeneratingImage(true)
     try {
-      const payload: { prompt: string; referenceImage?: string } = { prompt: aiPrompt }
-      if (aiReferenceImage) {
-        payload.referenceImage = aiReferenceImage
-      }
-
-      const result = await api.post<{ image: string }>('/api/cards/generate-image', payload)
+      const result = await api.post<{ image: string }>('/api/cards/generate-image', {
+        prompt: aiPrompt,
+        format: config.format,
+      })
 
       if (result.image) {
         setConfig((prev) => ({
@@ -1961,7 +1959,7 @@ A imagem deve ser visualmente atrativa para redes sociais.`
     } finally {
       setGeneratingImage(false)
     }
-  }, [aiPrompt, aiReferenceImage])
+  }, [aiPrompt, config.format])
 
   // ---------- Save card to API (draft) ----------
   const handleSaveDraft = useCallback(async () => {

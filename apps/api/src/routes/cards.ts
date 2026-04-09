@@ -374,12 +374,12 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
       request: FastifyRequest<{
         Body: {
           prompt: string
-          referenceImage?: string
+          format?: string
         }
       }>,
       reply: FastifyReply,
     ) => {
-      const { prompt } = request.body
+      const { prompt, format } = request.body
 
       if (!prompt?.trim()) {
         return reply.status(400).send({ error: 'Prompt e obrigatorio' })
@@ -393,6 +393,15 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
         })
       }
 
+      // Map format to dimensions
+      const dimensions: Record<string, { width: number; height: number }> = {
+        feed: { width: 1024, height: 1024 },
+        stories: { width: 768, height: 1344 },
+        reels: { width: 768, height: 1344 },
+        carousel: { width: 1024, height: 1024 },
+      }
+      const { width, height } = dimensions[format || 'feed'] || dimensions.feed
+
       try {
         const res = await fetch(
           `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/leonardo/lucid-origin`,
@@ -402,7 +411,7 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
               'Authorization': `Bearer ${apiToken}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ prompt }),
+            body: JSON.stringify({ prompt, width, height }),
           },
         )
 
@@ -415,7 +424,22 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
           return reply.status(502).send({ error: 'Erro ao gerar imagem com Cloudflare AI' })
         }
 
-        // Cloudflare Workers AI returns raw binary PNG
+        const contentType = res.headers.get('content-type') || ''
+
+        // Handle JSON response (Cloudflare may wrap in JSON envelope)
+        if (contentType.includes('application/json')) {
+          const data = await res.json() as any
+          // Try common JSON shapes: { result: { image: "base64" } } or { image: "base64" }
+          const b64 = data?.result?.image || data?.image || data?.result
+          if (typeof b64 === 'string') {
+            const prefix = b64.startsWith('data:') ? '' : 'data:image/png;base64,'
+            return reply.send({ image: `${prefix}${b64}` })
+          }
+          console.error('[cloudflare-image] Unexpected JSON shape:', JSON.stringify(data).slice(0, 500))
+          return reply.status(502).send({ error: 'Resposta inesperada da Cloudflare AI' })
+        }
+
+        // Binary PNG response
         const buffer = Buffer.from(await res.arrayBuffer())
         const b64 = buffer.toString('base64')
 
