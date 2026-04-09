@@ -272,6 +272,21 @@ export default async function authRoutes(app: FastifyInstance) {
         return reply.status(409).send({ error: 'Email ja cadastrado' })
       }
 
+      // Check existing CNPJ/CPF (document)
+      if (docField) {
+        const cleanDoc = docField.replace(/\D/g, '')
+        if (cleanDoc) {
+          const existingDoc = await Company.findOne({
+            document: { $regex: cleanDoc },
+            status: { $ne: 'cancelled' },
+          }).lean()
+          if (existingDoc) {
+            console.log('[partner-signup] Documento ja existe:', cleanDoc)
+            return reply.status(409).send({ error: 'CPF/CNPJ ja cadastrado' })
+          }
+        }
+      }
+
       // Get plan (user-selected or default starter)
       const planSlug = selectedPlan || 'starter'
       let plan: any = await Plan.findOne({

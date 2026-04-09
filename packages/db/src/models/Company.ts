@@ -138,6 +138,7 @@ const CompanySchema = new Schema<ICompany>(
 CompanySchema.index({ status: 1 })
 CompanySchema.index({ 'billing.status': 1 })
 CompanySchema.index({ niche: 1 })
+CompanySchema.index({ document: 1 }, { sparse: true })
 
 export const Company =
   mongoose.models.Company ||
