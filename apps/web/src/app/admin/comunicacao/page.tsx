@@ -255,8 +255,8 @@ export default function ComunicacaoPage() {
 
   useEffect(() => {
     api
-      .get<CompanyOption[]>('/api/admin/comunicacao/companies')
-      .then(setCompanies)
+      .get<{ companies: CompanyOption[] }>('/api/companies')
+      .then((data) => setCompanies(data.companies || []))
       .catch(console.error)
   }, [])
 
