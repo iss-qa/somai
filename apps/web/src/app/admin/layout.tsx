@@ -148,22 +148,6 @@ export default function AdminLayout({
           })}
         </nav>
 
-        {/* Bottom section */}
-        <div className="p-4 border-t border-brand-border">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8">
-              <AvatarFallback className="text-xs bg-red-500/20 text-red-300">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-200 truncate">
-                {user?.name || 'Admin'}
-              </p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-            </div>
-          </div>
-        </div>
       </aside>
 
       {/* Main content area */}

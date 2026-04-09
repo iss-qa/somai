@@ -164,22 +164,6 @@ export default function CompanyLayout({
           })}
         </nav>
 
-        {/* Bottom section */}
-        <div className="p-4 border-t border-brand-border">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8">
-              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-200 truncate">
-                {user?.companyName || user?.name || 'Minha Empresa'}
-              </p>
-              <Badge variant="default" className="text-[10px] px-1.5 py-0 mt-0.5">
-                {user?.plan === 'pro' ? 'Pro' : 'Starter'}
-              </Badge>
-            </div>
-          </div>
-        </div>
       </aside>
 
       {/* Main content area */}
@@ -213,6 +197,9 @@ export default function CompanyLayout({
                     <span className="text-sm text-gray-300 hidden sm:inline">
                       {user?.name || user?.email || 'Meu perfil'}
                     </span>
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0 hidden sm:inline-flex">
+                      {user?.plan === 'pro' ? 'Pro' : 'Starter'}
+                    </Badge>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
