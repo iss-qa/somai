@@ -63,10 +63,16 @@ export const postWorker = new Worker<PostJobData>(
       metadata: { job_id: job.id, queue_id: queueId, platforms, post_type: postType },
     })
 
-    // ── Update queue to processing ──────────
-    await PostQueue.findByIdAndUpdate(queueId, {
-      status: QueueStatus.Processing,
-    })
+    // ── Atomically claim the job (guard against duplicate runs) ──
+    const claimed = await PostQueue.findOneAndUpdate(
+      { _id: queueId, status: { $in: [QueueStatus.Queued, QueueStatus.Processing] } },
+      { status: QueueStatus.Processing },
+      { new: true },
+    )
+    if (!claimed) {
+      console.log(`[PostWorker] Job ${job.id} already processed by another runner, skipping`)
+      return { skipped: true }
+    }
 
     let instagramPostId = ''
     let facebookPostId = ''
