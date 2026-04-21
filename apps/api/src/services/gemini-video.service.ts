@@ -1,5 +1,6 @@
 import { EncryptionService } from './encryption.service'
 import { Integration } from '@soma-ai/db'
+import { getAIConfig, callLLMJson, callLLM } from './ai.service'
 
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
@@ -24,13 +25,27 @@ interface GeminiVideoResult {
 }
 
 /**
- * Helper: safely call Gemini API and parse JSON response
+ * Helper: call the configured LLM (via ai.service) and parse JSON response.
+ * The apiKey param is actually used to resolve the company's AI config
+ * via a cached lookup. For backward compat, if it looks like a raw Gemini key
+ * we fall back to Gemini directly.
  */
 async function callGemini<T>(
   apiKey: string,
   prompt: string,
-  options?: { temperature?: number; maxOutputTokens?: number },
+  _options?: { temperature?: number; maxOutputTokens?: number },
 ): Promise<T> {
+  // Use the centralized callLLMJson which supports all providers.
+  // The apiKey here comes from getApiKey() which already resolved the config.
+  // We need to figure out which provider to use. Since callGemini is called
+  // from within GeminiVideoService which gets apiKey from getApiKey(),
+  // and getApiKey() now uses getAIConfig(), we store the last resolved config.
+  const config = GeminiVideoService._lastConfig
+  if (config) {
+    return callLLMJson<T>(config, prompt)
+  }
+
+  // Direct Gemini fallback (legacy)
   const res = await fetch(
     `${GEMINI_BASE_URL}/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
     {
@@ -38,10 +53,7 @@ async function callGemini<T>(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: options?.temperature ?? 0.8,
-          maxOutputTokens: options?.maxOutputTokens ?? 2048,
-        },
+        generationConfig: { temperature: 0.8, maxOutputTokens: 2048 },
       }),
     },
   )
@@ -50,88 +62,46 @@ async function callGemini<T>(
     let errorDetail = ''
     try {
       const errBody = await res.text()
-      // Try to extract a readable message from the Gemini error
       const parsed = JSON.parse(errBody)
-      errorDetail =
-        parsed?.error?.message || parsed?.error?.status || errBody.slice(0, 200)
+      errorDetail = parsed?.error?.message || parsed?.error?.status || errBody.slice(0, 200)
     } catch {
       errorDetail = `HTTP ${res.status}`
     }
-    throw new Error(`Erro na API Gemini: ${errorDetail}`)
+    throw new Error(`Erro na API: ${errorDetail}`)
   }
 
   const data = await res.json()
-
-  // Validate response structure
   const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text
   if (!raw || typeof raw !== 'string' || raw.trim().length === 0) {
-    // Check if blocked by safety filters
     const finishReason = data?.candidates?.[0]?.finishReason
-    if (finishReason === 'SAFETY') {
-      throw new Error('A IA bloqueou a resposta por questoes de seguranca. Tente reformular.')
-    }
-    if (data?.candidates?.length === 0 || !data?.candidates) {
-      throw new Error('A IA nao retornou nenhuma resposta. Tente novamente.')
-    }
+    if (finishReason === 'SAFETY') throw new Error('A IA bloqueou a resposta por questoes de seguranca. Tente reformular.')
     throw new Error('Resposta vazia da IA. Tente novamente.')
   }
 
-  // Clean markdown wrappers and parse JSON
-  const cleaned = raw
-    .replace(/```json\s*/gi, '')
-    .replace(/```\s*/g, '')
-    .trim()
-
+  const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
   try {
     return JSON.parse(cleaned) as T
   } catch {
-    // If JSON parse fails, try to extract JSON from the text
     const jsonMatch = cleaned.match(/[\[{][\s\S]*[\]}]/)
     if (jsonMatch) {
-      try {
-        return JSON.parse(jsonMatch[0]) as T
-      } catch {
-        // Give up
-      }
+      try { return JSON.parse(jsonMatch[0]) as T } catch {}
     }
-    throw new Error(
-      'A IA retornou um formato inesperado. Tente novamente.',
-    )
+    throw new Error('A IA retornou um formato inesperado. Tente novamente.')
   }
 }
 
 export class GeminiVideoService {
+  /** Cached config from last getApiKey call (used by callGemini) */
+  static _lastConfig: { provider: string; model: string; apiKey: string } | null = null
+
   /**
-   * Get the best available Gemini API key:
-   * 1. Company BYOK key (from integrations)
-   * 2. Master key (from env)
+   * Get the API key for AI calls. Also caches the full config
+   * so callGemini() can route to the correct provider.
    */
   static async getApiKey(companyId: string): Promise<string> {
-    // Try company BYOK first
-    try {
-      const integration: any = await Integration.findOne({
-        company_id: companyId,
-      }).lean()
-
-      if (integration?.gemini?.api_key && integration?.gemini?.active) {
-        try {
-          return EncryptionService.decrypt(integration.gemini.api_key)
-        } catch {
-          console.warn('[gemini] BYOK key decryption failed, using master key')
-        }
-      }
-    } catch {
-      console.warn('[gemini] Integration query failed, using master key')
-    }
-
-    // Master key from env
-    const masterKey = process.env.GEMINI_API_KEY
-    if (!masterKey) {
-      throw new Error(
-        'Nenhuma chave Gemini configurada. Adicione GEMINI_API_KEY no .env ou configure em Integracoes.',
-      )
-    }
-    return masterKey
+    const config = await getAIConfig(companyId)
+    GeminiVideoService._lastConfig = config
+    return config.apiKey
   }
 
   /**
@@ -202,7 +172,7 @@ Responda SOMENTE com JSON valido (sem markdown):
   }
 
   /**
-   * Generate narration text using Gemini
+   * Generate narration text
    */
   static async generateNarration(params: {
     headline: string

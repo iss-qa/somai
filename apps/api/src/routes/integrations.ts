@@ -408,4 +408,118 @@ export default async function integrationsRoutes(app: FastifyInstance) {
       return reply.send({ message: 'Chave Gemini salva com sucesso' })
     },
   )
+
+  // ── GET /ai ──────────────────────────────────────
+  app.get('/ai', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { companyId } = request.user!
+
+    if (!companyId) {
+      return reply.status(400).send({ error: 'Empresa nao encontrada' })
+    }
+
+    const integration: any = await Integration.findOne({
+      company_id: companyId,
+    }).lean()
+
+    const ai = integration?.ai
+    const usage = ai?.usage || {
+      total_prompt_tokens: 0,
+      total_completion_tokens: 0,
+      total_tokens: 0,
+      request_count: 0,
+      last_used_at: null,
+      monthly: [],
+    }
+    // Estatisticas do mes corrente
+    const now = new Date()
+    const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const currentMonth = (usage.monthly || []).find((m: any) => m.period === currentPeriod) || {
+      period: currentPeriod, prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, requests: 0,
+    }
+
+    return reply.send({
+      ai: ai
+        ? {
+            provider: ai.provider || '',
+            model: ai.model || '',
+            active: ai.active || false,
+            has_key: !!ai.api_key,
+            usage: {
+              total_prompt_tokens: usage.total_prompt_tokens || 0,
+              total_completion_tokens: usage.total_completion_tokens || 0,
+              total_tokens: usage.total_tokens || 0,
+              request_count: usage.request_count || 0,
+              last_used_at: usage.last_used_at || null,
+              current_month: currentMonth,
+              monthly: (usage.monthly || []).slice(-6),
+            },
+          }
+        : null,
+    })
+  })
+
+  // ── POST /ai/usage/reset ─────────────────────────
+  // Zera os contadores locais de uso (nao afeta o provider)
+  app.post('/ai/usage/reset', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { companyId } = request.user!
+    if (!companyId) return reply.status(400).send({ error: 'Empresa nao encontrada' })
+
+    await Integration.updateOne(
+      { company_id: companyId },
+      {
+        $set: {
+          'ai.usage.total_prompt_tokens': 0,
+          'ai.usage.total_completion_tokens': 0,
+          'ai.usage.total_tokens': 0,
+          'ai.usage.request_count': 0,
+          'ai.usage.last_used_at': null,
+          'ai.usage.monthly': [],
+        },
+      },
+    )
+    return reply.send({ message: 'Contadores de uso zerados' })
+  })
+
+  // ── POST /ai ─────────────────────────────────────
+  app.post(
+    '/ai',
+    async (
+      request: FastifyRequest<{
+        Body: { provider: string; model: string; api_key?: string }
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { companyId } = request.user!
+
+      if (!companyId) {
+        return reply.status(400).send({ error: 'Empresa nao encontrada' })
+      }
+
+      const { provider, model, api_key } = request.body
+
+      if (!provider || !model) {
+        return reply.status(400).send({ error: 'Provider e model sao obrigatorios' })
+      }
+
+      if (!api_key) {
+        return reply.status(400).send({ error: 'Token de API obrigatorio' })
+      }
+
+      const updateData: any = {
+        'ai.provider': provider,
+        'ai.model': model,
+        'ai.api_key': EncryptionService.encrypt(api_key),
+        'ai.active': true,
+        updated_at: new Date(),
+      }
+
+      await Integration.findOneAndUpdate(
+        { company_id: companyId },
+        updateData,
+        { upsert: true },
+      )
+
+      return reply.send({ message: 'Configuracao de IA salva com sucesso' })
+    },
+  )
 }

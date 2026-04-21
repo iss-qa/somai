@@ -30,11 +30,37 @@ export interface IIntegrationGemini {
   last_tested_at: Date | null
 }
 
+export interface IIntegrationAIUsageMonth {
+  period: string // 'YYYY-MM'
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  requests: number
+}
+
+export interface IIntegrationAIUsage {
+  total_prompt_tokens: number
+  total_completion_tokens: number
+  total_tokens: number
+  request_count: number
+  last_used_at: Date | null
+  monthly: IIntegrationAIUsageMonth[]
+}
+
+export interface IIntegrationAI {
+  provider: string // 'groq' | 'openrouter' | 'gemini' | 'anthropic' | 'openai'
+  model: string
+  api_key: string // encrypted, only for paid providers
+  active: boolean
+  usage?: IIntegrationAIUsage
+}
+
 export interface IIntegration extends Document {
   company_id: Types.ObjectId
   meta: IIntegrationMeta
   whatsapp: IIntegrationWhatsapp
   gemini: IIntegrationGemini
+  ai: IIntegrationAI
   updated_at: Date
 }
 
@@ -66,6 +92,26 @@ const IntegrationSchema = new Schema<IIntegration>({
     api_key: { type: String, default: '' },
     active: { type: Boolean, default: false },
     last_tested_at: { type: Date, default: null },
+  },
+  ai: {
+    provider: { type: String, default: '' },
+    model: { type: String, default: '' },
+    api_key: { type: String, default: '' },
+    active: { type: Boolean, default: false },
+    usage: {
+      total_prompt_tokens: { type: Number, default: 0 },
+      total_completion_tokens: { type: Number, default: 0 },
+      total_tokens: { type: Number, default: 0 },
+      request_count: { type: Number, default: 0 },
+      last_used_at: { type: Date, default: null },
+      monthly: [{
+        period: { type: String },
+        prompt_tokens: { type: Number, default: 0 },
+        completion_tokens: { type: Number, default: 0 },
+        total_tokens: { type: Number, default: 0 },
+        requests: { type: Number, default: 0 },
+      }],
+    },
   },
   updated_at: { type: Date, default: Date.now },
 })

@@ -5,6 +5,7 @@ import { PostStatus, QueueStatus, CardStatus } from '@soma-ai/shared'
 import { MetaService } from '../services/meta.service'
 import { NotificationService } from '../services/notification.service'
 import { LogService } from '../services/log.service'
+import { ComunicacaoService } from '../services/comunicacao.service'
 
 interface PostJobData {
   queueId: string
@@ -167,6 +168,14 @@ export const postWorker = new Worker<PostJobData>(
           },
         },
       )
+
+      // WhatsApp notification: Card Publicado
+      ComunicacaoService.enviarCardPublicado(
+        companyId,
+        caption?.substring(0, 50) || postType,
+        new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+        platforms.join(', '),
+      ).catch(() => {})
 
       console.log(`[PostWorker] Job ${job.id} completed successfully`)
       return { postId: post._id, status: 'published' }

@@ -2,6 +2,7 @@ import { PostQueue, Card, Post } from '@soma-ai/db'
 import { QueueStatus, CardStatus, PostStatus } from '@soma-ai/shared'
 import { MetaService } from '../services/meta.service'
 import { LogService } from '../services/log.service'
+import { ComunicacaoService } from '../services/comunicacao.service'
 
 /**
  * Finds all PostQueue items past their scheduled_at that are still
@@ -99,6 +100,14 @@ export async function publishDuePosts(limit = 10): Promise<{
       })
 
       results.push({ id: queueId, status: 'published' })
+
+      // WhatsApp notification: Card Publicado
+      ComunicacaoService.enviarCardPublicado(
+        companyId,
+        card?.headline || card?.product_name || item.post_type,
+        new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+        item.platforms.join(', '),
+      ).catch(() => {})
 
       await LogService.info(
         'post',

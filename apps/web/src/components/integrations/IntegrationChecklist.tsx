@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useAuthStore } from '@/store/authStore'
+import { api } from '@/lib/api'
+import toast from 'react-hot-toast'
 import {
   CheckCircle2,
   ExternalLink,
@@ -26,6 +28,12 @@ import {
   EyeOff,
   Loader2,
   AppWindow,
+  Sparkles,
+  Zap,
+  Brain,
+  ChevronDown,
+  ChevronUp,
+  Check,
 } from 'lucide-react'
 
 /* ── Tutorial image: collapsible + lightbox ──── */
@@ -85,6 +93,84 @@ const STEPS: Step[] = [
   { id: 'credentials', title: 'Credenciais do App Meta', shortTitle: '2. Credenciais', icon: Key },
   { id: 'config_permissions', title: 'Configuração e Permissões', shortTitle: '3. Config', icon: Shield },
   { id: 'connect', title: 'Conectar com Facebook/Instagram', shortTitle: '4. Conectar', icon: LogIn },
+  { id: 'ai_config', title: 'Configuração IA', shortTitle: '5. IA', icon: Sparkles },
+]
+
+/* ── AI Provider/Model definitions ──────────── */
+interface AIModel {
+  id: string
+  name: string
+  context: string
+  free: boolean
+}
+
+interface AIProvider {
+  id: string
+  name: string
+  description: string
+  icon: string
+  free: boolean
+  models: AIModel[]
+}
+
+const AI_PROVIDERS: AIProvider[] = [
+  {
+    id: 'groq',
+    name: 'Groq',
+    description: 'Inferência ultrarrápida · sem login',
+    icon: '⚡',
+    free: true,
+    models: [
+      { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', context: '128K ctx · rápido', free: true },
+      { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', context: '128K ctx · ultra rápido', free: true },
+      { id: 'gemma2-9b-it', name: 'Gemma 2 9B', context: '8K ctx · leve', free: true },
+    ],
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter Free',
+    description: 'Vários modelos gratuitos',
+    icon: '🔄',
+    free: true,
+    models: [
+      { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B', context: '128K ctx · gratuito', free: true },
+      { id: 'mistralai/mistral-7b-instruct:free', name: 'Mistral 7B', context: '32K ctx · gratuito', free: true },
+      { id: 'google/gemma-2-9b-it:free', name: 'Gemma 2 9B', context: '8K ctx · gratuito', free: true },
+    ],
+  },
+  {
+    id: 'gemini',
+    name: 'Google Gemini',
+    description: 'Flash gratuito com tier generoso',
+    icon: '✦',
+    free: true,
+    models: [
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', context: '1M ctx · rápido · gratuito', free: true },
+      { id: 'gemini-1.5-flash-8b', name: 'Gemini 1.5 Flash 8B', context: '1M ctx · leve · gratuito', free: true },
+    ],
+  },
+  {
+    id: 'anthropic',
+    name: 'Anthropic Claude',
+    description: 'Requer chave de API',
+    icon: '◆',
+    free: false,
+    models: [
+      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', context: '200K ctx · inteligente', free: false },
+      { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', context: '200K ctx · rápido', free: false },
+    ],
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    description: 'Requer chave de API',
+    icon: '◎',
+    free: false,
+    models: [
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', context: '128K ctx · rápido', free: false },
+      { id: 'gpt-4o', name: 'GPT-4o', context: '128K ctx · completo', free: false },
+    ],
+  },
 ]
 
 const STORAGE_KEY_PREFIX = 'soma_integration_checklist'
@@ -643,7 +729,348 @@ export default function IntegrationChecklist({
             </div>
           </StepWrapper>
         </TabsContent>
+
+        {/* ════════════════════════════════════════════ */}
+        {/* TAB 5 — Configuração IA                     */}
+        {/* ════════════════════════════════════════════ */}
+        <TabsContent value="ai_config">
+          <StepWrapper step={STEPS[4]} index={4} done={completedSteps['ai_config']} onToggle={() => toggleStep('ai_config')}>
+            <AIConfigStep onComplete={() => { toggleStep('ai_config'); setCompletedSteps((prev) => ({ ...prev, ai_config: true })) }} />
+          </StepWrapper>
+        </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+/* ── AI Config Step Component ───────────────── */
+
+const TOKEN_HELP: Record<string, { url: string; label: string }> = {
+  groq: { url: 'https://console.groq.com/keys', label: 'Obter chave grátis em console.groq.com' },
+  openrouter: { url: 'https://openrouter.ai/keys', label: 'Obter chave grátis em openrouter.ai' },
+  gemini: { url: 'https://aistudio.google.com/apikey', label: 'Obter chave grátis em aistudio.google.com' },
+  anthropic: { url: 'https://console.anthropic.com/settings/keys', label: 'Obter chave em console.anthropic.com' },
+  openai: { url: 'https://platform.openai.com/api-keys', label: 'Obter chave em platform.openai.com' },
+}
+
+function AIConfigStep({ onComplete }: { onComplete: () => void }) {
+  const [expandedProvider, setExpandedProvider] = useState<string | null>(null)
+  const [selectedProvider, setSelectedProvider] = useState('')
+  const [selectedModel, setSelectedModel] = useState('')
+  const [apiToken, setApiToken] = useState('')
+  const [showToken, setShowToken] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentConfig, setCurrentConfig] = useState<{ provider: string; model: string; active: boolean; has_key: boolean } | null>(null)
+  const [usage, setUsage] = useState<{
+    total_prompt_tokens: number
+    total_completion_tokens: number
+    total_tokens: number
+    request_count: number
+    last_used_at: string | null
+    current_month: { period: string; prompt_tokens: number; completion_tokens: number; total_tokens: number; requests: number }
+    monthly: Array<{ period: string; prompt_tokens: number; completion_tokens: number; total_tokens: number; requests: number }>
+  } | null>(null)
+  const [loadingConfig, setLoadingConfig] = useState(true)
+  const [resettingUsage, setResettingUsage] = useState(false)
+
+  const loadConfig = async () => {
+    try {
+      const data = await api.get<any>('/api/integrations/ai')
+      if (data?.ai?.active) {
+        setCurrentConfig({ provider: data.ai.provider, model: data.ai.model, active: data.ai.active, has_key: data.ai.has_key })
+        setSelectedProvider(data.ai.provider)
+        setSelectedModel(data.ai.model)
+        if (data.ai.has_key) setApiToken('••••••••••••••••••••••••••••••')
+      }
+      if (data?.ai?.usage) setUsage(data.ai.usage)
+    } catch {}
+    setLoadingConfig(false)
+  }
+
+  useEffect(() => {
+    loadConfig()
+  }, [])
+
+  const handleResetUsage = async () => {
+    if (!confirm('Zerar os contadores de uso? Essa acao nao afeta a cota no provider.')) return
+    setResettingUsage(true)
+    try {
+      await api.post('/api/integrations/ai/usage/reset')
+      await loadConfig()
+      toast.success('Contadores zerados')
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao zerar contadores')
+    } finally {
+      setResettingUsage(false)
+    }
+  }
+
+  const isMaskedToken = apiToken.startsWith('••')
+
+  const handleSaveProvider = async () => {
+    if (!selectedProvider || !selectedModel || !apiToken.trim() || isMaskedToken) {
+      toast.error('Preencha o token de API')
+      return
+    }
+    setSaving(true)
+    try {
+      await api.post('/api/integrations/ai', {
+        provider: selectedProvider,
+        model: selectedModel,
+        api_key: apiToken,
+      })
+      const provider = AI_PROVIDERS.find((p) => p.id === selectedProvider)
+      const modelName = provider?.models.find((m) => m.id === selectedModel)?.name || selectedModel
+      setCurrentConfig({ provider: selectedProvider, model: selectedModel, active: true, has_key: true })
+      toast.success(`${provider?.name} — ${modelName} configurado!`)
+      setApiToken('••••••••••••••••••••••••••••••')
+      onComplete()
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar configuração de IA')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loadingConfig) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+      </div>
+    )
+  }
+
+  const currentProviderInfo = AI_PROVIDERS.find((p) => p.id === currentConfig?.provider)
+  const currentModelInfo = currentProviderInfo?.models.find((m) => m.id === currentConfig?.model)
+
+  const renderProviderCard = (provider: AIProvider) => {
+    const isExpanded = expandedProvider === provider.id
+    const isSelected = currentConfig?.provider === provider.id
+    const help = TOKEN_HELP[provider.id]
+
+    return (
+      <div key={provider.id} className="rounded-lg border border-brand-border overflow-hidden">
+        <button
+          type="button"
+          onClick={() => { setExpandedProvider(isExpanded ? null : provider.id); setApiToken('') }}
+          className={`w-full flex items-center justify-between p-3 hover:bg-brand-surface/80 transition-colors ${isSelected ? 'bg-primary-500/5 border-primary-500/20' : ''}`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-lg">{provider.icon}</span>
+            <div className="text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-200">{provider.name}</span>
+                <Badge variant={provider.free ? 'success' : 'secondary'} className="text-[9px]">
+                  {provider.free ? 'grátis' : 'pago'}
+                </Badge>
+                {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+              </div>
+              <p className="text-xs text-gray-500">{provider.description}</p>
+            </div>
+          </div>
+          {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+        </button>
+        {isExpanded && (
+          <div className="border-t border-brand-border p-3 space-y-3 bg-brand-surface/30">
+            {/* Model selection */}
+            <div className="space-y-2">
+              {provider.models.map((model) => {
+                const isModelSelected = selectedProvider === provider.id && selectedModel === model.id
+                const isCurrentModel = currentConfig?.provider === provider.id && currentConfig?.model === model.id
+                return (
+                  <button
+                    key={model.id}
+                    type="button"
+                    onClick={() => { setSelectedProvider(provider.id); setSelectedModel(model.id) }}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-lg border transition-colors text-left ${
+                      isCurrentModel
+                        ? 'border-emerald-500/40 bg-emerald-500/10'
+                        : isModelSelected
+                          ? 'border-primary-500/40 bg-primary-500/10'
+                          : 'border-gray-800 hover:border-gray-700'
+                    }`}
+                  >
+                    <div>
+                      <p className="text-sm text-gray-200 font-medium">{model.name}</p>
+                      <p className="text-xs text-gray-500">{model.context}</p>
+                    </div>
+                    {isCurrentModel ? (
+                      <Badge variant="success" className="text-[9px]">Ativo</Badge>
+                    ) : (
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        isModelSelected ? 'border-primary-500 bg-primary-500' : 'border-gray-600'
+                      }`}>
+                        {isModelSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Token input — shown when a model is selected */}
+            {selectedProvider === provider.id && selectedModel && (
+              <div className="space-y-3 pt-2 border-t border-gray-800">
+                {help && (
+                  <a
+                    href={help.url}
+                    target="_blank"
+                    rel="noopener"
+                    className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    {help.label}
+                  </a>
+                )}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5 text-xs">
+                    <Key className="w-3.5 h-3.5 text-gray-500" />
+                    Token de API {provider.free && <span className="text-gray-600">(gratuito)</span>}
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type={showToken ? 'text' : 'password'}
+                      placeholder={`Cole seu token ${provider.name}`}
+                      value={apiToken}
+                      onFocus={() => { if (isMaskedToken) setApiToken('') }}
+                      onChange={(e) => setApiToken(e.target.value)}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowToken(!showToken)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                    >
+                      {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                {isMaskedToken && currentConfig?.provider === provider.id ? (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+                    <Check className="w-3.5 h-3.5" />
+                    Token salvo e ativo
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full gap-2"
+                    disabled={saving || !apiToken.trim() || isMaskedToken}
+                    onClick={handleSaveProvider}
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Salvar e Selecionar
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Current config banner */}
+      {currentConfig?.active && currentProviderInfo && (
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+          <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <div className="text-sm">
+            <span className="text-emerald-300 font-medium">IA configurada: </span>
+            <span className="text-gray-300">
+              {currentProviderInfo.name} — {currentModelInfo?.name || currentConfig.model}
+            </span>
+            <Badge variant={currentProviderInfo.free ? 'success' : 'secondary'} className="ml-2 text-[9px]">
+              {currentProviderInfo.free ? 'grátis' : 'pago'}
+            </Badge>
+          </div>
+        </div>
+      )}
+
+      {/* Uso da IA (consumo de tokens por empresa) */}
+      {currentConfig?.active && usage && (
+        <div className="rounded-lg border border-brand-border bg-brand-surface/40 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-200">Uso da IA (tokens consumidos)</h4>
+              <p className="text-[11px] text-gray-500">
+                Contagem local por empresa. {usage.last_used_at ? `Ultimo uso: ${new Date(usage.last_used_at).toLocaleString('pt-BR')}` : 'Nenhum uso registrado ainda.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleResetUsage}
+              disabled={resettingUsage}
+              className="text-[11px] text-gray-500 hover:text-gray-300 underline underline-offset-2 disabled:opacity-50"
+            >
+              {resettingUsage ? 'Zerando...' : 'Zerar contador'}
+            </button>
+          </div>
+
+          {/* Stat tiles */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="rounded-md bg-brand-dark border border-brand-border p-3">
+              <div className="text-[10px] uppercase tracking-wider text-gray-500">Total tokens</div>
+              <div className="text-lg font-semibold text-gray-100 tabular-nums">{usage.total_tokens.toLocaleString('pt-BR')}</div>
+            </div>
+            <div className="rounded-md bg-brand-dark border border-brand-border p-3">
+              <div className="text-[10px] uppercase tracking-wider text-gray-500">Requisicoes</div>
+              <div className="text-lg font-semibold text-gray-100 tabular-nums">{usage.request_count.toLocaleString('pt-BR')}</div>
+            </div>
+            <div className="rounded-md bg-brand-dark border border-brand-border p-3">
+              <div className="text-[10px] uppercase tracking-wider text-gray-500">Entrada (prompt)</div>
+              <div className="text-lg font-semibold text-gray-100 tabular-nums">{usage.total_prompt_tokens.toLocaleString('pt-BR')}</div>
+            </div>
+            <div className="rounded-md bg-brand-dark border border-brand-border p-3">
+              <div className="text-[10px] uppercase tracking-wider text-gray-500">Saida (resposta)</div>
+              <div className="text-lg font-semibold text-gray-100 tabular-nums">{usage.total_completion_tokens.toLocaleString('pt-BR')}</div>
+            </div>
+          </div>
+
+          {/* Current month breakdown */}
+          <div className="rounded-md bg-brand-dark border border-brand-border p-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-gray-500">Mes atual ({usage.current_month.period})</span>
+              <span className="text-[10px] text-gray-600">{usage.current_month.requests} req</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-semibold text-primary-300 tabular-nums">
+                {usage.current_month.total_tokens.toLocaleString('pt-BR')}
+              </span>
+              <span className="text-[11px] text-gray-500">tokens</span>
+            </div>
+          </div>
+
+          {/* Provider limits note */}
+          <div className="text-[10px] text-gray-500 leading-relaxed">
+            {currentConfig.provider === 'groq' && 'Groq gratis: ~30 req/min e 14.4k req/dia. Sem limite de tokens acumulado.'}
+            {currentConfig.provider === 'gemini' && 'Gemini Free: 15 req/min e 1.500 req/dia.'}
+            {currentConfig.provider === 'openrouter' && 'OpenRouter: cota depende do modelo - consulte openrouter.ai/activity.'}
+            {currentConfig.provider === 'anthropic' && 'Anthropic: cobrado por token - veja anthropic.com/pricing.'}
+            {currentConfig.provider === 'openai' && 'OpenAI: cobrado por token - veja platform.openai.com/usage.'}
+          </div>
+        </div>
+      )}
+
+      <p className="text-xs text-gray-500">
+        Escolha o provedor de IA para gerar legendas, hashtags e conteúdo dos seus posts.
+        Provedores gratuitos requerem apenas criar uma conta para obter o token (sem custo).
+      </p>
+
+      {/* FREE PROVIDERS */}
+      <div className="space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+          Gratuitas — token grátis
+        </p>
+        {AI_PROVIDERS.filter((p) => p.free).map(renderProviderCard)}
+      </div>
+
+      {/* PAID PROVIDERS */}
+      <div className="space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+          Pagas — requer token de API
+        </p>
+        {AI_PROVIDERS.filter((p) => !p.free).map(renderProviderCard)}
+      </div>
     </div>
   )
 }

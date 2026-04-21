@@ -8,6 +8,7 @@ import {
 } from '@soma-ai/shared'
 import { NotificationService } from '../services/notification.service'
 import { LogService } from '../services/log.service'
+import { ComunicacaoService } from '../services/comunicacao.service'
 import billingQueue from '../queues/billing.queue'
 
 interface BillingJobData {
@@ -45,8 +46,8 @@ export const billingWorker = new Worker<BillingJobData>(
         'billing.status': BillingStatus.Overdue,
       })
 
-      // ── Send reminder at 5 days overdue ───
-      if (overdueDays === 5) {
+      // ── Send reminder at 3, 5, 10, 20 days overdue ───
+      if ([3, 5, 10, 20].includes(overdueDays)) {
         await NotificationService.create({
           target: 'company',
           company_id: String(company._id),
@@ -63,6 +64,14 @@ export const billingWorker = new Worker<BillingJobData>(
           message: `${company.name} esta com ${overdueDays} dias de atraso.`,
           action_url: '/admin/financial',
         })
+
+        // WhatsApp: Alerta de Atraso
+        const valor = (company.billing?.monthly_amount ?? 0).toFixed(2)
+        ComunicacaoService.enviarAlertaAtraso(
+          String(company._id),
+          valor,
+          overdueDays,
+        ).catch(() => {})
       }
 
       // ── Block access after 30 days ────────
@@ -89,6 +98,9 @@ export const billingWorker = new Worker<BillingJobData>(
           message: `${company.name} foi bloqueada por ${overdueDays} dias de atraso.`,
           action_url: '/admin/financial',
         })
+
+        // WhatsApp: Acesso Bloqueado
+        ComunicacaoService.enviarAcessoBloqueado(String(company._id)).catch(() => {})
 
         await LogService.warn('billing', 'company_blocked', `Empresa bloqueada por inadimplencia: ${company.name} (${overdueDays} dias)`, {
           company_id: String(company._id),

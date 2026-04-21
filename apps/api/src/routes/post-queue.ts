@@ -3,6 +3,7 @@ import { PostQueue, Card } from '@soma-ai/db'
 import { QueueStatus } from '@soma-ai/shared'
 import { authenticate } from '../plugins/auth'
 import postQueue from '../queues/post.queue'
+import { ComunicacaoService } from '../services/comunicacao.service'
 
 export default async function postQueueRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -154,6 +155,15 @@ export default async function postQueueRoutes(app: FastifyInstance) {
 
       // Update card status to scheduled
       await Card.findByIdAndUpdate(body.card_id, { status: 'scheduled' })
+
+      // WhatsApp notification: Card Agendado
+      const platformLabel = body.platforms.join(', ')
+      ComunicacaoService.enviarCardAgendado(
+        companyId,
+        card.headline || card.product_name || body.post_type,
+        scheduledAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+        platformLabel,
+      ).catch(() => {})
 
       return reply.status(201).send({
         item: queueItem,

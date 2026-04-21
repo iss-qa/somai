@@ -42,6 +42,7 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
+  Zap,
 } from 'lucide-react'
 
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
@@ -812,7 +813,7 @@ function CalendarPageInner() {
             </div>
 
             {/* Date and Time */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-end">
               <div className="space-y-2">
                 <Label>Data</Label>
                 <Input
@@ -831,6 +832,27 @@ function CalendarPageInner() {
                   className="[color-scheme:dark]"
                 />
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 h-10 px-3 border-primary-500/30 text-primary-400 hover:bg-primary-500/10 hover:text-primary-300"
+                onClick={() => {
+                  const now = new Date()
+                  now.setMinutes(now.getMinutes() + 2)
+                  const yyyy = now.getFullYear()
+                  const mm = String(now.getMonth() + 1).padStart(2, '0')
+                  const dd = String(now.getDate()).padStart(2, '0')
+                  const hh = String(now.getHours()).padStart(2, '0')
+                  const min = String(now.getMinutes()).padStart(2, '0')
+                  setFormDate(`${yyyy}-${mm}-${dd}`)
+                  setFormTime(`${hh}:${min}`)
+                  toast.success('Agendado para executar em 2 minutos!')
+                }}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Agora
+              </Button>
             </div>
 
             {/* Recurrence toggle */}

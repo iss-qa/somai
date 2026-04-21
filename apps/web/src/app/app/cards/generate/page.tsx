@@ -126,6 +126,8 @@ interface CardConfig {
   typeBadgePosition: TypeBadgePosition
   carouselShape: CarouselShape
   carouselSlides: number
+  carouselSlideContents: CarouselSlideContent[]
+  slideImageUrls: string[]
   objective: string
   logoUrl: string
   logoSize: number
@@ -696,9 +698,125 @@ const DEFAULT_CONFIG: CardConfig = {
   typeBadgePosition: 'inline',
   carouselShape: 'square',
   carouselSlides: 3,
+  carouselSlideContents: [],
+  slideImageUrls: [],
   objective: '',
   logoUrl: '',
   logoSize: 36,
+}
+
+// Labels legíveis em PT-BR para nichos (usados no prompt da IA)
+const NICHE_LABELS: Record<string, string> = {
+  farmacia: 'farmacia / drogaria',
+  pet: 'pet shop / produtos para pets',
+  moda: 'loja de moda / vestuario',
+  cosmeticos: 'loja de cosmeticos / beleza',
+  mercearia: 'mercearia / mercado de bairro',
+  calcados: 'loja de calcados',
+  restaurante: 'restaurante',
+  confeitaria: 'confeitaria / doceria',
+  hamburgueria: 'hamburgueria',
+  cafeteria: 'cafeteria',
+  suplementos: 'loja de suplementos esportivos',
+  estetica: 'clinica de estetica',
+  odontologia: 'consultorio odontologico',
+  academia: 'academia / estudio fitness',
+  salao_beleza: 'salao de beleza',
+  barbearia: 'barbearia',
+  imobiliaria: 'imobiliaria',
+  educacao: 'escola / cursos / educacao',
+  arquitetura: 'escritorio de arquitetura',
+  contabilidade: 'escritorio de contabilidade',
+  viagens: 'agencia de viagens',
+  eletronicos: 'loja de eletronicos',
+  decoracao: 'loja de decoracao / casa',
+  papelaria: 'papelaria',
+  automotivo: 'loja automotiva / auto pecas',
+  construcao: 'material de construcao',
+  igreja: 'igreja / comunidade religiosa',
+  advocacia: 'escritorio de advocacia',
+  saude: 'clinica de saude',
+  tecnologia: 'empresa de tecnologia',
+  consultoria: 'consultoria',
+  fotografia: 'estudio de fotografia',
+  joalheria: 'joalheria',
+  floricultura: 'floricultura',
+  otica: 'otica',
+  outro: 'negocio local',
+}
+
+function getNicheLabel(niche?: string): string {
+  return NICHE_LABELS[niche || 'outro'] || NICHE_LABELS.outro
+}
+
+// Gera um prompt dinamico para a IA com base em nicho, formato, conteudo e referencia
+function buildAiPrompt(opts: {
+  niche?: string
+  format: Format
+  carouselShape?: CarouselShape
+  slideIndex?: number
+  slideTotal?: number
+  productName?: string
+  headline?: string
+  extraText?: string
+  postType?: PostType
+  hasReferenceImage?: boolean
+}): string {
+  const {
+    niche, format, carouselShape, slideIndex, slideTotal,
+    productName, headline, extraText, postType, hasReferenceImage,
+  } = opts
+
+  const nicheLabel = getNicheLabel(niche)
+
+  // Dimensoes
+  let dimensions = '1080x1080 (quadrado)'
+  let formatLabel = 'post de feed do Instagram'
+  if (format === 'stories') {
+    dimensions = '1080x1920 (vertical, story)'
+    formatLabel = 'story do Instagram (formato vertical 9:16, tela cheia)'
+  } else if (format === 'carousel') {
+    if (carouselShape === 'vertical') {
+      dimensions = '1080x1350 (vertical 4:5)'
+      formatLabel = 'slide de carrossel do Instagram (formato vertical 4:5)'
+    } else {
+      dimensions = '1080x1080 (quadrado 1:1)'
+      formatLabel = 'slide de carrossel do Instagram (formato quadrado 1:1)'
+    }
+  } else if (format === 'feed') {
+    dimensions = '1080x1080 (quadrado 1:1)'
+    formatLabel = 'post de feed do Instagram (quadrado 1:1)'
+  }
+
+  const postTypeMap: Record<PostType, string> = {
+    nenhum: '',
+    promocao: 'promocao com apelo comercial',
+    dica: 'dica educativa / conteudo informativo',
+    novidade: 'lancamento / novidade',
+    institucional: 'institucional / branding',
+    data_comemorativa: 'data comemorativa',
+  }
+  const postTypePart = postType && postTypeMap[postType]
+    ? `Tipo de post: ${postTypeMap[postType]}.\n`
+    : ''
+
+  const slidePart = format === 'carousel' && typeof slideIndex === 'number' && slideTotal
+    ? `Slide ${slideIndex + 1} de ${slideTotal} do carrossel.\n`
+    : ''
+
+  const productPart = productName ? `Produto/servico: ${productName}.\n` : ''
+  const headlinePart = headline ? `Titulo/chamada: "${headline}".\n` : ''
+  const textPart = extraText ? `Texto de apoio: "${extraText}".\n` : ''
+
+  const refPart = hasReferenceImage
+    ? 'IMPORTANTE: use a imagem de referencia anexada como base visual principal - mantenha o estilo, paleta, composicao e mood da referencia, adaptando apenas o conteudo para o briefing.\n'
+    : ''
+
+  return `Crie uma imagem profissional para ${formatLabel}.
+Dimensoes: ${dimensions}
+Nicho do anunciante: ${nicheLabel}.
+${postTypePart}${slidePart}${productPart}${headlinePart}${textPart}${refPart}Estilo: moderno, clean, visualmente atrativo para redes sociais, coerente com o nicho de ${nicheLabel}, sem poluicao visual, com espaco de respiro para sobrepor texto.
+A imagem deve ser fotografica ou ilustrativa de alta qualidade, adequada ao publico do nicho.`
 }
 
 // ---------------------------------------------------------------------------
@@ -1935,7 +2053,22 @@ function GenerateCardPage() {
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiReferenceImage, setAiReferenceImage] = useState<string | null>(null)
   const [generatingImage, setGeneratingImage] = useState(false)
+  const [aiConfigInfo, setAiConfigInfo] = useState<{ provider: string; model: string; active: boolean } | null>(null)
+  const [showEnlargedPreview, setShowEnlargedPreview] = useState(false)
+  const [enlargedSlide, setEnlargedSlide] = useState(0)
+  // Modal inicial de escolha do caminho: null = ainda nao escolheu, 'custom' = form vazio, 'ai' = abrir modal de IA
+  const [startChoice, setStartChoice] = useState<'custom' | 'ai' | null>(null)
+  const [showStartChoice, setShowStartChoice] = useState(true)
   const aiFileInputRef = useRef<HTMLInputElement>(null)
+
+  // Carrega info da IA configurada (para badge + aviso)
+  useEffect(() => {
+    api.get<any>('/api/integrations/ai')
+      .then((d) => {
+        if (d?.ai) setAiConfigInfo({ provider: d.ai.provider, model: d.ai.model, active: d.ai.active })
+      })
+      .catch(() => {})
+  }, [])
 
   // ---------- Load card for editing (from ?edit=ID) ----------
   const searchParams = useSearchParams()
@@ -2016,6 +2149,16 @@ function GenerateCardPage() {
     }))
   }, [])
 
+  const updateSlideContent = useCallback((slideIndex: number, key: keyof CarouselSlideContent, value: string) => {
+    setConfig((prev) => {
+      const next = [...prev.carouselSlideContents]
+      const current = next[slideIndex] || { headline: '', subtext: '', cta: prev.cta }
+      next[slideIndex] = { ...current, [key]: value }
+      return { ...prev, carouselSlideContents: next }
+    })
+    setDirtyAfterApprove(true)
+  }, [])
+
   const updateCustomColor = useCallback((key: keyof CardConfig['customColors'], value: string) => {
     setConfig((prev) => ({
       ...prev,
@@ -2023,33 +2166,63 @@ function GenerateCardPage() {
     }))
   }, [])
 
-  // ---------- Auto-fill defaults on mount (when not editing) ----------
+  // ---------- Sync carouselSlideContents length com carouselSlides / objective ----------
+  useEffect(() => {
+    setConfig((prev) => {
+      if (prev.format !== 'carousel') return prev
+      const objectives = getObjectivesForNiche(user?.niche)
+      const objective = objectives.find((o) => o.id === prev.objective)
+      const next: CarouselSlideContent[] = []
+      for (let i = 0; i < prev.carouselSlides; i++) {
+        const existing = prev.carouselSlideContents[i]
+        if (existing && (existing.headline || existing.subtext)) {
+          next.push(existing)
+        } else {
+          // Preencher com conteudo do objetivo selecionado ou valores base
+          const seed = getSlideContent(objective, i, prev)
+          next.push({
+            headline: seed.headline || '',
+            subtext: seed.subtext || '',
+            cta: seed.cta || prev.cta,
+          })
+        }
+      }
+      // Nenhuma mudanca real: retorna prev
+      const same =
+        next.length === prev.carouselSlideContents.length &&
+        next.every((s, i) =>
+          s.headline === prev.carouselSlideContents[i]?.headline &&
+          s.subtext === prev.carouselSlideContents[i]?.subtext &&
+          s.cta === prev.carouselSlideContents[i]?.cta,
+        )
+      if (same) return prev
+      return { ...prev, carouselSlideContents: next }
+    })
+  }, [config.format, config.carouselSlides, config.objective, user?.niche])
+
+  // Ao abrir em modo edicao, pula o modal de escolha (considera 'custom')
+  useEffect(() => {
+    if (editCardId) {
+      setShowStartChoice(false)
+      setStartChoice('custom')
+    }
+  }, [editCardId])
+
+  // ---------- Auto-fill defaults on mount (somente se o usuario escolheu 'custom' no modal) ----------
+  // Obs: no fluxo 'ai' o LLM preenche tudo; no 'custom' o form fica vazio (pedido do usuario).
+  // Mantemos esse efeito inerte por ora - auto-fill legado foi desativado.
   const [defaultsLoaded, setDefaultsLoaded] = useState(false)
   useEffect(() => {
-    if (editCardId || defaultsLoaded) return
-    setDefaultsLoaded(true)
-    const defaults = getSmartDefaults(user?.niche, config.postType)
-    setConfig((prev) => ({
-      ...prev,
-      ...defaults,
-      cardName: generateCardName(prev.format, prev.postType, defaults.productName || ''),
-    }))
-  }, [editCardId, defaultsLoaded, user?.niche, config.postType])
+    // no-op: form inicia vazio independente do caminho escolhido
+    if (!defaultsLoaded) setDefaultsLoaded(true)
+  }, [defaultsLoaded])
 
   // ---------- Refresh defaults when format changes (if not editing) ----------
+  // Desativado: alterar formato nao deve sobrescrever o conteudo atual.
   const prevFormatRef = useRef(config.format)
   useEffect(() => {
-    if (editCardId) return
-    if (prevFormatRef.current === config.format) return
     prevFormatRef.current = config.format
-    const defaults = getSmartDefaults(user?.niche, config.postType)
-    setConfig((prev) => ({
-      ...prev,
-      ...defaults,
-      format: prev.format,
-      cardName: generateCardName(prev.format, prev.postType, defaults.productName || ''),
-    }))
-  }, [config.format, editCardId, user?.niche, config.postType])
+  }, [config.format])
 
   // ---------- Fetch gallery ----------
   useEffect(() => {
@@ -2068,21 +2241,44 @@ function GenerateCardPage() {
 
   // ---------- Open AI modal ----------
   const handleOpenAiModal = useCallback(() => {
-    const dimensions = config.format === 'stories' ? '1080x1920 (vertical, story)' :
-                       config.format === 'carousel' ? '1080x1080 (quadrado, carrossel)' :
-                       '1080x1080 (quadrado, feed)'
-    const defaultPrompt = `Crie uma imagem profissional para post de ${config.format === 'stories' ? 'story do Instagram' : 'feed do Instagram'}.
-Dimensoes: ${dimensions}
-Produto: ${config.productName || 'produto'}
-Estilo: moderno, clean, com cores vibrantes
-${config.headline ? `Titulo: ${config.headline}` : ''}
-${config.extraText ? `Texto: ${config.extraText}` : ''}
-
-A imagem deve ser visualmente atrativa para redes sociais.`
+    const defaultPrompt = buildAiPrompt({
+      niche: user?.niche,
+      format: config.format,
+      carouselShape: config.carouselShape,
+      slideTotal: config.format === 'carousel' ? config.carouselSlides : undefined,
+      productName: config.productName,
+      headline: config.headline,
+      extraText: config.extraText,
+      postType: config.postType,
+      hasReferenceImage: false,
+    })
     setAiPrompt(defaultPrompt)
     setAiReferenceImage(null)
     setShowAiModal(true)
-  }, [config])
+  }, [config, user?.niche])
+
+  // Regenera o prompt quando o usuario anexa/remove imagem de referencia
+  // (sem sobrescrever edicoes manuais se o prompt ja foi alterado)
+  const lastAutoPromptRef = useRef<string>('')
+  useEffect(() => {
+    if (!showAiModal) return
+    const autoPrompt = buildAiPrompt({
+      niche: user?.niche,
+      format: config.format,
+      carouselShape: config.carouselShape,
+      slideTotal: config.format === 'carousel' ? config.carouselSlides : undefined,
+      productName: config.productName,
+      headline: config.headline,
+      extraText: config.extraText,
+      postType: config.postType,
+      hasReferenceImage: !!aiReferenceImage,
+    })
+    // So atualiza se o prompt atual for o ultimo auto-gerado (ou seja, nao foi editado manualmente)
+    if (aiPrompt === lastAutoPromptRef.current || lastAutoPromptRef.current === '') {
+      setAiPrompt(autoPrompt)
+    }
+    lastAutoPromptRef.current = autoPrompt
+  }, [aiReferenceImage, showAiModal]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- Handle AI reference image upload ----------
   const handleAiImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2104,38 +2300,135 @@ A imagem deve ser visualmente atrativa para redes sociais.`
     e.target.value = ''
   }, [])
 
-  // ---------- Generate image with Cloudflare AI ----------
+  // ---------- Generate full card/carousel with AI (texto + imagens) ----------
   const handleGenerateImage = useCallback(async () => {
     if (!aiPrompt.trim()) {
       toast.error('Digite um prompt')
       return
     }
 
+    const isCarouselFmt = config.format === 'carousel'
+    const total = isCarouselFmt ? config.carouselSlides : 1
+
     setGeneratingImage(true)
+    const progressToast = toast.loading(
+      isCarouselFmt
+        ? `Aguarde, estamos gerando o carrossel (${total} slides)...`
+        : 'Aguarde, estamos gerando sua imagem com IA...',
+    )
+
     try {
-      const result = await api.post<{ image: string }>('/api/cards/generate-image', {
-        prompt: aiPrompt,
+      // 1. Pede ao LLM um plano COMPLETO de conteudo (texto + imagePrompt por slide)
+      toast.loading('Gerando conteudo dos cards...', { id: progressToast })
+      const plan = await api.post<{
+        productName: string
+        objective: string
+        palette: string
+        fontFamily: string
+        slides: Array<{ headline: string; subtext: string; cta: string; imagePrompt: string }>
+      }>('/api/cards/generate-content-plan', {
         format: config.format,
+        carouselShape: config.carouselShape,
+        slideTotal: total,
+        niche: user?.niche,
+        postType: config.postType,
+        userPrompt: aiPrompt,
+        productName: config.productName,
+        hasReferenceImage: !!aiReferenceImage,
       })
 
-      if (result.image) {
+      const planSlides = plan?.slides || []
+      if (!planSlides.length) {
+        toast.error('Nao foi possivel gerar o conteudo. Tente novamente.', { id: progressToast })
+        return
+      }
+
+      // 2. Aplica os textos imediatamente para o usuario ver o progresso
+      const carouselContents: CarouselSlideContent[] = planSlides.map((s) => ({
+        headline: s.headline || '',
+        subtext: s.subtext || '',
+        cta: s.cta || config.cta,
+      }))
+
+      setConfig((prev) => {
+        const allowedPalettes = ['vibrante', 'profissional', 'quente', 'elegante'] as const
+        const allowedFonts = ['Inter', 'Roboto', 'Montserrat', 'Poppins', 'Bebas Neue', 'Playfair Display', 'Oswald', 'Raleway', 'Lato', 'Open Sans'] as const
+        const palette = (allowedPalettes as readonly string[]).includes(plan.palette)
+          ? (plan.palette as PaletteId)
+          : prev.palette
+        const fontFamily = (allowedFonts as readonly string[]).includes(plan.fontFamily)
+          ? (plan.fontFamily as FontFamily)
+          : prev.fontFamily
+        const first = planSlides[0]
+        return {
+          ...prev,
+          productName: plan.productName || prev.productName,
+          palette,
+          fontFamily,
+          headline: first?.headline || prev.headline,
+          extraText: first?.subtext || prev.extraText,
+          cta: first?.cta || prev.cta,
+          carouselSlideContents: carouselContents,
+        }
+      })
+
+      // 3. Gera uma imagem por slide usando o imagePrompt da IA
+      const slideImages: string[] = []
+      for (let i = 0; i < total; i++) {
+        toast.loading(
+          isCarouselFmt
+            ? `Gerando imagem ${i + 1}/${total}...`
+            : 'Gerando imagem...',
+          { id: progressToast },
+        )
+        const imgPrompt = planSlides[i]?.imagePrompt || aiPrompt
+        try {
+          const result = await api.post<{ image: string }>('/api/cards/generate-image', {
+            prompt: imgPrompt,
+            format: config.format,
+            carouselShape: config.carouselShape,
+            referenceImage: aiReferenceImage || undefined,
+          })
+          slideImages.push(result.image || '')
+        } catch (err: any) {
+          console.error(`[cards] Erro no slide ${i + 1}:`, err)
+          slideImages.push('')
+        }
+      }
+
+      const firstImg = slideImages.find((u) => !!u)
+      if (!firstImg) {
+        toast.error('Conteudo gerado, mas falhou ao gerar imagens', { id: progressToast })
+      } else {
         setConfig((prev) => ({
           ...prev,
           includeImage: true,
-          imageUrl: result.image,
+          imageUrl: firstImg,
+          slideImageUrls: isCarouselFmt ? slideImages : [],
           imageLayout: 'background',
           imageOpacity: 100,
           imageBlur: 0,
         }))
-        toast.success('Imagem gerada com sucesso!')
-        setShowAiModal(false)
+        const okCount = slideImages.filter(Boolean).length
+        toast.success(
+          isCarouselFmt
+            ? `Carrossel pronto! ${okCount}/${total} imagens geradas`
+            : 'Card gerado com IA!',
+          { id: progressToast },
+        )
       }
+      setShowAiModal(false)
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao gerar imagem')
+      toast.error(err.message || 'Erro ao gerar com IA', { id: progressToast })
     } finally {
       setGeneratingImage(false)
     }
-  }, [aiPrompt, config.format])
+  }, [
+    aiPrompt, aiReferenceImage,
+    config.format, config.carouselShape, config.carouselSlides,
+    config.postType, config.productName, config.cta,
+    user?.niche,
+  ])
 
   // ---------- Save card to API (draft) ----------
   const handleSaveDraft = useCallback(async () => {
@@ -2333,6 +2626,15 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                 <Sparkles className="w-4 h-4" />
                 Gerar com IA
               </Button>
+              {!aiConfigInfo?.active && (
+                <a
+                  href="/app/integrations"
+                  className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 hover:bg-amber-500/20 transition-colors"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  Configure a IA
+                </a>
+              )}
 
               {/* Divider */}
               <div className="h-8 w-px bg-brand-border hidden sm:block" />
@@ -2433,9 +2735,19 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                 <h2 className="text-sm font-medium text-gray-300">
                   Preview do Carrossel ({config.carouselSlides} slides)
                 </h2>
-                <Badge variant="secondary" className="text-xs">
-                  {config.carouselShape === 'vertical' ? 'Vertical 4:5' : 'Quadrado 1:1'} - {getDimensionLabel(config.format, config.carouselShape)}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setEnlargedSlide(activeSlide); setShowEnlargedPreview(true) }}
+                    className="gap-1.5 h-7 text-[11px]"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Ampliar
+                  </Button>
+                  <Badge variant="secondary" className="text-xs">
+                    {config.carouselShape === 'vertical' ? 'Vertical 4:5' : 'Quadrado 1:1'} - {getDimensionLabel(config.format, config.carouselShape)}
+                  </Badge>
+                </div>
               </div>
 
               {/* Slides row */}
@@ -2443,12 +2755,17 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                 {Array.from({ length: config.carouselSlides }).map((_, i) => {
                   const objectives = getObjectivesForNiche(user?.niche)
                   const objective = objectives.find((o) => o.id === config.objective)
-                  const slideContent = getSlideContent(objective, i, config)
+                  const perSlide = config.carouselSlideContents[i]
+                  const slideContent = (perSlide && (perSlide.headline || perSlide.subtext))
+                    ? perSlide
+                    : getSlideContent(objective, i, config)
+                  const perSlideImg = config.slideImageUrls?.[i]
                   const slideConfig: CardConfig = {
                     ...config,
                     headline: slideContent.headline,
                     extraText: slideContent.subtext,
                     cta: slideContent.cta || config.cta,
+                    imageUrl: perSlideImg || config.imageUrl,
                   }
                   const dims = getPreviewDimensions(config.format, config.carouselShape)
                   const scale = 0.5
@@ -2527,12 +2844,35 @@ A imagem deve ser visualmente atrativa para redes sociais.`
               {/* ----------------------------------------------------------- */}
               {/* Section 1: Conteudo do card */}
               {/* ----------------------------------------------------------- */}
-              <Section title="Conteudo do card" icon={FileText} defaultOpen>
+              <Section
+                title={isCarousel ? `Conteudo do card ${activeSlide + 1}` : 'Conteudo do card'}
+                icon={FileText}
+                defaultOpen
+              >
+                {isCarousel && (
+                  <div className="mb-4 flex items-center gap-1 overflow-x-auto pb-2 border-b border-brand-border">
+                    {Array.from({ length: config.carouselSlides }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setActiveSlide(i)}
+                        className={cn(
+                          'flex-shrink-0 px-3 py-1.5 rounded-t-md text-xs font-medium transition-colors border-b-2 -mb-[2px]',
+                          activeSlide === i
+                            ? 'bg-primary-500/10 text-primary-300 border-primary-500'
+                            : 'bg-transparent text-gray-500 hover:text-gray-300 border-transparent'
+                        )}
+                      >
+                        Card {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Product name */}
+                  {/* Product name (compartilhado entre slides) */}
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="productName">
                       Nome do produto <span className="text-red-400">*</span>
+                      {isCarousel && <span className="ml-2 text-[10px] text-gray-500">(compartilhado)</span>}
                     </Label>
                     <Input
                       id="productName"
@@ -2542,9 +2882,12 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                     />
                   </div>
 
-                  {/* Tema / Objetivo */}
+                  {/* Tema / Objetivo (compartilhado) */}
                   <div className="space-y-1.5">
-                    <Label>Tema / Objetivo</Label>
+                    <Label>
+                      Tema / Objetivo
+                      {isCarousel && <span className="ml-2 text-[10px] text-gray-500">(compartilhado)</span>}
+                    </Label>
                     <Select
                       value={config.objective}
                       onValueChange={(v) => updateConfig('objective', v)}
@@ -2560,18 +2903,27 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                     </Select>
                   </div>
 
-                  {/* Headline */}
+                  {/* Headline (por slide no carrossel) */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="headline">Headline (opcional)</Label>
+                    <Label htmlFor="headline">
+                      Headline (opcional)
+                      {isCarousel && <span className="ml-2 text-[10px] text-primary-400">(so este slide)</span>}
+                    </Label>
                     <Input
                       id="headline"
                       placeholder="Texto acima do titulo (eyebrow)"
-                      value={config.headline}
-                      onChange={(e) => updateConfig('headline', e.target.value)}
+                      value={isCarousel ? (config.carouselSlideContents[activeSlide]?.headline ?? '') : config.headline}
+                      onChange={(e) => {
+                        if (isCarousel) {
+                          updateSlideContent(activeSlide, 'headline', e.target.value)
+                        } else {
+                          updateConfig('headline', e.target.value)
+                        }
+                      }}
                     />
                   </div>
 
-                  {/* Prices - only for promocao */}
+                  {/* Prices - only for promocao (compartilhado) */}
                   {config.postType === 'promocao' && (
                     <>
                       <div className="space-y-1.5">
@@ -2595,21 +2947,39 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                     </>
                   )}
 
-                  {/* Extra text */}
+                  {/* Extra text (por slide no carrossel) */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="extraText">Texto adicional</Label>
+                    <Label htmlFor="extraText">
+                      Texto adicional
+                      {isCarousel && <span className="ml-2 text-[10px] text-primary-400">(so este slide)</span>}
+                    </Label>
                     <Input
                       id="extraText"
                       placeholder="Descricao breve do produto ou servico..."
-                      value={config.extraText}
-                      onChange={(e) => updateConfig('extraText', e.target.value)}
+                      value={isCarousel ? (config.carouselSlideContents[activeSlide]?.subtext ?? '') : config.extraText}
+                      onChange={(e) => {
+                        if (isCarousel) {
+                          updateSlideContent(activeSlide, 'subtext', e.target.value)
+                        } else {
+                          updateConfig('extraText', e.target.value)
+                        }
+                      }}
                     />
                   </div>
 
-                  {/* CTA */}
+                  {/* CTA (por slide no carrossel) */}
                   <div className="space-y-1.5">
-                    <Label>Destino do CTA</Label>
-                    <Select value={config.cta} onValueChange={(v) => updateConfig('cta', v)}>
+                    <Label>
+                      Destino do CTA
+                      {isCarousel && <span className="ml-2 text-[10px] text-primary-400">(so este slide)</span>}
+                    </Label>
+                    <Select
+                      value={isCarousel ? (config.carouselSlideContents[activeSlide]?.cta ?? config.cta) : config.cta}
+                      onValueChange={(v) => {
+                        if (isCarousel) updateSlideContent(activeSlide, 'cta', v)
+                        else updateConfig('cta', v)
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o CTA" />
                       </SelectTrigger>
@@ -2629,13 +2999,14 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                     </Select>
                   </div>
 
-                  {/* CTA Destination URL */}
+                  {/* CTA Destination URL (compartilhado) */}
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="ctaUrl">
                       {config.cta === 'Chame no WhatsApp' ? 'WhatsApp (com DDD)' :
                        config.cta === 'Ligue agora' ? 'Telefone (com DDD)' :
                        config.cta === 'Siga no Instagram' ? 'Perfil do Instagram' :
                        'Link de destino'}
+                      {isCarousel && <span className="ml-2 text-[10px] text-gray-500">(compartilhado)</span>}
                     </Label>
                     <Input
                       id="ctaUrl"
@@ -3348,9 +3719,19 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                   <>
                     <div className="flex items-center justify-between">
                       <h2 className="text-sm font-medium text-gray-300">Preview</h2>
-                      <Badge variant="secondary" className="text-xs">
-                        {FORMAT_OPTIONS.find((f) => f.id === config.format)?.label} - {getDimensionLabel(config.format, config.carouselShape)}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setEnlargedSlide(0); setShowEnlargedPreview(true) }}
+                          className="gap-1.5 h-7 text-[11px]"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Ampliar
+                        </Button>
+                        <Badge variant="secondary" className="text-xs">
+                          {FORMAT_OPTIONS.find((f) => f.id === config.format)?.label} - {getDimensionLabel(config.format, config.carouselShape)}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="flex justify-center">
                       <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40" style={{ maxWidth: '100%' }}>
@@ -3448,19 +3829,98 @@ A imagem deve ser visualmente atrativa para redes sociais.`
         </div>
         )}
       </div>
+      {/* Modal de escolha inicial: Personalizar vs Gerar com IA */}
+      {showStartChoice && !editCardId && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-brand-card border border-brand-border rounded-2xl w-full max-w-2xl p-6 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 mb-3">
+                <Sparkles className="w-6 h-6 text-violet-300" />
+              </div>
+              <h2 className="text-xl font-semibold text-white">Como deseja criar seu card?</h2>
+              <p className="text-sm text-gray-400 mt-1">Escolha um caminho para comecar</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Personalizar */}
+              <button
+                onClick={() => {
+                  setStartChoice('custom')
+                  setShowStartChoice(false)
+                }}
+                className="group text-left rounded-xl border border-brand-border bg-brand-surface/50 hover:bg-brand-surface hover:border-primary-500/60 transition-all p-5 space-y-3"
+              >
+                <div className="w-10 h-10 rounded-lg bg-gray-800 group-hover:bg-primary-500/20 flex items-center justify-center transition-colors">
+                  <FileText className="w-5 h-5 text-gray-300 group-hover:text-primary-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Personalizar</h3>
+                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                    Comece com o formulario vazio e preencha manualmente cada campo.
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 group-hover:text-primary-300">
+                  Controle total
+                </span>
+              </button>
+
+              {/* Gerar com IA */}
+              <button
+                onClick={() => {
+                  setStartChoice('ai')
+                  setShowStartChoice(false)
+                  // Abre imediatamente o modal de IA com o prompt pre-montado
+                  setTimeout(() => handleOpenAiModal(), 100)
+                }}
+                className="group text-left rounded-xl border border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20 hover:border-violet-400 transition-all p-5 space-y-3 relative overflow-hidden"
+              >
+                <div className="absolute top-2 right-2 text-[9px] font-bold text-violet-300 bg-violet-500/20 px-1.5 py-0.5 rounded-full">
+                  RECOMENDADO
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-violet-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Gerar com IA</h3>
+                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                    A IA cria titulos, textos, CTAs, cores e imagens coerentes com o seu nicho.
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-violet-300">
+                  Rapido e automatico
+                </span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setStartChoice('custom')
+                setShowStartChoice(false)
+              }}
+              className="w-full mt-5 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              Pular e escolher depois
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* AI Image Generation Modal */}
       <Dialog open={showAiModal} onOpenChange={setShowAiModal}>
         <DialogContent className="sm:max-w-2xl bg-brand-card border-brand-border">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-white">
               <Sparkles className="w-5 h-5 text-violet-400" />
-              Gerar imagem com IA
+              {config.format === 'carousel' ? 'Gerar carrossel com IA' : config.format === 'stories' ? 'Gerar story com IA' : 'Gerar card com IA'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <p className="text-xs text-gray-400">
+              A IA vai gerar {config.format === 'carousel' ? `os ${config.carouselSlides} slides completos` : 'o card completo'} (produto, titulos, textos, CTAs e imagens) com base no seu nicho e briefing abaixo. Voce pode ajustar tudo depois.
+            </p>
             {/* Prompt */}
             <div className="space-y-2">
-              <Label className="text-gray-300">Descreva a imagem que deseja gerar</Label>
+              <Label className="text-gray-300">Briefing para a IA (opcional)</Label>
               <textarea
                 className="w-full min-h-[160px] rounded-lg border border-brand-border bg-brand-surface p-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-y"
                 placeholder="Descreva o que deseja na imagem..."
@@ -3530,12 +3990,100 @@ A imagem deve ser visualmente atrativa para redes sociais.`
                 ) : (
                   <Send className="w-4 h-4" />
                 )}
-                {generatingImage ? 'Gerando...' : 'Gerar imagem'}
+                {generatingImage
+                  ? (config.format === 'carousel' ? 'Gerando carrossel...' : 'Gerando...')
+                  : (config.format === 'carousel' ? 'Gerar carrossel' : 'Gerar com IA')}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Enlarged Preview Modal */}
+      {showEnlargedPreview && (() => {
+        const objectives = getObjectivesForNiche(user?.niche)
+        const objective = objectives.find((o) => o.id === config.objective)
+        const idx = isCarousel ? enlargedSlide : 0
+        const perSlide = config.carouselSlideContents[idx]
+        const slideContent = isCarousel && perSlide && (perSlide.headline || perSlide.subtext)
+          ? perSlide
+          : isCarousel
+            ? getSlideContent(objective, idx, config)
+            : { headline: config.headline, subtext: config.extraText, cta: config.cta }
+        const slideImg = isCarousel ? (config.slideImageUrls?.[idx] || config.imageUrl) : config.imageUrl
+        const enlargedConfig: CardConfig = {
+          ...config,
+          headline: slideContent.headline || config.headline,
+          extraText: slideContent.subtext || config.extraText,
+          cta: slideContent.cta || config.cta,
+          imageUrl: slideImg || config.imageUrl,
+        }
+        const dims = getPreviewDimensions(config.format, config.carouselShape)
+        // Escala para caber em 85vh
+        const maxH = typeof window !== 'undefined' ? window.innerHeight * 0.82 : 720
+        const maxW = typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.9, 900) : 720
+        const scale = Math.min(maxH / dims.h, maxW / dims.w, 2)
+        return (
+          <div
+            className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm p-4"
+            onClick={() => setShowEnlargedPreview(false)}
+          >
+            <button
+              onClick={() => setShowEnlargedPreview(false)}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
+              aria-label="Fechar"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {isCarousel && (
+              <div className="absolute top-4 left-4 text-xs text-gray-400">
+                Slide {idx + 1} de {config.carouselSlides}
+              </div>
+            )}
+
+            <div
+              className="relative rounded-2xl overflow-hidden shadow-2xl"
+              style={{ width: dims.w * scale, height: dims.h * scale }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+                <CardPreview config={enlargedConfig} previewRef={null} companyName={companyName} />
+              </div>
+            </div>
+
+            {isCarousel && (
+              <div className="mt-6 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEnlargedSlide((i) => Math.max(0, i - 1))}
+                  disabled={idx === 0}
+                >
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1.5 px-3">
+                  {Array.from({ length: config.carouselSlides }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setEnlargedSlide(i)}
+                      className={cn('w-2 h-2 rounded-full transition-all', idx === i ? 'bg-primary-500 w-5' : 'bg-gray-600 hover:bg-gray-400')}
+                    />
+                  ))}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEnlargedSlide((i) => Math.min(config.carouselSlides - 1, i + 1))}
+                  disabled={idx === config.carouselSlides - 1}
+                >
+                  Proximo
+                </Button>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Approve Modal */}
       {showApproveModal && (

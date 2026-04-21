@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { Script, Integration } from '@soma-ai/db'
 import { authenticate } from '../plugins/auth'
 import { EncryptionService } from '../services/encryption.service'
+import { getAIConfig, callLLM } from '../services/ai.service'
 
 export default async function scriptsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -126,20 +127,11 @@ export default async function scriptsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Texto do roteiro e obrigatorio' })
       }
 
-      // Get Gemini API key from integrations
-      const integration: any = await Integration.findOne({ company_id: companyId }).lean()
-      const encryptedKey = integration?.gemini?.api_key
-      if (!encryptedKey || !integration?.gemini?.active) {
-        return reply.status(400).send({
-          error: 'Configure sua chave da API Gemini em Configuracoes > Integracoes para usar a IA',
-        })
-      }
-
-      let apiKey: string
+      let aiConfig
       try {
-        apiKey = EncryptionService.decrypt(encryptedKey)
-      } catch {
-        return reply.status(500).send({ error: 'Erro ao descriptografar chave Gemini' })
+        aiConfig = await getAIConfig(companyId)
+      } catch (err: any) {
+        return reply.status(400).send({ error: err.message })
       }
 
       const prompt = `Voce e um especialista em comunicacao e marketing para pequenos negocios no Brasil.
@@ -152,35 +144,13 @@ Texto original:
 ${text}`
 
       try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-            }),
-          },
-        )
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}))
-          return reply.status(502).send({
-            error: errData?.error?.message || 'Erro ao chamar API Gemini',
-          })
-        }
-
-        const data = await res.json()
-        const improved =
-          data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
-
+        const improved = await callLLM(aiConfig, prompt)
         if (!improved) {
-          return reply.status(502).send({ error: 'Gemini nao retornou texto' })
+          return reply.status(502).send({ error: 'IA nao retornou texto' })
         }
-
         return reply.send({ improved_text: improved.trim() })
-      } catch {
-        return reply.status(502).send({ error: 'Erro de conexao com API Gemini' })
+      } catch (err: any) {
+        return reply.status(502).send({ error: err.message || 'Erro de conexao com API de IA' })
       }
     },
   )

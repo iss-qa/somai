@@ -262,6 +262,26 @@ var init_Integration = __esm({
         active: { type: Boolean, default: false },
         last_tested_at: { type: Date, default: null }
       },
+      ai: {
+        provider: { type: String, default: "" },
+        model: { type: String, default: "" },
+        api_key: { type: String, default: "" },
+        active: { type: Boolean, default: false },
+        usage: {
+          total_prompt_tokens: { type: Number, default: 0 },
+          total_completion_tokens: { type: Number, default: 0 },
+          total_tokens: { type: Number, default: 0 },
+          request_count: { type: Number, default: 0 },
+          last_used_at: { type: Date, default: null },
+          monthly: [{
+            period: { type: String },
+            prompt_tokens: { type: Number, default: 0 },
+            completion_tokens: { type: Number, default: 0 },
+            total_tokens: { type: Number, default: 0 },
+            requests: { type: Number, default: 0 }
+          }]
+        }
+      },
       updated_at: { type: Date, default: Date.now }
     });
     IntegrationSchema.index({ company_id: 1 });
@@ -35909,6 +35929,9 @@ async function companiesRoutes(app2) {
 init_src();
 init_auth();
 
+// src/services/ai.service.ts
+init_src();
+
 // src/services/encryption.service.ts
 var import_node_crypto2 = __toESM(require("node:crypto"));
 var ALGORITHM = "aes-256-gcm";
@@ -35943,6 +35966,222 @@ var EncryptionService = class {
     return decrypted;
   }
 };
+
+// src/services/ai.service.ts
+async function getAIConfig(companyId) {
+  const integration = await Integration.findOne({ company_id: companyId }).lean();
+  if (integration?.ai?.active && integration?.ai?.provider && integration?.ai?.api_key) {
+    return {
+      provider: integration.ai.provider,
+      model: integration.ai.model,
+      apiKey: EncryptionService.decrypt(integration.ai.api_key),
+      companyId
+    };
+  }
+  if (integration?.gemini?.api_key && integration?.gemini?.active) {
+    return {
+      provider: "gemini",
+      model: "gemini-2.0-flash",
+      apiKey: EncryptionService.decrypt(integration.gemini.api_key),
+      companyId
+    };
+  }
+  const envKey = process.env.GEMINI_API_KEY;
+  if (envKey) {
+    return { provider: "gemini", model: "gemini-2.0-flash", apiKey: envKey, companyId };
+  }
+  throw new Error("Configure sua IA em Configuracoes > Integracoes > Configuracao IA");
+}
+async function recordUsage(companyId, usage) {
+  if (!companyId) return;
+  const { prompt_tokens = 0, completion_tokens = 0, total_tokens = 0 } = usage;
+  if (prompt_tokens + completion_tokens + total_tokens <= 0) return;
+  const now = /* @__PURE__ */ new Date();
+  const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  try {
+    const res = await Integration.updateOne(
+      { company_id: companyId, "ai.usage.monthly.period": period },
+      {
+        $inc: {
+          "ai.usage.total_prompt_tokens": prompt_tokens,
+          "ai.usage.total_completion_tokens": completion_tokens,
+          "ai.usage.total_tokens": total_tokens,
+          "ai.usage.request_count": 1,
+          "ai.usage.monthly.$.prompt_tokens": prompt_tokens,
+          "ai.usage.monthly.$.completion_tokens": completion_tokens,
+          "ai.usage.monthly.$.total_tokens": total_tokens,
+          "ai.usage.monthly.$.requests": 1
+        },
+        $set: { "ai.usage.last_used_at": now }
+      }
+    );
+    if (res.matchedCount === 0) {
+      await Integration.updateOne(
+        { company_id: companyId },
+        {
+          $inc: {
+            "ai.usage.total_prompt_tokens": prompt_tokens,
+            "ai.usage.total_completion_tokens": completion_tokens,
+            "ai.usage.total_tokens": total_tokens,
+            "ai.usage.request_count": 1
+          },
+          $set: { "ai.usage.last_used_at": now },
+          $push: {
+            "ai.usage.monthly": {
+              period,
+              prompt_tokens,
+              completion_tokens,
+              total_tokens,
+              requests: 1
+            }
+          }
+        },
+        { upsert: false }
+      );
+    }
+  } catch (err) {
+    console.error("[recordUsage] erro:", err);
+  }
+}
+async function callLLM(config, prompt) {
+  const { provider, model, apiKey, companyId } = config;
+  let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  let text = "";
+  if (provider === "gemini") {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model || "gemini-2.0-flash"}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
+        })
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err?.error?.message || `HTTP ${res.status}`;
+      if (res.status === 429) throw new Error("Cota da API Gemini esgotada. Troque o provider em Configuracoes > Integracoes.");
+      throw new Error(`Erro Gemini: ${msg}`);
+    }
+    const data2 = await res.json();
+    text = data2?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const m5 = data2?.usageMetadata;
+    if (m5) {
+      usage = {
+        prompt_tokens: m5.promptTokenCount || 0,
+        completion_tokens: m5.candidatesTokenCount || 0,
+        total_tokens: m5.totalTokenCount || 0
+      };
+    }
+  } else if (provider === "groq") {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: model || "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Erro Groq: ${err?.error?.message || `HTTP ${res.status}`}`);
+    }
+    const data2 = await res.json();
+    text = data2?.choices?.[0]?.message?.content || "";
+    if (data2?.usage) usage = extractOpenAIUsage(data2.usage);
+  } else if (provider === "openrouter") {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: model || "meta-llama/llama-3.3-70b-instruct:free",
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Erro OpenRouter: ${err?.error?.message || `HTTP ${res.status}`}`);
+    }
+    const data2 = await res.json();
+    text = data2?.choices?.[0]?.message?.content || "";
+    if (data2?.usage) usage = extractOpenAIUsage(data2.usage);
+  } else if (provider === "anthropic") {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: model || "claude-sonnet-4-20250514",
+        max_tokens: 1024,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Erro Anthropic: ${err?.error?.message || `HTTP ${res.status}`}`);
+    }
+    const data2 = await res.json();
+    text = data2?.content?.[0]?.text || "";
+    const u5 = data2?.usage;
+    if (u5) {
+      usage = {
+        prompt_tokens: u5.input_tokens || 0,
+        completion_tokens: u5.output_tokens || 0,
+        total_tokens: (u5.input_tokens || 0) + (u5.output_tokens || 0)
+      };
+    }
+  } else if (provider === "openai") {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: model || "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Erro OpenAI: ${err?.error?.message || `HTTP ${res.status}`}`);
+    }
+    const data2 = await res.json();
+    text = data2?.choices?.[0]?.message?.content || "";
+    if (data2?.usage) usage = extractOpenAIUsage(data2.usage);
+  } else {
+    throw new Error(`Provider "${provider}" nao suportado`);
+  }
+  recordUsage(companyId, usage).catch(() => {
+  });
+  return text;
+}
+function extractOpenAIUsage(u5) {
+  return {
+    prompt_tokens: u5.prompt_tokens || 0,
+    completion_tokens: u5.completion_tokens || 0,
+    total_tokens: u5.total_tokens || (u5.prompt_tokens || 0) + (u5.completion_tokens || 0)
+  };
+}
+async function callLLMJson(config, prompt) {
+  const raw = await callLLM(config, prompt);
+  const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const match = cleaned.match(/[\[{][\s\S]*[\]}]/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch {
+      }
+    }
+    throw new Error("A IA retornou um formato inesperado. Tente novamente.");
+  }
+}
 
 // src/routes/cards.ts
 async function cardsRoutes(app2) {
@@ -36116,18 +36355,11 @@ async function cardsRoutes(app2) {
       if (!card) {
         return reply.status(404).send({ error: "Card nao encontrado" });
       }
-      const integration = await Integration.findOne({ company_id: companyId }).lean();
-      const encryptedKey = integration?.gemini?.api_key;
-      if (!encryptedKey || !integration?.gemini?.active) {
-        return reply.status(400).send({
-          error: "Configure sua chave Gemini em Configuracoes > Integracoes"
-        });
-      }
-      let apiKey;
+      let aiConfig;
       try {
-        apiKey = EncryptionService.decrypt(encryptedKey);
-      } catch {
-        return reply.status(500).send({ error: "Erro ao descriptografar chave Gemini" });
+        aiConfig = await getAIConfig(companyId);
+      } catch (err) {
+        return reply.status(400).send({ error: err.message });
       }
       const prompt = `Voce e um social media manager profissional para pequenos negocios no Brasil.
 Crie uma legenda engajante e hashtags para um post de Instagram.
@@ -36144,21 +36376,7 @@ ${card.price_original ? `- Preco original: R$ ${card.price_original}` : ""}
 Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
 {"caption": "legenda aqui com emojis", "hashtags": ["#tag1", "#tag2", "#tag3"]}`;
       try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }]
-            })
-          }
-        );
-        if (!res.ok) {
-          return reply.status(502).send({ error: "Erro ao chamar API Gemini" });
-        }
-        const data2 = await res.json();
-        const raw = data2?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const raw = await callLLM(aiConfig, prompt);
         try {
           const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
           const parsed = JSON.parse(cleaned);
@@ -36169,15 +36387,87 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
         } catch {
           return reply.send({ caption: raw.trim(), hashtags: [] });
         }
-      } catch {
-        return reply.status(502).send({ error: "Erro de conexao com API Gemini" });
+      } catch (err) {
+        return reply.status(502).send({ error: err.message || "Erro de conexao com API de IA" });
+      }
+    }
+  );
+  app2.post(
+    "/generate-content-plan",
+    async (request, reply) => {
+      const { companyId } = request.user;
+      if (!companyId) {
+        return reply.status(400).send({ error: "Empresa nao encontrada" });
+      }
+      const {
+        format: format2,
+        carouselShape,
+        slideTotal = 1,
+        niche = "outro",
+        postType = "nenhum",
+        userPrompt = "",
+        productName = "",
+        hasReferenceImage = false
+      } = request.body;
+      const totalSlides = format2 === "carousel" ? Math.max(1, Math.min(10, slideTotal)) : 1;
+      const dims = format2 === "stories" ? "1080x1920 (9:16)" : format2 === "carousel" && carouselShape === "vertical" ? "1080x1350 (4:5)" : "1080x1080 (1:1)";
+      const llmPrompt = `Voce e um diretor de arte e copywriter especializado em Instagram para pequenos negocios brasileiros.
+
+Gere um plano COMPLETO de ${format2 === "carousel" ? `carrossel com ${totalSlides} slides` : format2 === "stories" ? "story" : "post de feed"} para um(a) ${niche}.
+Formato alvo: ${dims}.
+Tipo de post: ${postType}.
+${productName ? `Produto/servico do anunciante: ${productName}.` : "Escolha um produto/servico tipico do nicho."}
+${userPrompt ? `Briefing do usuario: ${userPrompt}` : ""}
+${hasReferenceImage ? "O usuario anexou uma imagem de referencia - assuma que as imagens devem seguir o estilo visual dessa referencia." : ""}
+
+Responda APENAS com um JSON valido (sem markdown, sem comentarios) neste formato exato:
+{
+  "productName": "nome curto do produto/servico (sera compartilhado entre slides)",
+  "objective": "",
+  "palette": "vibrante" | "profissional" | "quente" | "elegante",
+  "fontFamily": "Inter" | "Montserrat" | "Poppins" | "Bebas Neue" | "Playfair Display" | "Oswald" | "Raleway" | "Lato",
+  "slides": [
+    {
+      "headline": "titulo curto e impactante (max 6 palavras)",
+      "subtext": "texto de apoio curto (max 12 palavras)",
+      "cta": "Compre agora" | "Saiba mais" | "Chame no WhatsApp" | "Confira" | "Aproveite" | "Garanta o seu" | "Agende agora" | "Acesse o link",
+      "imagePrompt": "prompt detalhado em portugues para gerar a imagem deste slide especifico, coerente com o nicho, produto e mensagem"
+    }
+  ]
+}
+
+Regras:
+- "slides" deve ter EXATAMENTE ${totalSlides} itens.
+- Cada slide deve ter conteudo DIFERENTE, contando uma narrativa coerente${format2 === "carousel" ? " que leva o usuario a passar entre os slides" : ""}.
+- Textos em portugues do Brasil, naturais, sem exageros.
+- "imagePrompt" deve descrever cenario, iluminacao, enquadramento, paleta, mood - tudo coerente com o nicho de ${niche}.
+- NAO inclua preco em texto se nao for promocao.
+- NAO invente URLs ou numeros de telefone.`;
+      try {
+        const aiCfg = await getAIConfig(companyId);
+        const plan = await callLLMJson(aiCfg, llmPrompt);
+        const slides = Array.isArray(plan.slides) ? plan.slides.slice(0, totalSlides) : [];
+        while (slides.length < totalSlides) {
+          const last = slides[slides.length - 1] || { headline: "", subtext: "", cta: "", imagePrompt: "" };
+          slides.push({ ...last });
+        }
+        return reply.send({
+          productName: plan.productName || productName || "",
+          objective: plan.objective || "",
+          palette: plan.palette || "vibrante",
+          fontFamily: plan.fontFamily || "Inter",
+          slides
+        });
+      } catch (err) {
+        console.error("[generate-content-plan] error:", err);
+        return reply.status(502).send({ error: err.message || "Erro ao gerar conteudo com IA" });
       }
     }
   );
   app2.post(
     "/generate-image",
     async (request, reply) => {
-      const { prompt, format: format2 } = request.body;
+      const { prompt, format: format2, carouselShape, referenceImage } = request.body;
       if (!prompt?.trim()) {
         return reply.status(400).send({ error: "Prompt e obrigatorio" });
       }
@@ -36188,13 +36478,23 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
           error: "Cloudflare nao configurado. Verifique R2_ACCOUNT_ID e CLOUDFLARE_WORKER_KEY no .env."
         });
       }
-      const dimensions = {
-        feed: { width: 1024, height: 1024 },
-        stories: { width: 768, height: 1344 },
-        reels: { width: 768, height: 1344 },
-        carousel: { width: 1024, height: 1024 }
-      };
-      const { width, height } = dimensions[format2 || "feed"] || dimensions.feed;
+      let width = 1024;
+      let height = 1024;
+      if (format2 === "stories" || format2 === "reels") {
+        width = 768;
+        height = 1344;
+      } else if (format2 === "carousel") {
+        if (carouselShape === "vertical") {
+          width = 1024;
+          height = 1280;
+        } else {
+          width = 1024;
+          height = 1024;
+        }
+      }
+      const effectivePrompt = referenceImage ? `${prompt}
+
+Nota: o usuario anexou uma imagem de referencia. Reproduza fielmente a paleta, mood, composicao, estilo de iluminacao e tipo de enquadramento dessa referencia.` : prompt;
       try {
         const res = await fetch(
           `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/leonardo/lucid-origin`,
@@ -36204,7 +36504,7 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
               "Authorization": `Bearer ${apiToken}`,
               "Content-Type": "application/json"
             },
-            body: JSON.stringify({ prompt, width, height })
+            body: JSON.stringify({ prompt: effectivePrompt, width, height })
           }
         );
         if (!res.ok) {
@@ -36370,6 +36670,7 @@ async function postsRoutes(app2) {
 // src/routes/post-queue.ts
 init_src();
 init_auth();
+init_comunicacao_service();
 async function postQueueRoutes(app2) {
   app2.addHook("preHandler", authenticate);
   app2.get(
@@ -36469,6 +36770,14 @@ async function postQueueRoutes(app2) {
         console.warn("[PostQueue] BullMQ indisponivel, cron processara na hora agendada:", redisErr.message);
       }
       await Card.findByIdAndUpdate(body.card_id, { status: "scheduled" });
+      const platformLabel = body.platforms.join(", ");
+      ComunicacaoService.enviarCardAgendado(
+        companyId,
+        card.headline || card.product_name || body.post_type,
+        scheduledAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
+        platformLabel
+      ).catch(() => {
+      });
       return reply.status(201).send({
         item: queueItem,
         jobId
@@ -36510,9 +36819,12 @@ init_src();
 init_auth();
 
 // src/services/gemini-video.service.ts
-init_src();
 var GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-async function callGemini(apiKey, prompt, options) {
+async function callGemini(apiKey, prompt, _options) {
+  const config = GeminiVideoService._lastConfig;
+  if (config) {
+    return callLLMJson(config, prompt);
+  }
   const res = await fetch(
     `${GEMINI_BASE_URL}/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
     {
@@ -36520,10 +36832,7 @@ async function callGemini(apiKey, prompt, options) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: options?.temperature ?? 0.8,
-          maxOutputTokens: options?.maxOutputTokens ?? 2048
-        }
+        generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
       })
     }
   );
@@ -36536,18 +36845,13 @@ async function callGemini(apiKey, prompt, options) {
     } catch {
       errorDetail = `HTTP ${res.status}`;
     }
-    throw new Error(`Erro na API Gemini: ${errorDetail}`);
+    throw new Error(`Erro na API: ${errorDetail}`);
   }
   const data2 = await res.json();
   const raw = data2?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!raw || typeof raw !== "string" || raw.trim().length === 0) {
     const finishReason = data2?.candidates?.[0]?.finishReason;
-    if (finishReason === "SAFETY") {
-      throw new Error("A IA bloqueou a resposta por questoes de seguranca. Tente reformular.");
-    }
-    if (data2?.candidates?.length === 0 || !data2?.candidates) {
-      throw new Error("A IA nao retornou nenhuma resposta. Tente novamente.");
-    }
+    if (finishReason === "SAFETY") throw new Error("A IA bloqueou a resposta por questoes de seguranca. Tente reformular.");
     throw new Error("Resposta vazia da IA. Tente novamente.");
   }
   const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
@@ -36561,39 +36865,20 @@ async function callGemini(apiKey, prompt, options) {
       } catch {
       }
     }
-    throw new Error(
-      "A IA retornou um formato inesperado. Tente novamente."
-    );
+    throw new Error("A IA retornou um formato inesperado. Tente novamente.");
   }
 }
-var GeminiVideoService = class {
+var GeminiVideoService = class _GeminiVideoService {
+  /** Cached config from last getApiKey call (used by callGemini) */
+  static _lastConfig = null;
   /**
-   * Get the best available Gemini API key:
-   * 1. Company BYOK key (from integrations)
-   * 2. Master key (from env)
+   * Get the API key for AI calls. Also caches the full config
+   * so callGemini() can route to the correct provider.
    */
   static async getApiKey(companyId) {
-    try {
-      const integration = await Integration.findOne({
-        company_id: companyId
-      }).lean();
-      if (integration?.gemini?.api_key && integration?.gemini?.active) {
-        try {
-          return EncryptionService.decrypt(integration.gemini.api_key);
-        } catch {
-          console.warn("[gemini] BYOK key decryption failed, using master key");
-        }
-      }
-    } catch {
-      console.warn("[gemini] Integration query failed, using master key");
-    }
-    const masterKey = process.env.GEMINI_API_KEY;
-    if (!masterKey) {
-      throw new Error(
-        "Nenhuma chave Gemini configurada. Adicione GEMINI_API_KEY no .env ou configure em Integracoes."
-      );
-    }
-    return masterKey;
+    const config = await getAIConfig(companyId);
+    _GeminiVideoService._lastConfig = config;
+    return config.apiKey;
   }
   /**
    * Generate a video script/storyboard using Gemini
@@ -36645,7 +36930,7 @@ Responda SOMENTE com JSON valido (sem markdown):
     return callGemini(params.apiKey, prompt);
   }
   /**
-   * Generate narration text using Gemini
+   * Generate narration text
    */
   static async generateNarration(params) {
     const prompt = `Voce e um copywriter de videos curtos para redes sociais.
@@ -38023,18 +38308,11 @@ async function scriptsRoutes(app2) {
       if (!text || text.trim().length === 0) {
         return reply.status(400).send({ error: "Texto do roteiro e obrigatorio" });
       }
-      const integration = await Integration.findOne({ company_id: companyId }).lean();
-      const encryptedKey = integration?.gemini?.api_key;
-      if (!encryptedKey || !integration?.gemini?.active) {
-        return reply.status(400).send({
-          error: "Configure sua chave da API Gemini em Configuracoes > Integracoes para usar a IA"
-        });
-      }
-      let apiKey;
+      let aiConfig;
       try {
-        apiKey = EncryptionService.decrypt(encryptedKey);
-      } catch {
-        return reply.status(500).send({ error: "Erro ao descriptografar chave Gemini" });
+        aiConfig = await getAIConfig(companyId);
+      } catch (err) {
+        return reply.status(400).send({ error: err.message });
       }
       const prompt = `Voce e um especialista em comunicacao e marketing para pequenos negocios no Brasil.
 Melhore o texto abaixo de um roteiro de comunicacao${category ? ` da categoria "${category}"` : ""}${niche ? ` para um negocio do tipo "${niche}"` : ""}.
@@ -38045,30 +38323,13 @@ Responda APENAS com o texto melhorado, sem explicacoes adicionais.
 Texto original:
 ${text}`;
       try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }]
-            })
-          }
-        );
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          return reply.status(502).send({
-            error: errData?.error?.message || "Erro ao chamar API Gemini"
-          });
-        }
-        const data2 = await res.json();
-        const improved = data2?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const improved = await callLLM(aiConfig, prompt);
         if (!improved) {
-          return reply.status(502).send({ error: "Gemini nao retornou texto" });
+          return reply.status(502).send({ error: "IA nao retornou texto" });
         }
         return reply.send({ improved_text: improved.trim() });
-      } catch {
-        return reply.status(502).send({ error: "Erro de conexao com API Gemini" });
+      } catch (err) {
+        return reply.status(502).send({ error: err.message || "Erro de conexao com API de IA" });
       }
     }
   );
@@ -38421,6 +38682,97 @@ async function integrationsRoutes(app2) {
         { upsert: true }
       );
       return reply.send({ message: "Chave Gemini salva com sucesso" });
+    }
+  );
+  app2.get("/ai", async (request, reply) => {
+    const { companyId } = request.user;
+    if (!companyId) {
+      return reply.status(400).send({ error: "Empresa nao encontrada" });
+    }
+    const integration = await Integration.findOne({
+      company_id: companyId
+    }).lean();
+    const ai = integration?.ai;
+    const usage = ai?.usage || {
+      total_prompt_tokens: 0,
+      total_completion_tokens: 0,
+      total_tokens: 0,
+      request_count: 0,
+      last_used_at: null,
+      monthly: []
+    };
+    const now = /* @__PURE__ */ new Date();
+    const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const currentMonth = (usage.monthly || []).find((m5) => m5.period === currentPeriod) || {
+      period: currentPeriod,
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0,
+      requests: 0
+    };
+    return reply.send({
+      ai: ai ? {
+        provider: ai.provider || "",
+        model: ai.model || "",
+        active: ai.active || false,
+        has_key: !!ai.api_key,
+        usage: {
+          total_prompt_tokens: usage.total_prompt_tokens || 0,
+          total_completion_tokens: usage.total_completion_tokens || 0,
+          total_tokens: usage.total_tokens || 0,
+          request_count: usage.request_count || 0,
+          last_used_at: usage.last_used_at || null,
+          current_month: currentMonth,
+          monthly: (usage.monthly || []).slice(-6)
+        }
+      } : null
+    });
+  });
+  app2.post("/ai/usage/reset", async (request, reply) => {
+    const { companyId } = request.user;
+    if (!companyId) return reply.status(400).send({ error: "Empresa nao encontrada" });
+    await Integration.updateOne(
+      { company_id: companyId },
+      {
+        $set: {
+          "ai.usage.total_prompt_tokens": 0,
+          "ai.usage.total_completion_tokens": 0,
+          "ai.usage.total_tokens": 0,
+          "ai.usage.request_count": 0,
+          "ai.usage.last_used_at": null,
+          "ai.usage.monthly": []
+        }
+      }
+    );
+    return reply.send({ message: "Contadores de uso zerados" });
+  });
+  app2.post(
+    "/ai",
+    async (request, reply) => {
+      const { companyId } = request.user;
+      if (!companyId) {
+        return reply.status(400).send({ error: "Empresa nao encontrada" });
+      }
+      const { provider, model, api_key } = request.body;
+      if (!provider || !model) {
+        return reply.status(400).send({ error: "Provider e model sao obrigatorios" });
+      }
+      if (!api_key) {
+        return reply.status(400).send({ error: "Token de API obrigatorio" });
+      }
+      const updateData = {
+        "ai.provider": provider,
+        "ai.model": model,
+        "ai.api_key": EncryptionService.encrypt(api_key),
+        "ai.active": true,
+        updated_at: /* @__PURE__ */ new Date()
+      };
+      await Integration.findOneAndUpdate(
+        { company_id: companyId },
+        updateData,
+        { upsert: true }
+      );
+      return reply.send({ message: "Configuracao de IA salva com sucesso" });
     }
   );
 }
@@ -40011,6 +40363,7 @@ var MetaService = class {
 };
 
 // src/jobs/publish-due.job.ts
+init_comunicacao_service();
 async function publishDuePosts(limit = 10) {
   const now = /* @__PURE__ */ new Date();
   const duePosts = await PostQueue.find({
@@ -40076,6 +40429,13 @@ ${hashtags.map((h5) => `#${h5}`).join(" ")}` : caption;
         post_id: post._id
       });
       results.push({ id: queueId, status: "published" });
+      ComunicacaoService.enviarCardPublicado(
+        companyId,
+        card?.headline || card?.product_name || item.post_type,
+        (/* @__PURE__ */ new Date()).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
+        item.platforms.join(", ")
+      ).catch(() => {
+      });
       await LogService.info(
         "post",
         "post.published",

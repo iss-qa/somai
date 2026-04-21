@@ -4,6 +4,7 @@ import { CardStatus } from '@soma-ai/shared'
 import { authenticate } from '../plugins/auth'
 import { EncryptionService } from '../services/encryption.service'
 import { LogService } from '../services/log.service'
+import { getAIConfig, callLLM, callLLMJson } from '../services/ai.service'
 
 export default async function cardsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -301,20 +302,11 @@ export default async function cardsRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Card nao encontrado' })
       }
 
-      // Get Gemini API key
-      const integration: any = await Integration.findOne({ company_id: companyId }).lean()
-      const encryptedKey = integration?.gemini?.api_key
-      if (!encryptedKey || !integration?.gemini?.active) {
-        return reply.status(400).send({
-          error: 'Configure sua chave Gemini em Configuracoes > Integracoes',
-        })
-      }
-
-      let apiKey: string
+      let aiConfig
       try {
-        apiKey = EncryptionService.decrypt(encryptedKey)
-      } catch {
-        return reply.status(500).send({ error: 'Erro ao descriptografar chave Gemini' })
+        aiConfig = await getAIConfig(companyId)
+      } catch (err: any) {
+        return reply.status(400).send({ error: err.message })
       }
 
       const prompt = `Voce e um social media manager profissional para pequenos negocios no Brasil.
@@ -333,24 +325,7 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
 {"caption": "legenda aqui com emojis", "hashtags": ["#tag1", "#tag2", "#tag3"]}`
 
       try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-            }),
-          },
-        )
-
-        if (!res.ok) {
-          return reply.status(502).send({ error: 'Erro ao chamar API Gemini' })
-        }
-
-        const data = await res.json()
-        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
-
+        const raw = await callLLM(aiConfig, prompt)
         try {
           const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
           const parsed = JSON.parse(cleaned)
@@ -361,8 +336,116 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
         } catch {
           return reply.send({ caption: raw.trim(), hashtags: [] })
         }
-      } catch {
-        return reply.status(502).send({ error: 'Erro de conexao com API Gemini' })
+      } catch (err: any) {
+        return reply.status(502).send({ error: err.message || 'Erro de conexao com API de IA' })
+      }
+    },
+  )
+
+  // ── POST /generate-content-plan ───────────────
+  // Gera via LLM um "plano" completo do card/carrossel: produto, objetivo,
+  // paleta, fonte, e conteudo de cada slide + prompt de imagem por slide.
+  app.post(
+    '/generate-content-plan',
+    async (
+      request: FastifyRequest<{
+        Body: {
+          format: 'feed' | 'stories' | 'carousel'
+          carouselShape?: 'square' | 'vertical'
+          slideTotal?: number
+          niche?: string
+          postType?: string
+          userPrompt?: string
+          productName?: string
+          hasReferenceImage?: boolean
+        }
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { companyId } = request.user!
+      if (!companyId) {
+        return reply.status(400).send({ error: 'Empresa nao encontrada' })
+      }
+
+      const {
+        format, carouselShape, slideTotal = 1,
+        niche = 'outro', postType = 'nenhum',
+        userPrompt = '', productName = '',
+        hasReferenceImage = false,
+      } = request.body
+
+      const totalSlides = format === 'carousel' ? Math.max(1, Math.min(10, slideTotal)) : 1
+      const dims = format === 'stories'
+        ? '1080x1920 (9:16)'
+        : (format === 'carousel' && carouselShape === 'vertical')
+          ? '1080x1350 (4:5)'
+          : '1080x1080 (1:1)'
+
+      const llmPrompt = `Voce e um diretor de arte e copywriter especializado em Instagram para pequenos negocios brasileiros.
+
+Gere um plano COMPLETO de ${format === 'carousel' ? `carrossel com ${totalSlides} slides` : format === 'stories' ? 'story' : 'post de feed'} para um(a) ${niche}.
+Formato alvo: ${dims}.
+Tipo de post: ${postType}.
+${productName ? `Produto/servico do anunciante: ${productName}.` : 'Escolha um produto/servico tipico do nicho.'}
+${userPrompt ? `Briefing do usuario: ${userPrompt}` : ''}
+${hasReferenceImage ? 'O usuario anexou uma imagem de referencia - assuma que as imagens devem seguir o estilo visual dessa referencia.' : ''}
+
+Responda APENAS com um JSON valido (sem markdown, sem comentarios) neste formato exato:
+{
+  "productName": "nome curto do produto/servico (sera compartilhado entre slides)",
+  "objective": "",
+  "palette": "vibrante" | "profissional" | "quente" | "elegante",
+  "fontFamily": "Inter" | "Montserrat" | "Poppins" | "Bebas Neue" | "Playfair Display" | "Oswald" | "Raleway" | "Lato",
+  "slides": [
+    {
+      "headline": "titulo curto e impactante (max 6 palavras)",
+      "subtext": "texto de apoio curto (max 12 palavras)",
+      "cta": "Compre agora" | "Saiba mais" | "Chame no WhatsApp" | "Confira" | "Aproveite" | "Garanta o seu" | "Agende agora" | "Acesse o link",
+      "imagePrompt": "prompt detalhado em portugues para gerar a imagem deste slide especifico, coerente com o nicho, produto e mensagem"
+    }
+  ]
+}
+
+Regras:
+- "slides" deve ter EXATAMENTE ${totalSlides} itens.
+- Cada slide deve ter conteudo DIFERENTE, contando uma narrativa coerente${format === 'carousel' ? ' que leva o usuario a passar entre os slides' : ''}.
+- Textos em portugues do Brasil, naturais, sem exageros.
+- "imagePrompt" deve descrever cenario, iluminacao, enquadramento, paleta, mood - tudo coerente com o nicho de ${niche}.
+- NAO inclua preco em texto se nao for promocao.
+- NAO invente URLs ou numeros de telefone.`
+
+      try {
+        const aiCfg = await getAIConfig(companyId)
+        const plan = await callLLMJson<{
+          productName: string
+          objective: string
+          palette: string
+          fontFamily: string
+          slides: Array<{
+            headline: string
+            subtext: string
+            cta: string
+            imagePrompt: string
+          }>
+        }>(aiCfg, llmPrompt)
+
+        // Garante N slides mesmo se a IA retornar menos/mais
+        const slides = Array.isArray(plan.slides) ? plan.slides.slice(0, totalSlides) : []
+        while (slides.length < totalSlides) {
+          const last = slides[slides.length - 1] || { headline: '', subtext: '', cta: '', imagePrompt: '' }
+          slides.push({ ...last })
+        }
+
+        return reply.send({
+          productName: plan.productName || productName || '',
+          objective: plan.objective || '',
+          palette: plan.palette || 'vibrante',
+          fontFamily: plan.fontFamily || 'Inter',
+          slides,
+        })
+      } catch (err: any) {
+        console.error('[generate-content-plan] error:', err)
+        return reply.status(502).send({ error: err.message || 'Erro ao gerar conteudo com IA' })
       }
     },
   )
@@ -375,11 +458,13 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
         Body: {
           prompt: string
           format?: string
+          carouselShape?: 'square' | 'vertical'
+          referenceImage?: string // base64 dataURL (data:image/...;base64,xxx) - dica visual ao modelo
         }
       }>,
       reply: FastifyReply,
     ) => {
-      const { prompt, format } = request.body
+      const { prompt, format, carouselShape, referenceImage } = request.body
 
       if (!prompt?.trim()) {
         return reply.status(400).send({ error: 'Prompt e obrigatorio' })
@@ -394,13 +479,27 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
       }
 
       // Map format to dimensions
-      const dimensions: Record<string, { width: number; height: number }> = {
-        feed: { width: 1024, height: 1024 },
-        stories: { width: 768, height: 1344 },
-        reels: { width: 768, height: 1344 },
-        carousel: { width: 1024, height: 1024 },
+      let width = 1024
+      let height = 1024
+      if (format === 'stories' || format === 'reels') {
+        width = 768
+        height = 1344
+      } else if (format === 'carousel') {
+        if (carouselShape === 'vertical') {
+          width = 1024
+          height = 1280 // aprox 4:5 (1080x1350)
+        } else {
+          width = 1024
+          height = 1024
+        }
       }
-      const { width, height } = dimensions[format || 'feed'] || dimensions.feed
+
+      // Cloudflare lucid-origin atualmente nao aceita image2image nativo.
+      // Quando ha imagem de referencia, reforcamos no prompt que o modelo
+      // deve replicar estilo/mood/composicao da referencia.
+      const effectivePrompt = referenceImage
+        ? `${prompt}\n\nNota: o usuario anexou uma imagem de referencia. Reproduza fielmente a paleta, mood, composicao, estilo de iluminacao e tipo de enquadramento dessa referencia.`
+        : prompt
 
       try {
         const res = await fetch(
@@ -411,7 +510,7 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
               'Authorization': `Bearer ${apiToken}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ prompt, width, height }),
+            body: JSON.stringify({ prompt: effectivePrompt, width, height }),
           },
         )
 
