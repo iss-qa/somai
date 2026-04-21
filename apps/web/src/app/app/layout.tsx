@@ -38,6 +38,9 @@ import {
   FolderOpen,
 } from 'lucide-react'
 
+// Itens liberados mesmo com trial encerrado (alem de admin)
+const TRIAL_FREE_HREFS = new Set(['/app/dashboard', '/app/settings/integrations'])
+
 const navItems = [
   { href: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/app/cards/generate', label: 'Gerar Card', icon: Sparkles },
@@ -74,6 +77,9 @@ export default function CompanyLayout({
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
   const clearUser = useAuthStore((s) => s.clearUser)
+  const isTrialExpired = useAuthStore((s) => s.isTrialExpired)
+  const isAdmin = useAuthStore((s) => s.isAdmin)
+  const trialExpired = isTrialExpired() && !isAdmin()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = async () => {
@@ -141,19 +147,26 @@ export default function CompanyLayout({
             const isActive = pathname.startsWith(item.href)
             const Icon = item.icon
             const isProLocked = item.pro && user?.plan !== 'pro' && user?.plan !== 'enterprise' && user?.role !== 'superadmin' && user?.role !== 'support'
+            const isTrialLocked = trialExpired && !TRIAL_FREE_HREFS.has(item.href)
 
-            if (isProLocked) {
+            if (isProLocked || isTrialLocked) {
               return (
                 <div
                   key={item.href}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 cursor-not-allowed opacity-60"
-                  title={`Disponivel no plano Pro`}
+                  title={isTrialLocked ? 'Periodo de teste encerrado - ative seu plano' : 'Disponivel no plano Pro'}
                 >
                   <Icon className="w-4.5 h-4.5 flex-shrink-0" />
                   <span className="flex-1">{item.label}</span>
-                  <Badge variant="default" className="text-[10px] px-1.5 py-0 opacity-70">
-                    Pro
-                  </Badge>
+                  {isTrialLocked ? (
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-red-500/20 text-red-300">
+                      Bloqueado
+                    </Badge>
+                  ) : (
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0 opacity-70">
+                      Pro
+                    </Badge>
+                  )}
                 </div>
               )
             }
@@ -254,6 +267,21 @@ export default function CompanyLayout({
           {mobileNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href)
             const Icon = item.icon
+            const isTrialLocked = trialExpired && !TRIAL_FREE_HREFS.has(item.href)
+
+            if (isTrialLocked) {
+              return (
+                <div
+                  key={item.href}
+                  title="Periodo de teste encerrado"
+                  className="flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-lg min-w-0 text-gray-700 opacity-60"
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-[10px] font-medium truncate">{item.label}</span>
+                </div>
+              )
+            }
+
             return (
               <Link
                 key={item.href}

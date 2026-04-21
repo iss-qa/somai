@@ -2,14 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { Clock, Lock, Sparkles } from 'lucide-react'
+import { Clock, Lock, Sparkles, MessageCircle, Mail } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { SUPPORT_CONTACT } from '@/lib/contact'
+
+// Rotas liberadas mesmo quando o trial expirou
+const TRIAL_ALLOWED_PATHS = ['/app/dashboard', '/app/settings/integrations']
 
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user)
   const hasAccess = useAuthStore((s) => s.hasAccess)
   const isAdmin = useAuthStore((s) => s.isAdmin)
   const isInTrial = useAuthStore((s) => s.isInTrial)
+  const isTrialExpired = useAuthStore((s) => s.isTrialExpired)
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
 
@@ -21,6 +26,14 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>
   }
 
+  const onAllowedPath = TRIAL_ALLOWED_PATHS.some((p) => pathname?.startsWith(p))
+
+  // Trial encerrado: bloqueia tudo exceto dashboard/integracoes
+  if (isTrialExpired() && !onAllowedPath) {
+    return <TrialExpiredLock plan={user.plan} />
+  }
+
+  // Setup pendente (sem acesso liberado) - libera integracoes
   if (pathname?.startsWith('/app/settings/integrations')) {
     return <>{children}</>
   }
@@ -61,6 +74,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
                 utilizando o Soma.ai, entre em contato com nossa equipe para
                 ativar seu plano.
               </p>
+              <ContactButtons />
             </>
           ) : (
             <>
@@ -72,6 +86,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
                 confirmacao do pagamento do setup, seu acesso sera liberado e
                 voce podera comecar a criar conteudo incrivel com IA.
               </p>
+              <ContactButtons />
             </>
           )}
 
@@ -92,6 +107,66 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── Tela de bloqueio para trial expirado ─────────────────────────────────────
+
+function TrialExpiredLock({ plan }: { plan?: string }) {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center p-4">
+      <div className="w-full max-w-lg rounded-2xl bg-brand-card border border-red-500/20 p-8 shadow-2xl">
+        <div className="flex items-start gap-4 mb-5">
+          <div className="w-12 h-12 rounded-xl bg-red-500/15 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-6 h-6 text-red-400" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white mb-1">Periodo de teste encerrado</h3>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              Para continuar criando cards, videos e agendamentos, ative seu plano
+              com nosso time.
+            </p>
+          </div>
+        </div>
+
+        <ContactButtons fullWidth />
+
+        <div className="mt-5 pt-5 border-t border-brand-border text-[11px] text-gray-500 flex items-center justify-between">
+          <span>Dashboard e Integracoes continuam disponiveis.</span>
+          <span className="inline-flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-primary-500" />
+            Plano <span className="text-gray-300 capitalize">{plan || 'Starter'}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Botoes de contato WhatsApp / Email ──────────────────────────────────────
+
+function ContactButtons({ fullWidth = false }: { fullWidth?: boolean }) {
+  const waMsg = 'Ola, meu periodo de teste do Soma.ai encerrou e quero ativar meu plano.'
+  const mailSubject = 'Ativar plano Soma.ai'
+  return (
+    <div className={`grid ${fullWidth ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2.5`}>
+      <a
+        href={SUPPORT_CONTACT.whatsappUrl(waMsg)}
+        target="_blank"
+        rel="noopener"
+        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-medium transition-colors"
+      >
+        <MessageCircle className="w-4 h-4" />
+        WhatsApp {SUPPORT_CONTACT.phoneDisplay}
+      </a>
+      <a
+        href={SUPPORT_CONTACT.mailtoUrl(mailSubject)}
+        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-brand-surface border border-brand-border hover:border-gray-600 text-gray-200 text-sm font-medium transition-colors"
+      >
+        <Mail className="w-4 h-4" />
+        {SUPPORT_CONTACT.email}
+      </a>
     </div>
   )
 }

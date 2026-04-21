@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuthStore } from '@/store/authStore'
 import { api } from '@/lib/api'
 import { getGreeting } from '@/lib/utils'
+import { SUPPORT_CONTACT } from '@/lib/contact'
 import {
   Send,
   Image,
@@ -29,6 +30,8 @@ import {
   Target,
   MessageSquare,
   Timer,
+  MessageCircle,
+  Mail,
 } from 'lucide-react'
 
 interface DashNotification {
@@ -136,28 +139,53 @@ function TrialBanner() {
 
   const expired = timeLeft === 'Expirado'
 
+  const waMsg = 'Ola, meu periodo de teste do Soma.ai encerrou e quero ativar meu plano.'
+
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
+    <div className={`flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl border ${
       expired
         ? 'bg-red-500/10 border-red-500/20'
         : 'bg-amber-500/10 border-amber-500/20'
     }`}>
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-        expired ? 'bg-red-500/15' : 'bg-amber-500/15'
-      }`}>
-        <Timer className={`w-5 h-5 ${expired ? 'text-red-400' : 'text-amber-400'}`} />
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+          expired ? 'bg-red-500/15' : 'bg-amber-500/15'
+        }`}>
+          <Timer className={`w-5 h-5 ${expired ? 'text-red-400' : 'text-amber-400'}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-medium ${expired ? 'text-red-300' : 'text-amber-300'}`}>
+            {expired ? 'Periodo de teste encerrado' : 'Periodo de teste ativo'}
+          </p>
+          <p className={`text-xs ${expired ? 'text-red-400/70' : 'text-amber-400/70'}`}>
+            {expired
+              ? 'Fale com nosso time para ativar seu plano:'
+              : `Tempo restante: ${timeLeft}`
+            }
+          </p>
+        </div>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${expired ? 'text-red-300' : 'text-amber-300'}`}>
-          {expired ? 'Periodo de teste encerrado' : 'Periodo de teste ativo'}
-        </p>
-        <p className={`text-xs ${expired ? 'text-red-400/70' : 'text-amber-400/70'}`}>
-          {expired
-            ? 'Entre em contato para ativar seu plano.'
-            : `Tempo restante: ${timeLeft}`
-          }
-        </p>
-      </div>
+
+      {expired && (
+        <div className="flex items-center gap-2 sm:flex-shrink-0">
+          <a
+            href={SUPPORT_CONTACT.whatsappUrl(waMsg)}
+            target="_blank"
+            rel="noopener"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-medium transition-colors"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            WhatsApp
+          </a>
+          <a
+            href={SUPPORT_CONTACT.mailtoUrl('Ativar plano Soma.ai')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-surface border border-brand-border hover:border-gray-600 text-gray-200 text-xs font-medium transition-colors"
+          >
+            <Mail className="w-3.5 h-3.5" />
+            Email
+          </a>
+        </div>
+      )}
     </div>
   )
 }
@@ -165,6 +193,7 @@ function TrialBanner() {
 export default function DashboardPage() {
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
+  const trialExpired = useAuthStore((s) => s.isTrialExpired)()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [notifications, setNotifications] = useState<DashNotification[]>([])
@@ -379,52 +408,88 @@ export default function DashboardPage() {
             Acoes rapidas
           </h3>
 
-          <button
+          <QuickAction
+            title="Gerar Card"
+            description="Crie um card com IA"
+            icon={Sparkles}
+            color="primary"
             onClick={() => router.push('/app/cards/generate')}
-            className="w-full group rounded-xl border border-brand-border bg-brand-card p-5 text-left transition-all hover:border-primary-500/40 hover:bg-primary-500/5"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary-500/15 flex items-center justify-center group-hover:bg-primary-500/25 transition-colors">
-                <Sparkles className="w-5 h-5 text-primary-400" />
-              </div>
-              <div>
-                <p className="font-medium text-white">Gerar Card</p>
-                <p className="text-xs text-gray-500">Crie um card com IA</p>
-              </div>
-            </div>
-          </button>
+            locked={trialExpired}
+          />
 
-          <button
+          <QuickAction
+            title="Agendar Post"
+            description="Programe publicacoes"
+            icon={Calendar}
+            color="blue"
             onClick={() => router.push('/app/calendar')}
-            className="w-full group rounded-xl border border-brand-border bg-brand-card p-5 text-left transition-all hover:border-blue-500/40 hover:bg-blue-500/5"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/15 flex items-center justify-center group-hover:bg-blue-500/25 transition-colors">
-                <Calendar className="w-5 h-5 text-blue-400" />
-              </div>
-              <div>
-                <p className="font-medium text-white">Agendar Post</p>
-                <p className="text-xs text-gray-500">Programe publicacoes</p>
-              </div>
-            </div>
-          </button>
+            locked={trialExpired}
+          />
 
-          <button
+          <QuickAction
+            title="Criar Video"
+            description="Gere videos com IA"
+            icon={Video}
+            color="purple"
             onClick={() => router.push('/app/videos')}
-            className="w-full group rounded-xl border border-brand-border bg-brand-card p-5 text-left transition-all hover:border-purple-500/40 hover:bg-purple-500/5"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/15 flex items-center justify-center group-hover:bg-purple-500/25 transition-colors">
-                <Video className="w-5 h-5 text-purple-400" />
-              </div>
-              <div>
-                <p className="font-medium text-white">Criar Video</p>
-                <p className="text-xs text-gray-500">Gere videos com IA</p>
-              </div>
-            </div>
-          </button>
+            locked={trialExpired}
+          />
         </div>
       </div>
     </div>
+  )
+}
+
+function QuickAction({
+  title, description, icon: Icon, color, onClick, locked,
+}: {
+  title: string
+  description: string
+  icon: React.ComponentType<{ className?: string }>
+  color: 'primary' | 'blue' | 'purple'
+  onClick: () => void
+  locked?: boolean
+}) {
+  const colorMap = {
+    primary: { border: 'hover:border-primary-500/40', bg: 'hover:bg-primary-500/5', iconBg: 'bg-primary-500/15 group-hover:bg-primary-500/25', icon: 'text-primary-400' },
+    blue: { border: 'hover:border-blue-500/40', bg: 'hover:bg-blue-500/5', iconBg: 'bg-blue-500/15 group-hover:bg-blue-500/25', icon: 'text-blue-400' },
+    purple: { border: 'hover:border-purple-500/40', bg: 'hover:bg-purple-500/5', iconBg: 'bg-purple-500/15 group-hover:bg-purple-500/25', icon: 'text-purple-400' },
+  }[color]
+
+  if (locked) {
+    return (
+      <div
+        title="Disponivel apos ativar seu plano"
+        className="w-full rounded-xl border border-brand-border bg-brand-card/50 p-5 text-left opacity-50 cursor-not-allowed relative"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center`}>
+            <Icon className="w-5 h-5 text-gray-500" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-gray-400">{title}</p>
+            <p className="text-xs text-gray-600">{description}</p>
+          </div>
+          <Lock className="w-4 h-4 text-gray-600" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full group rounded-xl border border-brand-border bg-brand-card p-5 text-left transition-all ${colorMap.border} ${colorMap.bg}`}
+    >
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-lg ${colorMap.iconBg} flex items-center justify-center transition-colors`}>
+          <Icon className={`w-5 h-5 ${colorMap.icon}`} />
+        </div>
+        <div>
+          <p className="font-medium text-white">{title}</p>
+          <p className="text-xs text-gray-500">{description}</p>
+        </div>
+      </div>
+    </button>
   )
 }
