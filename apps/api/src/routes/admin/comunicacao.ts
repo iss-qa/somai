@@ -6,6 +6,16 @@ import { ComunicacaoService } from '../../services/comunicacao.service'
 import { EvolutionService } from '../../services/evolution.service'
 import whatsappQueue from '../../queues/whatsapp.queue'
 
+function shouldSkipQueue(): boolean {
+  if (process.env.DISABLE_QUEUE === 'true') return true
+  if (process.env.VERCEL === '1' || process.env.VERCEL_ENV) return true
+  const redisUrl = process.env.REDIS_URL || ''
+  if (!redisUrl || redisUrl.includes('localhost') || redisUrl.includes('127.0.0.1')) {
+    return true
+  }
+  return false
+}
+
 export default async function adminComunicacaoRoutes(app: FastifyInstance) {
   app.addHook('onRequest', authenticate)
   app.addHook('onRequest', adminOnly)
@@ -124,40 +134,53 @@ export default async function adminComunicacaoRoutes(app: FastifyInstance) {
     const instanceName = process.env.EVOLUTION_INSTANCE_NAME || 'SOMA_AI'
     const cleaned = msg.destinatario_telefone.replace(/\D/g, '')
     const phone = cleaned.length <= 11 ? '55' + cleaned : cleaned
+    const skipQueue = shouldSkipQueue()
 
-    // Try queue first (with timeout), fall back to direct send
     let enviado = false
-    try {
-      await Promise.race([
-        whatsappQueue.add(
-          'send_text',
-          {
-            historicoId: msg._id.toString(),
-            phoneNumber: msg.destinatario_telefone,
-            message: msg.conteudo,
-            instanceName,
-          },
-          { priority: 3, attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
-        ),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Queue timeout')), 4000),
-        ),
-      ])
-      msg.status = StatusMensagem.PENDENTE
-      msg.error_message = undefined as any
-      msg.data_envio = undefined as any
-    } catch {
-      // Queue unavailable — send directly via Evolution API
+
+    if (!skipQueue) {
       try {
-        await EvolutionService.sendText(instanceName, phone, msg.conteudo)
-        msg.status = StatusMensagem.ENVIADO
-        msg.data_envio = new Date()
+        await Promise.race([
+          whatsappQueue.add(
+            'send_text',
+            {
+              historicoId: msg._id.toString(),
+              phoneNumber: msg.destinatario_telefone,
+              message: msg.conteudo,
+              instanceName,
+            },
+            { priority: 3, attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
+          ),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Queue timeout')), 3000),
+          ),
+        ])
+        msg.status = StatusMensagem.PENDENTE
         msg.error_message = undefined as any
-        enviado = true
-      } catch (directErr: any) {
-        msg.status = StatusMensagem.FALHA
-        msg.error_message = directErr.message
+        msg.data_envio = undefined as any
+        await msg.save()
+        return {
+          success: true,
+          mensagemId: msg._id,
+          destinatario: msg.destinatario_nome,
+          tipo: msg.tipo,
+          status: 'pendente',
+        }
+      } catch {
+        // fall through to direct send
       }
+    }
+
+    // Direct send via Evolution API
+    try {
+      await EvolutionService.sendText(instanceName, phone, msg.conteudo)
+      msg.status = StatusMensagem.ENVIADO
+      msg.data_envio = new Date()
+      msg.error_message = undefined as any
+      enviado = true
+    } catch (directErr: any) {
+      msg.status = StatusMensagem.FALHA
+      msg.error_message = directErr.message
     }
     await msg.save()
 
@@ -182,17 +205,26 @@ export default async function adminComunicacaoRoutes(app: FastifyInstance) {
 
   // ── GET /queue-status — queue metrics ──
   app.get('/queue-status', async () => {
-    try {
-      const [waiting, active, failed, completed] = await Promise.all([
-        whatsappQueue.getWaitingCount(),
-        whatsappQueue.getActiveCount(),
-        whatsappQueue.getFailedCount(),
-        whatsappQueue.getCompletedCount(),
-      ])
+    if (shouldSkipQueue()) {
+      return { waiting: 0, active: 0, failed: 0, completed: 0, disabled: true }
+    }
 
+    try {
+      const metrics = await Promise.race([
+        Promise.all([
+          whatsappQueue.getWaitingCount(),
+          whatsappQueue.getActiveCount(),
+          whatsappQueue.getFailedCount(),
+          whatsappQueue.getCompletedCount(),
+        ]),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Queue status timeout')), 2000),
+        ),
+      ])
+      const [waiting, active, failed, completed] = metrics
       return { waiting, active, failed, completed }
     } catch {
-      return { waiting: 0, active: 0, failed: 0, completed: 0 }
+      return { waiting: 0, active: 0, failed: 0, completed: 0, disabled: true }
     }
   })
 }

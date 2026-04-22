@@ -236,30 +236,35 @@ export default function ComunicacaoPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true)
+    const params = new URLSearchParams()
+    if (filterCompany) params.append('company_id', filterCompany)
+    if (filterTipo !== 'todos') params.append('tipo', filterTipo)
+    if (filterStatus !== 'todos') params.append('status', filterStatus)
+    params.append('page', currentPage.toString())
+    params.append('limit', '20')
+
+    // Historico: carrega primeiro (bloqueia UI principal)
     try {
-      const params = new URLSearchParams()
-      if (filterCompany) params.append('company_id', filterCompany)
-      if (filterTipo !== 'todos') params.append('tipo', filterTipo)
-      if (filterStatus !== 'todos') params.append('status', filterStatus)
-      params.append('page', currentPage.toString())
-      params.append('limit', '20')
-
-      const [hist, statsData, queueData] = await Promise.all([
-        api.get<HistoricoResponse>(`/api/admin/comunicacao/historico?${params}`),
-        api.get<Stats>('/api/admin/comunicacao/stats'),
-        api.get<QueueStatus>('/api/admin/comunicacao/queue-status'),
-      ])
-
+      const hist = await api.get<HistoricoResponse>(
+        `/api/admin/comunicacao/historico?${params}`,
+      )
       setMensagens(hist.mensagens)
       setTotal(hist.total)
       setPages(hist.pages)
-      setStats(statsData)
-      setQueueStatus(queueData)
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err)
+    } catch (err: any) {
+      console.error('Erro ao carregar historico:', err)
+      toast.error(err?.message || 'Erro ao carregar historico')
     } finally {
       setLoading(false)
     }
+
+    // Stats e queue-status: em paralelo, sem bloquear a UI
+    api.get<Stats>('/api/admin/comunicacao/stats')
+      .then(setStats)
+      .catch(() => {})
+    api.get<QueueStatus>('/api/admin/comunicacao/queue-status')
+      .then(setQueueStatus)
+      .catch(() => {})
   }, [filterCompany, filterTipo, filterStatus, currentPage])
 
   useEffect(() => {

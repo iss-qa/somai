@@ -12,18 +12,26 @@ async function evoFetch(path: string, method: string, body?: unknown) {
     apikey: EVOLUTION_API_KEY,
   }
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10000)
 
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Evolution API error (${res.status}): ${text}`)
+  try {
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`Evolution API error (${res.status}): ${text}`)
+    }
+
+    return res.json()
+  } finally {
+    clearTimeout(timeout)
   }
-
-  return res.json()
 }
 
 export class EvolutionService {

@@ -10,6 +10,23 @@ import whatsappQueue from '../queues/whatsapp.queue'
 
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE_NAME || 'SOMA_AI'
 
+// Detect if we should skip the queue (serverless env with no real Redis, or explicit opt-out)
+function shouldSkipQueue(): boolean {
+  if (process.env.DISABLE_QUEUE === 'true') return true
+  if (process.env.VERCEL === '1' || process.env.VERCEL_ENV) return true
+  const redisUrl = process.env.REDIS_URL || ''
+  // No Redis URL or points to local (won't work in production)
+  if (!redisUrl || redisUrl.includes('localhost') || redisUrl.includes('127.0.0.1')) {
+    return true
+  }
+  return false
+}
+
+function formatPhone(raw: string): string {
+  const cleaned = raw.replace(/\D/g, '')
+  return cleaned.length <= 11 ? '55' + cleaned : cleaned
+}
+
 // ── Message Templates ────────────────────────────────
 
 function templateBoasVindas(companyName: string, responsavel: string): string {
@@ -235,46 +252,51 @@ export class ComunicacaoService {
       metadata: params.metadata || {},
     })
 
-    try {
-      await Promise.race([
-        whatsappQueue.add(
-          'send_text',
-          {
-            historicoId: historico._id.toString(),
-            phoneNumber: params.destinatario_telefone,
-            message: params.conteudo,
-            instanceName: EVOLUTION_INSTANCE,
-          },
-          {
-            priority: params.priority || 5,
-            attempts: 3,
-            backoff: { type: 'exponential', delay: 2000 },
-            delay: params.delay || 0,
-          },
-        ),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Queue timeout - Redis unavailable')), 4000),
-        ),
-      ])
-    } catch (queueErr: any) {
-      // Queue unavailable (e.g. Redis down) — fallback to direct send
-      console.warn('[comunicacao] Queue unavailable, trying direct send:', queueErr.message)
+    const skipQueue = shouldSkipQueue()
+
+    if (!skipQueue) {
       try {
-        const cleaned = params.destinatario_telefone.replace(/\D/g, '')
-        const phone = cleaned.length <= 11 ? '55' + cleaned : cleaned
-        await EvolutionService.sendText(EVOLUTION_INSTANCE, phone, params.conteudo)
-        await MessageHistory.findByIdAndUpdate(historico._id, {
-          status: StatusMensagem.ENVIADO,
-          data_envio: new Date(),
-        })
-        console.log('[comunicacao] Direct send succeeded for', params.destinatario_nome)
-      } catch (directErr: any) {
-        console.error('[comunicacao] Direct send also failed:', directErr.message)
-        await MessageHistory.findByIdAndUpdate(historico._id, {
-          status: StatusMensagem.FALHA,
-          error_message: `Queue: ${queueErr.message} | Direct: ${directErr.message}`,
-        })
+        await Promise.race([
+          whatsappQueue.add(
+            'send_text',
+            {
+              historicoId: historico._id.toString(),
+              phoneNumber: params.destinatario_telefone,
+              message: params.conteudo,
+              instanceName: EVOLUTION_INSTANCE,
+            },
+            {
+              priority: params.priority || 5,
+              attempts: 3,
+              backoff: { type: 'exponential', delay: 2000 },
+              delay: params.delay || 0,
+            },
+          ),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Queue timeout')), 3000),
+          ),
+        ])
+        return historico
+      } catch (queueErr: any) {
+        console.warn('[comunicacao] Queue unavailable, falling back to direct:', queueErr.message)
       }
+    }
+
+    // Direct send via Evolution API
+    try {
+      const phone = formatPhone(params.destinatario_telefone)
+      await EvolutionService.sendText(EVOLUTION_INSTANCE, phone, params.conteudo)
+      await MessageHistory.findByIdAndUpdate(historico._id, {
+        status: StatusMensagem.ENVIADO,
+        data_envio: new Date(),
+      })
+      console.log(`[comunicacao] Sent to ${params.destinatario_nome} (${phone})`)
+    } catch (directErr: any) {
+      console.error('[comunicacao] Direct send failed:', directErr.message)
+      await MessageHistory.findByIdAndUpdate(historico._id, {
+        status: StatusMensagem.FALHA,
+        error_message: directErr.message,
+      })
     }
 
     return historico
@@ -517,10 +539,10 @@ export class ComunicacaoService {
     escopo: 'todos' | 'company_especifica'
     company_id?: string
   }) {
-    const filter: any = { status: 'active', access_enabled: true }
-    if (params.escopo === 'company_especifica' && params.company_id) {
-      filter._id = params.company_id
-    }
+    // Para empresa especifica, nao filtra por status/access - admin pode enviar para qualquer empresa
+    const filter: any = params.escopo === 'company_especifica' && params.company_id
+      ? { _id: params.company_id }
+      : { status: 'active', access_enabled: true }
 
     const companies = await Company.find(filter).lean()
     const resultados: string[] = []
