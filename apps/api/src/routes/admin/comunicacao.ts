@@ -20,6 +20,49 @@ export default async function adminComunicacaoRoutes(app: FastifyInstance) {
   app.addHook('onRequest', authenticate)
   app.addHook('onRequest', adminOnly)
 
+  // ── GET /debug — verify env vars and Evolution API connectivity ──
+  app.get('/debug', async () => {
+    const url = process.env.EVOLUTION_API_URL || ''
+    const key = process.env.EVOLUTION_API_KEY || ''
+    const instance = process.env.EVOLUTION_INSTANCE_NAME || ''
+
+    let evolutionReachable: any = null
+    try {
+      const cleanUrl = url.replace(/\/$/, '')
+      if (cleanUrl) {
+        const res = await Promise.race([
+          fetch(`${cleanUrl}/instance/connectionState/${instance}`, {
+            headers: { apikey: key },
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('fetch timeout 8s')), 8000),
+          ),
+        ])
+        evolutionReachable = {
+          ok: res.ok,
+          status: res.status,
+          body: await res.text().catch(() => ''),
+        }
+      }
+    } catch (err: any) {
+      evolutionReachable = { error: err.message }
+    }
+
+    return {
+      env: {
+        EVOLUTION_API_URL: url ? `${url.substring(0, 30)}...` : '(empty)',
+        EVOLUTION_API_KEY: key ? `${key.substring(0, 8)}...` : '(empty)',
+        EVOLUTION_INSTANCE_NAME: instance || '(empty)',
+        REDIS_URL: process.env.REDIS_URL ? 'set' : '(empty)',
+        VERCEL: process.env.VERCEL || '(not set)',
+        VERCEL_ENV: process.env.VERCEL_ENV || '(not set)',
+        NODE_ENV: process.env.NODE_ENV || '(not set)',
+      },
+      skipQueue: shouldSkipQueue(),
+      evolutionReachable,
+    }
+  })
+
   // ── GET /historico — paginated message history ──
   app.get('/historico', async (request, reply) => {
     const {
