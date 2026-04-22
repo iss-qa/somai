@@ -3,6 +3,7 @@ import { authenticate } from '../../plugins/auth'
 import { adminOnly } from '../../plugins/auth'
 import { MessageHistory, StatusMensagem, Company } from '@soma-ai/db'
 import { ComunicacaoService } from '../../services/comunicacao.service'
+import { EvolutionService } from '../../services/evolution.service'
 import whatsappQueue from '../../queues/whatsapp.queue'
 
 export default async function adminComunicacaoRoutes(app: FastifyInstance) {
@@ -120,35 +121,52 @@ export default async function adminComunicacaoRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Mensagem nao encontrada' })
     }
 
-    // Reset status
-    msg.status = StatusMensagem.PENDENTE
-    msg.error_message = undefined as any
-    msg.data_envio = undefined as any
-    await msg.save()
-
     const instanceName = process.env.EVOLUTION_INSTANCE_NAME || 'SOMA_AI'
+    const cleaned = msg.destinatario_telefone.replace(/\D/g, '')
+    const phone = cleaned.length <= 11 ? '55' + cleaned : cleaned
 
-    await whatsappQueue.add(
-      'send_text',
-      {
-        historicoId: msg._id.toString(),
-        phoneNumber: msg.destinatario_telefone,
-        message: msg.conteudo,
-        instanceName,
-      },
-      {
-        priority: 3,
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 2000 },
-      },
-    )
+    // Try queue first (with timeout), fall back to direct send
+    let enviado = false
+    try {
+      await Promise.race([
+        whatsappQueue.add(
+          'send_text',
+          {
+            historicoId: msg._id.toString(),
+            phoneNumber: msg.destinatario_telefone,
+            message: msg.conteudo,
+            instanceName,
+          },
+          { priority: 3, attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
+        ),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Queue timeout')), 4000),
+        ),
+      ])
+      msg.status = StatusMensagem.PENDENTE
+      msg.error_message = undefined as any
+      msg.data_envio = undefined as any
+    } catch {
+      // Queue unavailable — send directly via Evolution API
+      try {
+        await EvolutionService.sendText(instanceName, phone, msg.conteudo)
+        msg.status = StatusMensagem.ENVIADO
+        msg.data_envio = new Date()
+        msg.error_message = undefined as any
+        enviado = true
+      } catch (directErr: any) {
+        msg.status = StatusMensagem.FALHA
+        msg.error_message = directErr.message
+      }
+    }
+    await msg.save()
 
     return {
       success: true,
       mensagemId: msg._id,
       destinatario: msg.destinatario_nome,
       tipo: msg.tipo,
-      status: 'pendente',
+      status: enviado ? 'enviado' : msg.status,
     }
   })
 
