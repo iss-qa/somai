@@ -243,6 +243,7 @@ export default async function companiesRoutes(app: FastifyInstance) {
           status: CompanyStatus.Active,
           setup_paid: true,
           setup_paid_at: now,
+          trial_expires_at: null,
           'billing.status': 'paid',
           'billing.last_paid_at': now,
           'billing.overdue_days': 0,
