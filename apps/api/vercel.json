@@ -5,11 +5,5 @@
   ],
   "routes": [
     { "src": "/(.*)", "dest": "/api/index.js" }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/publish-due",
-      "schedule": "0 9 * * *"
-    }
   ]
 }

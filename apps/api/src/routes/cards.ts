@@ -177,7 +177,12 @@ export default async function cardsRoutes(app: FastifyInstance) {
     async (
       request: FastifyRequest<{
         Params: { id: string }
-        Body: { generated_image_url?: string }
+        Body: {
+          generated_image_url?: string
+          generated_video_url?: string
+          media_type?: 'image' | 'video'
+          headline?: string
+        }
       }>,
       reply: FastifyReply,
     ) => {
@@ -200,10 +205,15 @@ export default async function cardsRoutes(app: FastifyInstance) {
       card.status = CardStatus.Approved as any
       card.approved_at = new Date()
 
-      // Save the preview image if provided
       const body = request.body as any
       if (body?.generated_image_url) {
         card.generated_image_url = body.generated_image_url
+      }
+      if (body?.generated_video_url) {
+        card.generated_video_url = body.generated_video_url
+      }
+      if (body?.media_type === 'video' || body?.media_type === 'image') {
+        card.media_type = body.media_type
       }
 
       // Update headline with the user-provided custom name

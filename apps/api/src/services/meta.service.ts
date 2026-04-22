@@ -20,23 +20,25 @@ async function getIntegration(companyId: string) {
 }
 
 /**
- * Ensures imageUrl is a public HTTP URL.
+ * Ensures media URL is a public HTTP URL.
  * If it's a base64 data URL, uploads it to R2 first.
  */
-async function ensurePublicUrl(imageUrl: string): Promise<string> {
-  if (imageUrl.startsWith('data:')) {
-    return StorageService.uploadBase64Image(imageUrl)
+async function ensurePublicUrl(mediaUrl: string): Promise<string> {
+  if (mediaUrl.startsWith('data:')) {
+    return StorageService.uploadBase64Media(mediaUrl)
   }
-  return imageUrl
+  return mediaUrl
 }
 
 /**
  * Polls the Instagram media container until it's ready to publish (status FINISHED).
+ * Videos podem levar mais tempo que imagens, por isso o maxAttempts e configuravel.
  */
 async function waitForContainer(
   containerId: string,
   token: string,
   maxAttempts = 10,
+  intervalMs = 2000,
 ): Promise<void> {
   for (let i = 0; i < maxAttempts; i++) {
     const res = await fetch(
@@ -49,8 +51,7 @@ async function waitForContainer(
       throw new Error(`Container Instagram com status: ${data.status_code}`)
     }
 
-    // Wait 2 seconds before next poll
-    await new Promise((r) => setTimeout(r, 2000))
+    await new Promise((r) => setTimeout(r, intervalMs))
   }
   throw new Error('Timeout aguardando container Instagram ficar pronto')
 }
@@ -109,28 +110,41 @@ export class MetaService {
 
   /**
    * Publish a story to Instagram via Container API.
+   * Detecta automaticamente se e imagem ou video pela extensao/MIME da URL.
    */
-  static async publishInstagramStory(companyId: string, mediaUrl: string) {
+  static async publishInstagramStory(
+    companyId: string,
+    mediaUrl: string,
+    mediaType: 'image' | 'video' = 'image',
+  ) {
     const { token, igUserId } = await getIntegration(companyId)
     const publicUrl = await ensurePublicUrl(mediaUrl)
 
+    const isVideo = mediaType === 'video' || /\.(mp4|mov|m4v|webm)(\?|$)/i.test(publicUrl)
+
     // Step 1: Create story container
+    const body: Record<string, any> = {
+      media_type: 'STORIES',
+      access_token: token,
+    }
+    if (isVideo) {
+      body.video_url = publicUrl
+    } else {
+      body.image_url = publicUrl
+    }
+
     const containerRes = await fetch(`${GRAPH_API}/${igUserId}/media`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        image_url: publicUrl,
-        media_type: 'STORIES',
-        access_token: token,
-      }),
+      body: JSON.stringify(body),
     })
     const container: any = await containerRes.json()
     if (container.error) {
       throw new Error(`Erro ao criar container story: ${container.error.message}`)
     }
 
-    // Step 2: Wait for container
-    await waitForContainer(container.id, token)
+    // Step 2: Wait for container (videos levam mais tempo)
+    await waitForContainer(container.id, token, isVideo ? 30 : 10, isVideo ? 3000 : 2000)
 
     // Step 3: Publish story
     const publishRes = await fetch(`${GRAPH_API}/${igUserId}/media_publish`, {
@@ -150,6 +164,60 @@ export class MetaService {
     return {
       success: true,
       instagram_story_id: published.id as string,
+      published_at: new Date(),
+    }
+  }
+
+  /**
+   * Publish a Reels video to Instagram feed via Container API.
+   * Tambem usado para posts de video no feed (Meta recomenda REELS para videos curtos).
+   */
+  static async publishInstagramReels(
+    companyId: string,
+    videoUrl: string,
+    caption: string,
+  ) {
+    const { token, igUserId } = await getIntegration(companyId)
+    const publicUrl = await ensurePublicUrl(videoUrl)
+
+    // Step 1: Create REELS container
+    const containerRes = await fetch(`${GRAPH_API}/${igUserId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        media_type: 'REELS',
+        video_url: publicUrl,
+        caption,
+        share_to_feed: true,
+        access_token: token,
+      }),
+    })
+    const container: any = await containerRes.json()
+    if (container.error) {
+      throw new Error(`Erro ao criar container Reels: ${container.error.message}`)
+    }
+
+    // Step 2: Wait for container (videos levam mais tempo — ate ~90s)
+    await waitForContainer(container.id, token, 30, 3000)
+
+    // Step 3: Publish
+    const publishRes = await fetch(`${GRAPH_API}/${igUserId}/media_publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        creation_id: container.id,
+        access_token: token,
+      }),
+    })
+    const published: any = await publishRes.json()
+    if (published.error) {
+      throw new Error(`Erro ao publicar Reels: ${published.error.message}`)
+    }
+
+    console.log(`[MetaService] Instagram Reels publicado: ${published.id}`)
+    return {
+      success: true,
+      instagram_post_id: published.id as string,
       published_at: new Date(),
     }
   }

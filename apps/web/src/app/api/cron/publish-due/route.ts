@@ -2,10 +2,9 @@ import { NextRequest } from 'next/server'
 import { publishDuePosts } from '../../../../../../api/src/jobs/publish-due.job'
 import { connectDB } from '@soma-ai/db'
 
-let dbConnected = false
-
 export async function GET(request: NextRequest) {
-  // Verify cron secret
+  // Verify cron secret. Vercel Cron envia automaticamente o header Authorization
+  // com o CRON_SECRET quando a env var esta definida no projeto.
   const secret = process.env.CRON_SECRET
   if (secret) {
     const authHeader = request.headers.get('authorization') || ''
@@ -18,14 +17,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Ensure DB connection
-    if (!dbConnected) {
-      await connectDB(process.env.MONGO_URI || '')
-      dbConnected = true
-    }
-
-    const result = await publishDuePosts(10)
-    return Response.json(result)
+    // connectDB e idempotente — retorna imediatamente se ja conectado
+    await connectDB(process.env.MONGO_URI || '')
+    const result = await publishDuePosts(25)
+    console.log(`[Cron] publish-due: ${result.processed} posts processados`)
+    return Response.json({ ok: true, ...result, timestamp: new Date().toISOString() })
   } catch (err: any) {
     console.error('[Cron] publish-due error:', err.message)
     return Response.json({ error: err.message }, { status: 500 })

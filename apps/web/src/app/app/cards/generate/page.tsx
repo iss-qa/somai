@@ -119,6 +119,8 @@ interface CardConfig {
   imageLayout: ImageLayout
   imageOpacity: number
   imageBlur: number
+  // Tipo da midia principal (imageUrl). 'video' e usado no fluxo "Utilizar um Existente" com upload de video.
+  mediaType: 'image' | 'video'
   fontFamily: FontFamily
   fontSizes: { title: number; subtitle: number; price: number; cta: number }
   textColor: string
@@ -596,6 +598,7 @@ const DEFAULT_CONFIG: CardConfig = {
   imageLayout: 'background',
   imageOpacity: 40,
   imageBlur: 4,
+  mediaType: 'image',
   fontFamily: 'Inter',
   fontSizes: { title: 28, subtitle: 16, price: 36, cta: 14 },
   textColor: '#ffffff',
@@ -1109,6 +1112,25 @@ function CardPreview({
       : { background: placeholderBg }
 
     if (layout === 'background' || layout === 'external') {
+      // Para video externo, renderiza <video> em vez de background-image
+      if (layout === 'external' && config.mediaType === 'video' && config.imageUrl) {
+        return (
+          <video
+            src={config.imageUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        )
+      }
       return (
         <div
           style={{
@@ -1968,6 +1990,7 @@ function GenerateCardPage() {
   const [showStartChoice, setShowStartChoice] = useState(true)
   const [showExistingUpload, setShowExistingUpload] = useState(false)
   const [existingCardPreview, setExistingCardPreview] = useState<string | null>(null)
+  const [existingMediaType, setExistingMediaType] = useState<'image' | 'video'>('image')
   const aiFileInputRef = useRef<HTMLInputElement>(null)
   const existingFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -2210,19 +2233,23 @@ function GenerateCardPage() {
     e.target.value = ''
   }, [])
 
-  // ---------- Handle existing card upload ----------
+  // ---------- Handle existing card upload (imagem ou video) ----------
   const handleExistingCardUpload = useCallback((file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Selecione um arquivo de imagem')
+    const isImage = file.type.startsWith('image/')
+    const isVideo = file.type.startsWith('video/')
+    if (!isImage && !isVideo) {
+      toast.error('Selecione uma imagem ou video')
       return
     }
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error('Imagem muito grande (max 20MB)')
+    const maxMb = isVideo ? 100 : 20
+    if (file.size > maxMb * 1024 * 1024) {
+      toast.error(`Arquivo muito grande (max ${maxMb}MB)`)
       return
     }
     const reader = new FileReader()
     reader.onload = () => {
       setExistingCardPreview(reader.result as string)
+      setExistingMediaType(isVideo ? 'video' : 'image')
     }
     reader.readAsDataURL(file)
   }, [])
@@ -2232,12 +2259,13 @@ function GenerateCardPage() {
     updateConfig('imageUrl', existingCardPreview)
     updateConfig('imageLayout', 'external')
     updateConfig('includeImage', true)
+    updateConfig('mediaType', existingMediaType)
     updateConfig('cta', 'nenhum')
     updateConfig('display', { showLogo: false, showCta: true, showPrice: true, showOriginalPrice: true })
     setStartChoice('existing')
     setShowStartChoice(false)
     setShowExistingUpload(false)
-  }, [existingCardPreview, updateConfig])
+  }, [existingCardPreview, existingMediaType, updateConfig])
 
   // ---------- Generate full card/carousel with AI (texto + imagens) ----------
   const handleGenerateImage = useCallback(async () => {
@@ -2421,9 +2449,14 @@ function GenerateCardPage() {
         return
       }
 
-      // Capture preview image as data URL
+      const isVideo = config.mediaType === 'video' && !!config.imageUrl
+
+      // Para video: envia o data URL do video; para imagem: captura o preview como PNG
       let imageDataUrl: string | undefined
-      if (previewRef.current) {
+      let videoDataUrl: string | undefined
+      if (isVideo) {
+        videoDataUrl = config.imageUrl
+      } else if (previewRef.current) {
         try {
           imageDataUrl = await toPng(previewRef.current, { pixelRatio: 1, cacheBust: true })
         } catch { /* ignore capture errors */ }
@@ -2431,6 +2464,8 @@ function GenerateCardPage() {
 
       await api.patch(`/api/cards/${cardId}/approve`, {
         generated_image_url: imageDataUrl,
+        generated_video_url: videoDataUrl,
+        media_type: isVideo ? 'video' : 'image',
         headline: cardName,
       })
       setApproved(true)
@@ -2451,9 +2486,13 @@ function GenerateCardPage() {
     if (!savedCardId) return
     setApproving(true)
     try {
-      // Capture updated preview image
+      const isVideo = config.mediaType === 'video' && !!config.imageUrl
+
       let imageDataUrl: string | undefined
-      if (previewRef.current) {
+      let videoDataUrl: string | undefined
+      if (isVideo) {
+        videoDataUrl = config.imageUrl
+      } else if (previewRef.current) {
         try {
           imageDataUrl = await toPng(previewRef.current, { pixelRatio: 1, cacheBust: true })
         } catch { /* ignore capture errors */ }
@@ -2469,6 +2508,8 @@ function GenerateCardPage() {
         subtext: config.extraText,
         cta: config.cta,
         generated_image_url: imageDataUrl || undefined,
+        generated_video_url: videoDataUrl || undefined,
+        media_type: isVideo ? 'video' : 'image',
       })
       setDirtyAfterApprove(false)
       toast.success('Card atualizado!')
@@ -3803,7 +3844,19 @@ function GenerateCardPage() {
       {/* Modal de escolha inicial: Personalizar vs Gerar com IA vs Utilizar Existente */}
       {showStartChoice && !editCardId && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-brand-card border border-brand-border rounded-2xl w-full max-w-3xl p-6 shadow-2xl">
+          <div className="bg-brand-card border border-brand-border rounded-2xl w-full max-w-3xl p-6 shadow-2xl relative">
+            <button
+              onClick={() => {
+                setShowStartChoice(false)
+                setShowExistingUpload(false)
+                setExistingCardPreview(null)
+                setStartChoice('custom')
+              }}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/30 text-gray-400 hover:text-white hover:bg-black/60 flex items-center justify-center transition-colors z-10"
+              aria-label="Fechar"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
             {!showExistingUpload ? (
               <>
@@ -3913,19 +3966,31 @@ function GenerateCardPage() {
                   </button>
                   <div className="flex-1 text-center">
                     <h2 className="text-base font-semibold text-white">Importar card existente</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">Envie a imagem do seu card para carregar no preview</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Envie a imagem ou video do seu card para carregar no preview</p>
                   </div>
                 </div>
 
                 {existingCardPreview ? (
                   <div className="space-y-4">
                     <div className="relative rounded-xl overflow-hidden border border-brand-border bg-black flex items-center justify-center" style={{ minHeight: 220 }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={existingCardPreview}
-                        alt="Preview do card"
-                        className="max-h-[300px] max-w-full object-contain"
-                      />
+                      {existingMediaType === 'video' ? (
+                        <video
+                          src={existingCardPreview}
+                          controls
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          className="max-h-[300px] max-w-full"
+                        />
+                      ) : (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={existingCardPreview}
+                          alt="Preview do card"
+                          className="max-h-[300px] max-w-full object-contain"
+                        />
+                      )}
                       <button
                         onClick={() => setExistingCardPreview(null)}
                         className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 text-gray-400 hover:text-red-400 flex items-center justify-center"
@@ -3938,7 +4003,7 @@ function GenerateCardPage() {
                         onClick={() => setExistingCardPreview(null)}
                         className="flex-1 py-2 rounded-lg border border-brand-border text-xs text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
                       >
-                        Trocar imagem
+                        Trocar arquivo
                       </button>
                       <button
                         onClick={handleConfirmExistingCard}
@@ -3963,8 +4028,8 @@ function GenerateCardPage() {
                       <Upload className="w-7 h-7 text-cyan-400" />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-medium text-white">Clique ou arraste sua imagem aqui</p>
-                      <p className="text-xs text-gray-500 mt-1">PNG, JPG, WEBP — max 20MB</p>
+                      <p className="text-sm font-medium text-white">Clique ou arraste sua imagem ou video aqui</p>
+                      <p className="text-xs text-gray-500 mt-1">Imagem (PNG, JPG, WEBP — max 20MB) ou video (MP4, MOV — max 100MB)</p>
                     </div>
                   </div>
                 )}
@@ -3972,7 +4037,7 @@ function GenerateCardPage() {
                 <input
                   ref={existingFileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0]

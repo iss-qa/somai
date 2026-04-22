@@ -26,28 +26,31 @@ async function bootstrap() {
   }
 
   // ── Internal publish scheduler ─────────────────────────────────────────
-  // Runs every 60 seconds as a self-contained fallback.
-  // This ensures posts get published even if:
-  //   - Redis is unavailable (BullMQ job was never queued)
-  //   - No external cron service is configured
-  // Uses findOneAndUpdate with status check to avoid duplicate processing
-  // when BullMQ and this scheduler both run.
+  // ATENCAO: este scheduler NAO roda em Vercel serverless (o processo so vive
+  // durante o tempo de cada request). Em producao o agendamento e feito pelo
+  // Vercel Cron em apps/web/vercel.json, que chama /api/cron/publish-due a
+  // cada 5 minutos.
+  //
+  // Este setInterval existe apenas para ambiente local (pnpm dev) e deploys
+  // self-hosted onde o Node fica rodando continuamente.
 
-  // Run once on startup to catch any posts that were missed (e.g. server restart)
-  publishDuePosts(20).then(({ processed }) => {
-    if (processed > 0) console.log(`[Scheduler] Startup: publicados ${processed} posts atrasados`)
-  }).catch(() => {})
+  if (process.env.VERCEL !== '1') {
+    // Run once on startup to catch any posts that were missed (e.g. server restart)
+    publishDuePosts(20).then(({ processed }) => {
+      if (processed > 0) console.log(`[Scheduler] Startup: publicados ${processed} posts atrasados`)
+    }).catch(() => {})
 
-  setInterval(() => {
-    publishDuePosts(10).then(({ processed, results }) => {
-      if (processed > 0) {
-        const failed = results.filter((r) => r.status === 'failed').length
-        console.log(`[Scheduler] ${processed} processados${failed ? `, ${failed} falhas` : ''}`)
-      }
-    }).catch((err) => {
-      console.error('[Scheduler] Erro no ciclo de publicacao:', err.message)
-    })
-  }, 60_000)
+    setInterval(() => {
+      publishDuePosts(10).then(({ processed, results }) => {
+        if (processed > 0) {
+          const failed = results.filter((r) => r.status === 'failed').length
+          console.log(`[Scheduler] ${processed} processados${failed ? `, ${failed} falhas` : ''}`)
+        }
+      }).catch((err) => {
+        console.error('[Scheduler] Erro no ciclo de publicacao:', err.message)
+      })
+    }, 60_000)
+  }
 }
 
 bootstrap()

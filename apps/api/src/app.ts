@@ -32,7 +32,8 @@ let app: ReturnType<typeof Fastify> | null = null
 export async function getApp() {
   if (app) return app
 
-  app = Fastify({ logger: false, bodyLimit: 15 * 1024 * 1024 })
+  // bodyLimit: 150MB — suporta videos ate ~100MB em base64 (overhead ~33%)
+  app = Fastify({ logger: false, bodyLimit: 150 * 1024 * 1024 })
 
   await app.register(cors, {
     origin: true,

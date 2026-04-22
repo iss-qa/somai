@@ -49,7 +49,11 @@ export async function publishDuePosts(limit = 10): Promise<{
         continue
       }
 
-      const imageUrl: string = card?.generated_image_url || ''
+      const mediaType: 'image' | 'video' = card?.media_type === 'video' ? 'video' : 'image'
+      const mediaUrl: string =
+        mediaType === 'video'
+          ? card?.generated_video_url || card?.generated_image_url || ''
+          : card?.generated_image_url || ''
       const caption: string = item.caption || ''
       const hashtags: string[] = item.hashtags || []
       const fullCaption =
@@ -66,16 +70,25 @@ export async function publishDuePosts(limit = 10): Promise<{
 
       if (isInstagram) {
         if (postType === 'stories') {
-          await MetaService.publishInstagramStory(companyId, imageUrl)
+          await MetaService.publishInstagramStory(companyId, mediaUrl, mediaType)
+        } else if (postType === 'reels' || mediaType === 'video') {
+          // Reels ou qualquer video vai pelo endpoint de Reels
+          const r = await MetaService.publishInstagramReels(companyId, mediaUrl, fullCaption)
+          instagramPostId = r.instagram_post_id
         } else {
-          const r = await MetaService.publishInstagramFeed(companyId, imageUrl, fullCaption)
+          const r = await MetaService.publishInstagramFeed(companyId, mediaUrl, fullCaption)
           instagramPostId = r.instagram_post_id
         }
       }
 
       if (isFacebook) {
-        const r = await MetaService.publishFacebookPost(companyId, imageUrl, fullCaption)
-        facebookPostId = r.facebook_post_id
+        // Facebook /photos so aceita imagem — para video usaria /videos, por enquanto so publica se imagem
+        if (mediaType === 'image') {
+          const r = await MetaService.publishFacebookPost(companyId, mediaUrl, fullCaption)
+          facebookPostId = r.facebook_post_id
+        } else {
+          console.warn(`[PublishJob] Facebook video nao suportado ainda — pulando para ${queueId}`)
+        }
       }
 
       // Create Post record

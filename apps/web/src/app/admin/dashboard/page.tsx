@@ -290,7 +290,7 @@ export default function AdminDashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary-400" />
-              Distribuicao de Status
+              Distribuição de Status
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">

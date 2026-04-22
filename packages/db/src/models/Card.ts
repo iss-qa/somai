@@ -13,6 +13,8 @@ export interface ICard extends Document {
   price_promo: number
   ai_prompt_used: string
   generated_image_url: string
+  generated_video_url: string
+  media_type: 'image' | 'video'
   caption: string
   hashtags: string[]
   status: 'draft' | 'approved' | 'scheduled' | 'posted' | 'archived'
@@ -45,6 +47,8 @@ const CardSchema = new Schema<ICard>(
     price_promo: { type: Number, default: 0 },
     ai_prompt_used: { type: String, default: '' },
     generated_image_url: { type: String, default: '' },
+    generated_video_url: { type: String, default: '' },
+    media_type: { type: String, enum: ['image', 'video'], default: 'image' },
     caption: { type: String, default: '' },
     hashtags: [{ type: String }],
     status: {
