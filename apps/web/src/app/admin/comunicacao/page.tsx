@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import { formatDateTime } from '@/lib/utils'
+import toast from 'react-hot-toast'
 import {
   MessageSquare,
   Send,
@@ -283,30 +284,42 @@ export default function ComunicacaoPage() {
     setResending(id)
     try {
       await api.post(`/api/admin/comunicacao/resend/${id}`)
+      toast.success('Mensagem reenviada para a fila')
       await loadData()
-    } catch (err) {
-      console.error('Erro ao reenviar:', err)
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao reenviar mensagem')
     } finally {
       setResending(null)
     }
   }
 
   async function handleSendManual() {
-    if (!manualMensagem.trim()) return
+    if (!manualMensagem.trim()) {
+      toast.error('Mensagem nao pode ser vazia')
+      return
+    }
+    if (manualEscopo === 'company_especifica' && !manualCompanyId) {
+      toast.error('Selecione uma empresa')
+      return
+    }
     setSending(true)
     try {
-      await api.post('/api/admin/comunicacao/enviar-manual', {
-        mensagem: manualMensagem,
-        escopo: manualEscopo,
-        company_id: manualEscopo === 'company_especifica' ? manualCompanyId : undefined,
-      })
+      const result = await api.post<{ enviados: number; empresas: string[] }>(
+        '/api/admin/comunicacao/enviar-manual',
+        {
+          mensagem: manualMensagem,
+          escopo: manualEscopo,
+          company_id: manualEscopo === 'company_especifica' ? manualCompanyId : undefined,
+        },
+      )
+      toast.success(`Mensagem enviada para ${result.enviados} empresa(s)`)
       setShowManualModal(false)
       setManualMensagem('')
       setManualEscopo('todos')
       setManualCompanyId('')
       await loadData()
-    } catch (err) {
-      console.error('Erro ao enviar:', err)
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao enviar mensagem')
     } finally {
       setSending(false)
     }
