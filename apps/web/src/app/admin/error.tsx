@@ -25,7 +25,7 @@ export default function AdminError({
           Erro no painel admin
         </h2>
         <p className="text-gray-400 text-sm mb-6">
-          Ocorreu um erro inesperado. Tente recarregar a pagina.
+          Ocorreu um erro inesperado. Tente recarregar a página.
         </p>
         <div className="flex items-center justify-center gap-3">
           <Button onClick={reset} variant="default">
@@ -41,7 +41,7 @@ export default function AdminError({
         </div>
         {error.digest && (
           <p className="text-xs text-gray-600 mt-4">
-            Codigo: {error.digest}
+            Código: {error.digest}
           </p>
         )}
       </div>

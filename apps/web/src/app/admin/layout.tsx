@@ -41,11 +41,11 @@ const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/companies', label: 'Parceiros', icon: Building2 },
   { href: '/admin/financial', label: 'Financeiro', icon: DollarSign },
-  { href: '/admin/health', label: 'Saude do Sistema', icon: Activity },
-  { href: '/admin/comunicacao', label: 'Comunicacao', icon: MessageSquare },
-  { href: '/admin/integrations', label: 'Integracoes', icon: Plug },
+  { href: '/admin/health', label: 'Saúde do Sistema', icon: Activity },
+  { href: '/admin/comunicacao', label: 'Comunicação', icon: MessageSquare },
+  { href: '/admin/integrations', label: 'Integrações', icon: Plug },
   { href: '/admin/logs', label: 'Logs', icon: ScrollText },
-  { href: '/admin/settings', label: 'Configuracoes', icon: Settings },
+  { href: '/admin/settings', label: 'Configurações', icon: Settings },
 ]
 
 function getPageTitle(pathname: string): string {

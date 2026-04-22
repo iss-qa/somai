@@ -815,7 +815,7 @@ function FilaTab() {
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-emerald-400">{queue?.done ?? 0}</p>
-            <p className="text-xs text-gray-500 mt-1">Concluidos</p>
+            <p className="text-xs text-gray-500 mt-1">Concluídos</p>
           </CardContent>
         </Card>
       </div>

@@ -276,7 +276,7 @@ export default function CompanyDetailPage() {
     return (
       <div className="text-center py-20">
         <Building2 className="w-12 h-12 text-gray-700 mx-auto mb-3" />
-        <h3 className="text-lg font-medium text-gray-300 mb-4">Empresa nao encontrada</h3>
+        <h3 className="text-lg font-medium text-gray-300 mb-4">Empresa não encontrada</h3>
         <Button variant="outline" onClick={() => router.push('/admin/companies')}>
           Voltar para lista
         </Button>
@@ -336,11 +336,11 @@ export default function CompanyDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Building2 className="w-4 h-4 text-primary-400" />
-              Informacoes
+              Informações
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <InfoRow icon={User} label="Responsavel" value={company.responsible_name} />
+            <InfoRow icon={User} label="Responsável" value={company.responsible_name} />
             {company.document && <InfoRow icon={FileText} label="CPF/CNPJ" value={company.document} />}
             <InfoRow icon={Phone} label="WhatsApp" value={company.whatsapp} />
             <InfoRow icon={Mail} label="Email" value={company.email} />
@@ -354,7 +354,7 @@ export default function CompanyDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CreditCard className="w-4 h-4 text-primary-400" />
-              Plano e Cobranca
+              Plano e Cobrança
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -380,11 +380,11 @@ export default function CompanyDetailPage() {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">Dia cobranca</span>
+              <span className="text-sm text-gray-400">Dia cobrança</span>
               <span className="text-sm text-gray-200">Dia {company.billing?.due_day || '-'}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">Situacao</span>
+              <span className="text-sm text-gray-400">Situação</span>
               <StatusBadge status={billingStatus} />
             </div>
             {(company.billing?.overdue_days || 0) > 0 && (
@@ -449,7 +449,7 @@ export default function CompanyDetailPage() {
             )}
             {company.notes && (
               <div className="pt-2 border-t border-brand-border">
-                <span className="text-xs text-gray-500">Observacoes</span>
+                <span className="text-xs text-gray-500">Observações</span>
                 <p className="text-sm text-gray-300 mt-1">{company.notes}</p>
               </div>
             )}
@@ -467,14 +467,14 @@ export default function CompanyDetailPage() {
             <DialogTitle>Editar empresa</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            {/* Row 1: Nome + Responsavel */}
+            {/* Row 1: Nome + Responsável */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-400">Nome da empresa</Label>
                 <Input value={editData.name || ''} onChange={(e) => updateEdit('name', e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-xs text-gray-400">Responsavel</Label>
+                <Label className="text-xs text-gray-400">Responsável</Label>
                 <Input value={editData.responsible_name || ''} onChange={(e) => updateEdit('responsible_name', e.target.value)} className="mt-1" />
               </div>
             </div>
@@ -529,9 +529,9 @@ export default function CompanyDetailPage() {
               </div>
             </div>
 
-            {/* Plano e Cobranca */}
+            {/* Plano e Cobrança */}
             <div className="border-t border-brand-border pt-4">
-              <p className="text-sm font-medium text-white mb-3">Plano e Cobranca</p>
+              <p className="text-sm font-medium text-white mb-3">Plano e Cobrança</p>
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label className="text-xs text-gray-400">Plano</Label>
@@ -540,7 +540,7 @@ export default function CompanyDetailPage() {
                     <SelectContent>
                       {plans.map((p) => (
                         <SelectItem key={p.slug} value={p.slug}>
-                          {p.name} — {formatCurrency(p.monthly_price)}/mes
+                          {p.name} — {formatCurrency(p.monthly_price)}/mês
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -562,7 +562,7 @@ export default function CompanyDetailPage() {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-gray-400">Dia da cobranca</Label>
+                  <Label className="text-xs text-gray-400">Dia da cobrança</Label>
                   <Input type="number" value={editData.due_day || ''} onChange={(e) => updateEdit('due_day', Number(e.target.value))} min={1} max={27} className="mt-1" />
                 </div>
               </div>
@@ -589,7 +589,7 @@ export default function CompanyDetailPage() {
             </div>
 
             <div>
-              <Label className="text-xs text-gray-400">Observacoes</Label>
+              <Label className="text-xs text-gray-400">Observações</Label>
               <Input value={editData.notes || ''} onChange={(e) => updateEdit('notes', e.target.value)} className="mt-1" />
             </div>
 
@@ -667,10 +667,10 @@ function BillingSection({
         paymentLinkUrl: data.paymentLinkUrl || data.charge?.paymentLinkUrl,
         value: data.charge?.value ?? (data.value ? data.value * 100 : undefined),
       })
-      toast.success('Cobranca PIX de setup gerada!')
+      toast.success('Cobrança PIX de setup gerada!')
       onRefresh()
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao gerar cobranca')
+      toast.error(err.message || 'Erro ao gerar cobrança')
     } finally {
       setSetupLoading(false)
     }
@@ -722,7 +722,7 @@ function BillingSection({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <QrCode className="w-4 h-4 text-primary-400" />
-            Cobranca de Setup (PIX)
+            Cobrança de Setup (PIX)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -850,7 +850,7 @@ function BillingSection({
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-gray-400">
-                Gere uma cobranca PIX unica para a taxa de setup da empresa.
+                Gere uma cobrança PIX única para a taxa de setup da empresa.
               </p>
               <div className="p-3 rounded-lg bg-brand-surface border border-brand-border">
                 <div className="flex items-center justify-between">
@@ -900,7 +900,7 @@ function BillingSection({
                     <span className="text-white font-medium">{formatCurrency((subscription.value || 0) / 100)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Dia da cobranca</span>
+                    <span className="text-gray-400">Dia da cobrança</span>
                     <span className="text-white">Dia {subscription.dayGenerateCharge || '-'}</span>
                   </div>
                   {subscription.customer && (
@@ -932,7 +932,7 @@ function BillingSection({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-300">Ativar assinatura recorrente</p>
-                  <p className="text-xs text-gray-500">Cobranca PIX automatica todo mes</p>
+                  <p className="text-xs text-gray-500">Cobrança PIX automática todo mês</p>
                 </div>
                 <Switch checked={showSubForm} onCheckedChange={setShowSubForm} />
               </div>
@@ -944,7 +944,7 @@ function BillingSection({
                     <Input type="number" value={subValue} onChange={(e) => setSubValue(Number(e.target.value))} min={1} step={0.01} className="mt-1" />
                   </div>
                   <div>
-                    <Label className="text-gray-400 text-xs">Dia da cobranca (1-27)</Label>
+                    <Label className="text-gray-400 text-xs">Dia da cobrança (1-27)</Label>
                     <Input type="number" value={subDay} onChange={(e) => setSubDay(Number(e.target.value))} min={1} max={27} className="mt-1" />
                   </div>
                   <Button className="w-full gap-2" onClick={handleCreateSubscription} disabled={subLoading}>

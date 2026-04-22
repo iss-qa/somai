@@ -123,9 +123,9 @@ export default function HealthPage() {
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-white">Saude do Sistema</h2>
+          <h2 className="text-xl font-semibold text-white">Saúde do Sistema</h2>
           <p className="text-sm text-gray-400 mt-1">
-            Monitore o status de todos os servicos
+            Monitore o status de todos os serviços
           </p>
         </div>
         <Button
@@ -174,7 +174,7 @@ export default function HealthPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Cloud className="w-4 h-4 text-primary-400" />
-              Integracoes Meta por Empresa
+              Integrações Meta por Empresa
             </CardTitle>
           </CardHeader>
           <CardContent>

@@ -9,8 +9,8 @@ import { CardFormat, Niche, PlanSlug, PostType } from '../enums';
 export const PLAN_STARTER = {
   name: 'Starter',
   slug: PlanSlug.Starter,
-  setup_price: 297,
-  monthly_price: 39.9,
+  setup_price: 50,
+  monthly_price: 29.9,
   features: {
     instagram: true,
     facebook: false,
@@ -28,8 +28,8 @@ export const PLAN_STARTER = {
 export const PLAN_PRO = {
   name: 'Pro',
   slug: PlanSlug.Pro,
-  setup_price: 497,
-  monthly_price: 69.9,
+  setup_price: 50,
+  monthly_price: 50,
   features: {
     instagram: true,
     facebook: true,
@@ -47,8 +47,8 @@ export const PLAN_PRO = {
 export const PLAN_ENTERPRISE = {
   name: 'Enterprise',
   slug: PlanSlug.Enterprise,
-  setup_price: 720,
-  monthly_price: 89.9,
+  setup_price: 50,
+  monthly_price: 69.9,
   features: {
     instagram: true,
     facebook: true,

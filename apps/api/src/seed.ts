@@ -18,49 +18,20 @@ async function seed() {
   // ── Plans ───────────────────────────────────
   console.log('\n--- Criando planos ---')
 
-  const existingStarter = await Plan.findOne({ slug: PLAN_STARTER.slug })
-  if (!existingStarter) {
-    await Plan.create({
-      slug: PLAN_STARTER.slug,
-      name: PLAN_STARTER.name,
-      setup_price: PLAN_STARTER.setup_price,
-      monthly_price: PLAN_STARTER.monthly_price,
-      features: { ...PLAN_STARTER.features },
-      active: true,
-    })
-    console.log('Plano Starter criado')
-  } else {
-    console.log('Plano Starter ja existe')
-  }
-
-  const existingPro = await Plan.findOne({ slug: PLAN_PRO.slug })
-  if (!existingPro) {
-    await Plan.create({
-      slug: PLAN_PRO.slug,
-      name: PLAN_PRO.name,
-      setup_price: PLAN_PRO.setup_price,
-      monthly_price: PLAN_PRO.monthly_price,
-      features: { ...PLAN_PRO.features },
-      active: true,
-    })
-    console.log('Plano Pro criado')
-  } else {
-    console.log('Plano Pro ja existe')
-  }
-
-  const existingEnterprise = await Plan.findOne({ slug: PLAN_ENTERPRISE.slug })
-  if (!existingEnterprise) {
-    await Plan.create({
-      slug: PLAN_ENTERPRISE.slug,
-      name: PLAN_ENTERPRISE.name,
-      setup_price: PLAN_ENTERPRISE.setup_price,
-      monthly_price: PLAN_ENTERPRISE.monthly_price,
-      features: { ...PLAN_ENTERPRISE.features },
-      active: true,
-    })
-    console.log('Plano Enterprise criado')
-  } else {
-    console.log('Plano Enterprise ja existe')
+  for (const plan of [PLAN_STARTER, PLAN_PRO, PLAN_ENTERPRISE]) {
+    const res = await Plan.findOneAndUpdate(
+      { slug: plan.slug },
+      {
+        slug: plan.slug,
+        name: plan.name,
+        setup_price: plan.setup_price,
+        monthly_price: plan.monthly_price,
+        features: { ...plan.features },
+        active: true,
+      },
+      { upsert: true, new: true },
+    )
+    console.log(`Plano ${plan.name}: R$ ${plan.monthly_price}/mes, setup R$ ${plan.setup_price}`)
   }
 
   // ── Admin User ──────────────────────────────

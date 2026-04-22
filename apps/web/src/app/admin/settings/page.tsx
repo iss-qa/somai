@@ -21,20 +21,20 @@ import {
 const plans = [
   {
     name: 'Starter',
-    setup: 297,
-    monthly: 39.9,
+    setup: 50,
+    monthly: 29.9,
     features: ['Instagram', 'Cards ilimitados'],
     badge: 'default' as const,
-    badgeLabel: 'Basico',
+    badgeLabel: 'Básico',
   },
   {
     name: 'Pro',
-    setup: 497,
-    monthly: 69.9,
+    setup: 50,
+    monthly: 50,
     features: [
       'Instagram + Facebook',
       'Cards ilimitados',
-      'Videos 2/dia',
+      'Vídeos 2/dia',
       'WhatsApp',
       'Campanhas',
     ],
@@ -43,15 +43,15 @@ const plans = [
   },
   {
     name: 'Enterprise',
-    setup: 720,
-    monthly: 89.9,
+    setup: 50,
+    monthly: 69.9,
     features: [
       'Instagram + Facebook',
       'Cards ilimitados',
-      'Videos 5/dia',
+      'Vídeos 5/dia',
       'WhatsApp',
       'Campanhas',
-      'Trafego Pago',
+      'Tráfego Pago',
       'Reconhecimento',
     ],
     badge: 'info' as const,
@@ -96,10 +96,10 @@ export default function AdminSettingsPage() {
       <div>
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
           <Settings className="w-5 h-5 text-primary-400" />
-          Configuracoes Globais
+          Configurações Globais
         </h2>
         <p className="text-sm text-gray-400 mt-1">
-          Planos, nichos e configuracoes do sistema
+          Planos, nichos e configurações do sistema
         </p>
       </div>
 
@@ -132,7 +132,7 @@ export default function AdminSettingsPage() {
                     <span className="text-2xl font-bold text-white">
                       {formatCurrency(plan.monthly)}
                     </span>
-                    <span className="text-sm text-gray-500">/mes</span>
+                    <span className="text-sm text-gray-500">/mês</span>
                   </div>
                   <p className="text-xs text-gray-500">
                     Setup: {formatCurrency(plan.setup)}
@@ -184,7 +184,7 @@ export default function AdminSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Server className="w-4 h-4 text-primary-400" />
-              Configuracoes do sistema
+              Configurações do sistema
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

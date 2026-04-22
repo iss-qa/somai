@@ -222,9 +222,9 @@ export default function FinancialPage() {
     setActionLoading((prev) => ({ ...prev, [key]: 'loading' }))
     try {
       await api.post(`/api/admin/financial/billing/${companyId}/notify`)
-      toast.success('Cobranca enviada com sucesso')
+      toast.success('Cobrança enviada com sucesso')
     } catch {
-      toast.error('Erro ao enviar cobranca')
+      toast.error('Erro ao enviar cobrança')
     } finally {
       setActionLoading((prev) => {
         const next = { ...prev }
@@ -273,7 +273,7 @@ export default function FinancialPage() {
       <div>
         <h2 className="text-xl font-semibold text-white">Financeiro</h2>
         <p className="text-sm text-gray-400 mt-1">
-          Controle de receita e cobrancas
+          Controle de receita e cobranças
         </p>
       </div>
 
@@ -524,7 +524,7 @@ export default function FinancialPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CreditCard className="w-4 h-4 text-primary-400" />
-              Cobrancas por Empresa
+              Cobranças por Empresa
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -553,7 +553,7 @@ export default function FinancialPage() {
                     Status
                   </th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider p-4">
-                    Acoes
+                    Ações
                   </th>
                 </tr>
               </thead>
@@ -642,7 +642,7 @@ export default function FinancialPage() {
                     <td colSpan={8} className="p-8 text-center">
                       <DollarSign className="w-10 h-10 text-gray-700 mx-auto mb-3" />
                       <p className="text-sm text-gray-400">
-                        Nenhuma cobranca encontrada
+                        Nenhuma cobrança encontrada
                       </p>
                     </td>
                   </tr>
@@ -664,7 +664,7 @@ export default function FinancialPage() {
                     <p className="font-medium text-gray-200">{company.name}</p>
                     <p className="text-xs text-gray-500">
                       {company.plan_id?.name ?? '-'} -{' '}
-                      {formatCurrency(company.billing.monthly_amount)}/mes
+                      {formatCurrency(company.billing.monthly_amount)}/mês
                     </p>
                   </div>
                   <StatusBadge status={company.billing.status} />

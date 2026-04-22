@@ -79,7 +79,7 @@ const TIPO_OPTIONS = [
   { value: 'lembrete_mensalidade', label: 'Lembrete Mensalidade' },
   { value: 'boleto_setup', label: 'Boleto Setup' },
   { value: 'boleto_mensalidade', label: 'Boleto Mensalidade' },
-  { value: 'confirmacao_pagamento', label: 'Confirmacao Pagamento' },
+  { value: 'confirmacao_pagamento', label: 'Confirmação Pagamento' },
   { value: 'alerta_atraso', label: 'Alerta de Atraso' },
   { value: 'trial_expirando', label: 'Trial Expirando' },
   { value: 'acesso_bloqueado', label: 'Acesso Bloqueado' },
@@ -116,7 +116,7 @@ const tipoMensagemLabels: Record<string, string> = {
   lembrete_mensalidade: 'Lembrete Mensalidade',
   boleto_setup: 'Boleto Setup',
   boleto_mensalidade: 'Boleto Mensalidade',
-  confirmacao_pagamento: 'Confirmacao Pagamento',
+  confirmacao_pagamento: 'Confirmação Pagamento',
   alerta_atraso: 'Alerta de Atraso',
   trial_expirando: 'Trial Expirando',
   acesso_bloqueado: 'Acesso Bloqueado',
@@ -150,22 +150,22 @@ const statusConfig = {
 const REGRAS_DISPARO = [
   {
     evento: 'Boas-vindas',
-    gatilho: 'Company cadastrada/ativada',
+    gatilho: 'Empresa cadastrada/ativada',
     descricao: 'Mensagem de boas-vindas ao Soma.ai com resumo de funcionalidades',
   },
   {
     evento: 'Card Publicado',
     gatilho: 'Post publicado com sucesso',
-    descricao: 'Notifica a empresa sobre a publicacao do card com data/hora e plataforma',
+    descricao: 'Notifica a empresa sobre a publicação do card com data/hora e plataforma',
   },
   {
     evento: 'Card Agendado',
-    gatilho: 'Card adicionado a fila de agendamento',
+    gatilho: 'Card adicionado à fila de agendamento',
     descricao: 'Notifica a empresa sobre o agendamento do card',
   },
   {
     evento: 'Lembrete Mensalidade',
-    gatilho: 'Cron diario (1-5 dias antes do vencimento)',
+    gatilho: 'Cron diário (1-5 dias antes do vencimento)',
     descricao: 'Lembrete de pagamento da mensalidade do plano',
   },
   {
@@ -179,23 +179,23 @@ const REGRAS_DISPARO = [
     descricao: 'Envia link do boleto mensal para o WhatsApp da empresa',
   },
   {
-    evento: 'Confirmacao Pagamento',
+    evento: 'Confirmação Pagamento',
     gatilho: 'Pagamento confirmado (webhook)',
     descricao: 'Confirma o pagamento via WhatsApp',
   },
   {
     evento: 'Alerta de Atraso',
-    gatilho: 'Cron diario (apos vencimento)',
+    gatilho: 'Cron diário (após vencimento)',
     descricao: 'Alerta sobre mensalidade em atraso com risco de bloqueio',
   },
   {
     evento: 'Trial Expirando',
-    gatilho: 'Cron diario (1-3 dias antes do fim do trial)',
-    descricao: 'Aviso de que o periodo de teste esta acabando',
+    gatilho: 'Cron diário (1-3 dias antes do fim do trial)',
+    descricao: 'Aviso de que o período de teste está acabando',
   },
   {
     evento: 'Acesso Bloqueado',
-    gatilho: 'Bloqueio por inadimplencia',
+    gatilho: 'Bloqueio por inadimplência',
     descricao: 'Notifica a empresa sobre o bloqueio do acesso',
   },
   {
@@ -253,7 +253,7 @@ export default function ComunicacaoPage() {
       setPages(hist.pages)
     } catch (err: any) {
       console.error('Erro ao carregar historico:', err)
-      toast.error(err?.message || 'Erro ao carregar historico')
+      toast.error(err?.message || 'Erro ao carregar histórico')
     } finally {
       setLoading(false)
     }
@@ -300,7 +300,7 @@ export default function ComunicacaoPage() {
 
   async function handleSendManual() {
     if (!manualMensagem.trim()) {
-      toast.error('Mensagem nao pode ser vazia')
+      toast.error('Mensagem não pode ser vazia')
       return
     }
     if (manualEscopo === 'company_especifica' && !manualCompanyId) {
@@ -348,9 +348,9 @@ export default function ComunicacaoPage() {
               <MessageSquare className="w-5 h-5 text-primary-400" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">Gerenciar Comunicacao</h2>
+              <h2 className="text-xl font-semibold text-white">Gerenciar Comunicação</h2>
               <p className="text-sm text-gray-400">
-                Historico de mensagens automaticas enviadas via WhatsApp
+                Histórico de mensagens automáticas enviadas via WhatsApp
               </p>
             </div>
           </div>
@@ -627,7 +627,7 @@ export default function ComunicacaoPage() {
           {pages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-brand-border">
               <p className="text-xs text-gray-500">
-                Pagina {currentPage} de {pages}
+                Página {currentPage} de {pages}
               </p>
               <div className="flex items-center gap-1">
                 <Button
@@ -655,7 +655,7 @@ export default function ComunicacaoPage() {
       {/* ── Modal: Detalhes da Mensagem ─────────────── */}
       {selectedMsg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-brand-dark border border-brand-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-brand-dark border border-brand-border rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-brand-border">
               <h3 className="text-lg font-semibold text-white">
                 Detalhes da Mensagem
@@ -674,47 +674,51 @@ export default function ComunicacaoPage() {
                   {selectedMsg.company_name}
                 </p>
               </div>
-              <div>
-                <p className="text-xs text-gray-500">Destinatario</p>
-                <p className="text-sm text-gray-200">
-                  {selectedMsg.destinatario_nome}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {selectedMsg.destinatario_telefone}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Tipo</p>
-                <Badge
-                  className={`mt-1 text-xs border ${
-                    tipoMensagemColors[selectedMsg.tipo] || ''
-                  }`}
-                >
-                  {tipoMensagemLabels[selectedMsg.tipo] || selectedMsg.tipo}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Status</p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  {(() => {
-                    const sc = statusConfig[selectedMsg.status]
-                    const Icon = sc.icon
-                    return (
-                      <Badge className={`border ${sc.bg} ${sc.color}`}>
-                        <Icon className="w-3 h-3 mr-1" />
-                        {sc.label}
-                      </Badge>
-                    )
-                  })()}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Destinatario</p>
+                  <p className="text-sm text-gray-200">
+                    {selectedMsg.destinatario_nome}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {selectedMsg.destinatario_telefone}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Tipo</p>
+                  <Badge
+                    className={`mt-1 text-xs border ${
+                      tipoMensagemColors[selectedMsg.tipo] || ''
+                    }`}
+                  >
+                    {tipoMensagemLabels[selectedMsg.tipo] || selectedMsg.tipo}
+                  </Badge>
                 </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-500">Data de Envio</p>
-                <p className="text-sm text-gray-200">
-                  {selectedMsg.data_envio
-                    ? formatDateTime(selectedMsg.data_envio)
-                    : formatDateTime(selectedMsg.createdAt)}
-                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Status</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {(() => {
+                      const sc = statusConfig[selectedMsg.status]
+                      const Icon = sc.icon
+                      return (
+                        <Badge className={`border ${sc.bg} ${sc.color}`}>
+                          <Icon className="w-3 h-3 mr-1" />
+                          {sc.label}
+                        </Badge>
+                      )
+                    })()}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Data de Envio</p>
+                  <p className="text-sm text-gray-200">
+                    {selectedMsg.data_envio
+                      ? formatDateTime(selectedMsg.data_envio)
+                      : formatDateTime(selectedMsg.createdAt)}
+                  </p>
+                </div>
               </div>
               {selectedMsg.error_message && (
                 <div>
@@ -726,7 +730,7 @@ export default function ComunicacaoPage() {
               )}
               <div>
                 <p className="text-xs text-gray-500 mb-2">
-                  Conteudo da Mensagem
+                  Conteúdo da Mensagem
                 </p>
                 <div className="bg-brand-surface border border-brand-border rounded-lg p-4 text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
                   {selectedMsg.conteudo}
@@ -769,7 +773,7 @@ export default function ComunicacaoPage() {
                 >
                   <option value="todos">Todas as empresas ativas</option>
                   <option value="company_especifica">
-                    Empresa especifica
+                    Empresa específica
                   </option>
                 </select>
               </div>
@@ -844,7 +848,7 @@ export default function ComunicacaoPage() {
           <div className="bg-brand-dark border border-brand-border rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-brand-border">
               <h3 className="text-lg font-semibold text-white">
-                Regras de Disparo Automatico
+                Regras de Disparo Automático
               </h3>
               <button
                 onClick={() => setShowRegrasModal(false)}
@@ -855,7 +859,7 @@ export default function ComunicacaoPage() {
             </div>
             <div className="p-5">
               <p className="text-sm text-gray-400 mb-4">
-                Mensagens enviadas automaticamente conforme acoes executadas no
+                Mensagens enviadas automaticamente conforme ações executadas no
                 sistema.
               </p>
               <div className="space-y-3">

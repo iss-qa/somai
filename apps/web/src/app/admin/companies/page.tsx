@@ -184,10 +184,10 @@ export default function CompaniesPage() {
                     Mensal
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-4">
-                    Cobranca
+                    Cobrança
                   </th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider p-4">
-                    Acoes
+                    Ações
                   </th>
                 </tr>
               </thead>
@@ -308,7 +308,7 @@ export default function CompaniesPage() {
                   ) : (
                     <span className="text-[10px] text-gray-600">Sem plano</span>
                   )}
-                  <span>{formatCurrency(company.billing?.monthly_amount ?? 0)}/mes</span>
+                  <span>{formatCurrency(company.billing?.monthly_amount ?? 0)}/mês</span>
                   <div className="flex items-center gap-1 ml-auto">
                     <MapPin className="w-3.5 h-3.5 text-gray-500" />
                     <span>{company.city ? `${company.city}/${company.state}` : '-'}</span>

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { Company, Integration, Schedule, Plan } from '@soma-ai/db'
-import { CompanyStatus } from '@soma-ai/shared'
+import { CompanyStatus, PLAN_STARTER, PLAN_PRO, PLAN_ENTERPRISE } from '@soma-ai/shared'
 import { authenticate, adminOnly } from '../plugins/auth'
 
 export default async function companiesRoutes(app: FastifyInstance) {
@@ -12,6 +12,36 @@ export default async function companiesRoutes(app: FastifyInstance) {
     const plans = await Plan.find({ active: true }).sort({ monthly_price: 1 }).lean()
     return reply.send(plans)
   })
+
+  // ── POST /plans/sync — admin only, upsert plans from shared constants ──
+  app.post(
+    '/plans/sync',
+    { preHandler: [adminOnly] },
+    async (_request, reply) => {
+      const results = []
+      for (const plan of [PLAN_STARTER, PLAN_PRO, PLAN_ENTERPRISE]) {
+        const updated = await Plan.findOneAndUpdate(
+          { slug: plan.slug },
+          {
+            slug: plan.slug,
+            name: plan.name,
+            setup_price: plan.setup_price,
+            monthly_price: plan.monthly_price,
+            features: { ...plan.features },
+            active: true,
+          },
+          { upsert: true, new: true },
+        )
+        results.push({
+          slug: updated.slug,
+          name: updated.name,
+          setup_price: updated.setup_price,
+          monthly_price: updated.monthly_price,
+        })
+      }
+      return reply.send({ success: true, plans: results })
+    },
+  )
 
   // ── GET / ─────────────────────────────────────
   app.get('/', async (request: FastifyRequest, reply: FastifyReply) => {

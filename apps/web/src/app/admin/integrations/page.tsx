@@ -256,9 +256,9 @@ function CompanyIntegrationPanel({
     try {
       const result = await api.post<any>(`${baseUrl}/meta/test`, {})
       setConnected(result?.valid || false)
-      toast[result?.valid ? 'success' : 'error'](result?.message || 'Teste concluido')
+      toast[result?.valid ? 'success' : 'error'](result?.message || 'Teste concluído')
     } catch {
-      toast.error('Falha na conexao')
+      toast.error('Falha na conexão')
     } finally {
       setTesting(false)
     }
@@ -379,7 +379,7 @@ function CompanyIntegrationPanel({
               )}
               {connectedPageName && (
                 <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase tracking-wider text-gray-500">Pagina Facebook</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500">Página Facebook</p>
                   <a
                     href={fbPageUrl || `https://facebook.com/${fbPageId}`}
                     target="_blank"
@@ -586,7 +586,7 @@ export default function AdminIntegrationsPage() {
               toast.success(
                 result.instagram_username
                   ? `Conectado! Instagram: @${result.instagram_username}`
-                  : `Conectado! Pagina: ${result.facebook_page_name}`,
+                  : `Conectado! Página: ${result.facebook_page_name}`,
               )
             }
           })
@@ -652,8 +652,8 @@ export default function AdminIntegrationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-white">Integracoes</h2>
-          <p className="text-sm text-gray-400 mt-1">Gerencie as integracoes de cada empresa</p>
+          <h2 className="text-xl font-semibold text-white">Integrações</h2>
+          <p className="text-sm text-gray-400 mt-1">Gerencie as integrações de cada empresa</p>
         </div>
         <Button variant="outline" className="gap-2" disabled={refreshing} onClick={handleRefresh}>
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />

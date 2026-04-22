@@ -25,18 +25,18 @@ import {
 } from 'lucide-react'
 
 const plans = [
-  { value: 'starter', label: 'Starter', price: 'R$ 39,90/mes', setup: 297 },
-  { value: 'pro', label: 'Pro', price: 'R$ 69,90/mes', setup: 497 },
-  { value: 'enterprise', label: 'Enterprise', price: 'R$ 89,90/mes', setup: 720 },
+  { value: 'starter', label: 'Starter', price: 'R$ 29,90/mês', setup: 50 },
+  { value: 'pro', label: 'Pro', price: 'R$ 50,00/mês', setup: 50 },
+  { value: 'enterprise', label: 'Enterprise', price: 'R$ 69,90/mês', setup: 50 },
 ]
 
 const niches = [
-  { value: 'farmacia', label: 'Farmacia' },
+  { value: 'farmacia', label: 'Farmácia' },
   { value: 'pet', label: 'Pet Shop' },
   { value: 'moda', label: 'Moda' },
-  { value: 'cosmeticos', label: 'Cosmeticos' },
+  { value: 'cosmeticos', label: 'Cosméticos' },
   { value: 'mercearia', label: 'Mercearia' },
-  { value: 'calcados', label: 'Calcados' },
+  { value: 'calcados', label: 'Calçados' },
   { value: 'restaurante', label: 'Restaurante' },
   { value: 'confeitaria', label: 'Confeitaria e Doceria' },
   { value: 'hamburgueria', label: 'Hamburgueria' },
@@ -319,7 +319,7 @@ export default function NewCompanyPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Dia de cobranca</Label>
+              <Label>Dia de cobrança</Label>
               <Select value={form.billingDay} onValueChange={(v) => updateForm('billingDay', v)}>
                 <SelectTrigger>
                   <SelectValue />
