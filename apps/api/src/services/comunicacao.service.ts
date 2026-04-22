@@ -236,21 +236,26 @@ export class ComunicacaoService {
     })
 
     try {
-      await whatsappQueue.add(
-        'send_text',
-        {
-          historicoId: historico._id.toString(),
-          phoneNumber: params.destinatario_telefone,
-          message: params.conteudo,
-          instanceName: EVOLUTION_INSTANCE,
-        },
-        {
-          priority: params.priority || 5,
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2000 },
-          delay: params.delay || 0,
-        },
-      )
+      await Promise.race([
+        whatsappQueue.add(
+          'send_text',
+          {
+            historicoId: historico._id.toString(),
+            phoneNumber: params.destinatario_telefone,
+            message: params.conteudo,
+            instanceName: EVOLUTION_INSTANCE,
+          },
+          {
+            priority: params.priority || 5,
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 2000 },
+            delay: params.delay || 0,
+          },
+        ),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Queue timeout - Redis unavailable')), 4000),
+        ),
+      ])
     } catch (queueErr: any) {
       // Queue unavailable (e.g. Redis down) — fallback to direct send
       console.warn('[comunicacao] Queue unavailable, trying direct send:', queueErr.message)

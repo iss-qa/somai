@@ -23,6 +23,8 @@ import adminFinancialRoutes from '../../../../../../apps/api/src/routes/admin/fi
 import adminHealthRoutes from '../../../../../../apps/api/src/routes/admin/health'
 import adminLogsRoutes from '../../../../../../apps/api/src/routes/admin/logs'
 import adminAppLogsRoutes from '../../../../../../apps/api/src/routes/admin/applogs'
+import adminIntegrationsRoutes from '../../../../../../apps/api/src/routes/admin/integrations'
+import adminComunicacaoRoutes from '../../../../../../apps/api/src/routes/admin/comunicacao'
 import billingRoutes from '../../../../../../apps/api/src/routes/billing'
 import cronRoutes from '../../../../../../apps/api/src/routes/cron'
 
@@ -56,6 +58,8 @@ async function getApp() {
   await app.register(adminHealthRoutes, { prefix: '/api/admin/health' })
   await app.register(adminLogsRoutes, { prefix: '/api/admin/logs' })
   await app.register(adminAppLogsRoutes, { prefix: '/api/admin/applogs' })
+  await app.register(adminIntegrationsRoutes, { prefix: '/api/admin/integrations' })
+  await app.register(adminComunicacaoRoutes, { prefix: '/api/admin/comunicacao' })
   await app.register(billingRoutes, { prefix: '/api/billing' })
   await app.register(cronRoutes, { prefix: '/api/cron' })
 
