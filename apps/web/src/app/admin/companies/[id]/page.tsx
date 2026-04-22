@@ -140,15 +140,16 @@ export default function CompanyDetailPage() {
     finally { setActing(false) }
   }
 
-  async function handleEnableAccess() {
+  // ── Release (bypass setup + mensalidade) ──────
+  const [releaseOpen, setReleaseOpen] = useState(false)
+
+  async function handleRelease() {
     if (!company) return
     setActing(true)
     try {
-      await api.put(`/api/companies/${company._id}`, {
-        access_enabled: true,
-        status: 'active',
-      })
+      await api.post(`/api/companies/${company._id}/release`)
       toast.success('Acesso liberado!')
+      setReleaseOpen(false)
       loadCompany()
     } catch { toast.error('Erro ao liberar acesso') }
     finally { setActing(false) }
@@ -305,12 +306,6 @@ export default function CompanyDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {!company.access_enabled && (
-            <Button size="sm" className="gap-2" onClick={handleEnableAccess} disabled={acting}>
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Liberar Acesso</span>
-            </Button>
-          )}
           <Button variant="outline" size="sm" className="gap-2" onClick={() => setEditOpen(true)}>
             <Pencil className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Editar</span>
@@ -324,6 +319,17 @@ export default function CompanyDetailPage() {
             <Button variant="destructive" size="sm" className="gap-2" onClick={handleBlock} disabled={acting}>
               <Ban className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Bloquear</span>
+            </Button>
+          )}
+          {company.status !== 'active' && (
+            <Button
+              size="sm"
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => setReleaseOpen(true)}
+              disabled={acting}
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Liberar</span>
             </Button>
           )}
         </div>
@@ -598,6 +604,47 @@ export default function CompanyDetailPage() {
               <Button className="flex-1" onClick={handleSaveEdit} disabled={editSaving}>
                 {editSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Release Confirmation ────────────── */}
+      <Dialog open={releaseOpen} onOpenChange={setReleaseOpen}>
+        <DialogContent className="!max-w-md">
+          <DialogHeader>
+            <DialogTitle>Liberar acesso</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-gray-300">
+              Tem certeza que deseja liberar o acesso a essa empresa{' '}
+              <span className="font-semibold text-white">{company.name}</span>?
+            </p>
+            <p className="text-xs text-gray-500">
+              A empresa terá acesso total liberado com bypass da cobrança de setup e da assinatura mensal.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReleaseOpen(false)}
+                disabled={acting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={handleRelease}
+                disabled={acting}
+              >
+                {acting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-3.5 h-3.5" />
+                )}
+                Confirmar liberação
               </Button>
             </div>
           </div>

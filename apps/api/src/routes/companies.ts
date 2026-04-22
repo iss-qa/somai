@@ -226,4 +226,35 @@ export default async function companiesRoutes(app: FastifyInstance) {
       return reply.send({ ...company, message: 'Acesso desbloqueado' })
     },
   )
+
+  // ── POST /:id/release (admin only) ────────────
+  // Libera acesso total, fazendo bypass de setup e assinatura mensal
+  app.post<{ Params: { id: string } }>(
+    '/:id/release',
+    { preHandler: [adminOnly] },
+    async (request, reply) => {
+      const { id } = request.params
+      const now = new Date()
+
+      const company = await Company.findByIdAndUpdate(
+        id,
+        {
+          access_enabled: true,
+          status: CompanyStatus.Active,
+          setup_paid: true,
+          setup_paid_at: now,
+          'billing.status': 'paid',
+          'billing.last_paid_at': now,
+          'billing.overdue_days': 0,
+        },
+        { new: true },
+      ).lean()
+
+      if (!company) {
+        return reply.status(404).send({ error: 'Empresa nao encontrada' })
+      }
+
+      return reply.send({ ...company, message: 'Acesso liberado' })
+    },
+  )
 }

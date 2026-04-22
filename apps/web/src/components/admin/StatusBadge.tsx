@@ -31,7 +31,7 @@ const statusConfig: Record<
       | 'default'
   }
 > = {
-  active: { label: 'Ativo', variant: 'success' },
+  active: { label: 'Liberado', variant: 'success' },
   published: { label: 'Publicado', variant: 'success' },
   paid: { label: 'Em dia', variant: 'success' },
   blocked: { label: 'Bloqueado', variant: 'destructive' },
