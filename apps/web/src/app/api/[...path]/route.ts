@@ -28,6 +28,7 @@ import adminComunicacaoRoutes from '../../../../../../apps/api/src/routes/admin/
 import billingRoutes from '../../../../../../apps/api/src/routes/billing'
 import cronRoutes from '../../../../../../apps/api/src/routes/cron'
 
+// build-tag: 2026-04-22-evolution-fix-v2
 let app: ReturnType<typeof Fastify> | null = null
 
 async function getApp() {
