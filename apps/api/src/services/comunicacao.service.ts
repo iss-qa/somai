@@ -188,6 +188,25 @@ Entre em contato com nosso suporte para regularizar sua situacao.
 _Mensagem automatica - Soma.ai_`
 }
 
+function templateErroPostagem(
+  companyName: string,
+  cardName: string,
+  platform: string,
+  motivo: string,
+): string {
+  return `⚠️ *Erro na publicacao*
+
+Ola *${companyName}*,
+
+Ocorreu um erro ao publicar o card *${cardName}* no *${platform}*.
+
+❌ *Motivo:* ${motivo}
+
+Verifique suas integracoes no painel e tente republicar. Se o problema persistir, entre em contato com o suporte.
+
+_Mensagem automatica - Soma.ai_`
+}
+
 // ── Service ──────────────────────────────────────────
 
 export class ComunicacaoService {
@@ -460,6 +479,28 @@ export class ComunicacaoService {
       tipo: TipoMensagem.ACESSO_BLOQUEADO,
       conteudo,
       priority: 1,
+    })
+  }
+
+  static async enviarErroPostagem(
+    companyId: string,
+    cardName: string,
+    platform: string,
+    motivo: string,
+  ) {
+    const company = await Company.findById(companyId)
+    if (!company) return
+
+    const conteudo = templateErroPostagem(company.name, cardName, platform, motivo)
+    return this.enviarMensagem({
+      company_id: companyId,
+      company_name: company.name,
+      destinatario_nome: company.responsible_name,
+      destinatario_telefone: company.whatsapp,
+      tipo: TipoMensagem.ERRO_POSTAGEM,
+      conteudo,
+      metadata: { card_name: cardName, platform, motivo },
+      priority: 2,
     })
   }
 

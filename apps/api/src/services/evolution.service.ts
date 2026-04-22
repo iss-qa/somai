@@ -1,4 +1,4 @@
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || ''
+const EVOLUTION_API_URL = (process.env.EVOLUTION_API_URL || '').replace(/\/$/, '')
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || ''
 
 if (process.env.EVOLUTION_ALLOW_SELF_SIGNED === 'true') {

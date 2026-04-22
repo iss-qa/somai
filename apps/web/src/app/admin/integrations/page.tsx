@@ -612,7 +612,7 @@ export default function AdminIntegrationsPage() {
 
   // Merge companies with their integration status
   const merged: CompanyWithStatus[] = companies.map((company) => {
-    const item = integrations.find((i) => i.company._id === company._id) || null
+    const item = integrations.find((i) => i.company?._id === company._id) || null
     return { company, integration: item, integrationStatus: getIntegrationStatus(item) }
   })
 

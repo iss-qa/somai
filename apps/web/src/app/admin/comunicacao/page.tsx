@@ -82,6 +82,7 @@ const TIPO_OPTIONS = [
   { value: 'alerta_atraso', label: 'Alerta de Atraso' },
   { value: 'trial_expirando', label: 'Trial Expirando' },
   { value: 'acesso_bloqueado', label: 'Acesso Bloqueado' },
+  { value: 'erro_postagem', label: 'Erro na Postagem' },
   { value: 'manual', label: 'Manual' },
 ]
 
@@ -103,6 +104,7 @@ const tipoMensagemColors: Record<string, string> = {
   alerta_atraso: 'bg-red-500/15 text-red-300 border-red-500/20',
   trial_expirando: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/20',
   acesso_bloqueado: 'bg-red-500/15 text-red-300 border-red-500/20',
+  erro_postagem: 'bg-rose-500/15 text-rose-300 border-rose-500/20',
   manual: 'bg-gray-500/15 text-gray-300 border-gray-500/20',
 }
 
@@ -117,6 +119,7 @@ const tipoMensagemLabels: Record<string, string> = {
   alerta_atraso: 'Alerta de Atraso',
   trial_expirando: 'Trial Expirando',
   acesso_bloqueado: 'Acesso Bloqueado',
+  erro_postagem: 'Erro na Postagem',
   manual: 'Manual',
 }
 
@@ -193,6 +196,11 @@ const REGRAS_DISPARO = [
     evento: 'Acesso Bloqueado',
     gatilho: 'Bloqueio por inadimplencia',
     descricao: 'Notifica a empresa sobre o bloqueio do acesso',
+  },
+  {
+    evento: 'Erro na Postagem',
+    gatilho: 'Falha ao publicar post no Instagram/Facebook',
+    descricao: 'Notifica a empresa sobre o erro com o nome do card, plataforma e motivo da falha',
   },
 ]
 

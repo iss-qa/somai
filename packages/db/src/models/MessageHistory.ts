@@ -11,6 +11,7 @@ export enum TipoMensagem {
   ALERTA_ATRASO = 'alerta_atraso',
   TRIAL_EXPIRANDO = 'trial_expirando',
   ACESSO_BLOQUEADO = 'acesso_bloqueado',
+  ERRO_POSTAGEM = 'erro_postagem',
   MANUAL = 'manual',
 }
 

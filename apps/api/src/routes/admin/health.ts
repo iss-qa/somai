@@ -55,7 +55,9 @@ export default async function adminHealthRoutes(app: FastifyInstance) {
         .select('company_id meta.connected meta.status meta.token_expires_at whatsapp.connected whatsapp.status')
         .lean()
 
-      const result = integrations.map((i) => ({
+      const result = integrations
+        .filter((i) => i.company_id != null)
+        .map((i) => ({
         company: i.company_id,
         meta: {
           connected: i.meta?.connected || false,
