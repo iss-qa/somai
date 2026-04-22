@@ -53,6 +53,7 @@ import {
   Send,
   MessageSquare,
   RotateCcw,
+  ArrowLeft,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -75,6 +76,7 @@ type ImageLayout =
   | 'dual-product'
   | 'side-by-side'
   | 'side-frame'
+  | 'external'
 type LogoPosition = 'top-left' | 'top-right' | 'top-center' | 'hidden'
 type TypeBadgePosition = 'inline' | 'top-left' | 'top-center' | 'top-right'
 type FontFamily =
@@ -473,124 +475,15 @@ interface CardTheme {
   apply: Partial<CardConfig>
 }
 
+// Temas visuais: ajustam APENAS cores e tipografia — nunca layout de imagem ou posicao de texto
 const CARD_THEMES: CardTheme[] = [
-  // ── Promocao ───────────────────────────────────────────────────────────────
-  {
-    id: 'hot_sale',
-    label: 'Hot Sale 🔥',
-    description: 'Para promocoes com urgencia e destaque',
-    postTypes: ['promocao'],
-    colors: { primary: '#EF4444', secondary: '#F59E0B', bg: '#1c0000' },
-    apply: { palette: 'quente', fontFamily: 'Bebas Neue', imageLayout: 'big-sale', textPosition: { vertical: 'top', horizontal: 'left' } },
-  },
-  {
-    id: 'promo_clean',
-    label: 'Promo Clean ✨',
-    description: 'Promocao minimalista e elegante',
-    postTypes: ['promocao'],
-    colors: { primary: '#A855F7', secondary: '#6366F1', bg: '#0c0a1a' },
-    apply: { palette: 'elegante', fontFamily: 'Montserrat', imageLayout: 'super-sale', textPosition: { vertical: 'center', horizontal: 'center' } },
-  },
-  {
-    id: 'promo_tech',
-    label: 'Promo Tech 💻',
-    description: 'Estilo tecnologico e moderno',
-    postTypes: ['promocao'],
-    colors: { primary: '#3B82F6', secondary: '#10B981', bg: '#0f172a' },
-    apply: { palette: 'profissional', fontFamily: 'Roboto', imageLayout: 'side-by-side', textPosition: { vertical: 'bottom', horizontal: 'left' } },
-  },
-  {
-    id: 'promo_fashion',
-    label: 'Fashion Sale 👗',
-    description: 'Para moda e beleza com estilo vibrante',
-    postTypes: ['promocao'],
-    colors: { primary: '#EC4899', secondary: '#F59E0B', bg: '#1a0a1e' },
-    apply: { palette: 'vibrante', fontFamily: 'Raleway', imageLayout: 'frame', textPosition: { vertical: 'bottom', horizontal: 'center' } },
-  },
-  // ── Dica ───────────────────────────────────────────────────────────────────
-  {
-    id: 'dica_clean',
-    label: 'Dica Clean 📝',
-    description: 'Dica com fundo limpo e texto principal',
-    postTypes: ['dica'],
-    colors: { primary: '#3B82F6', secondary: '#10B981', bg: '#0f172a' },
-    apply: { palette: 'profissional', fontFamily: 'Open Sans', imageLayout: 'background', textPosition: { vertical: 'center', horizontal: 'center' } },
-  },
-  {
-    id: 'dica_bold',
-    label: 'Dica Bold 💡',
-    description: 'Dica com destaque visual forte',
-    postTypes: ['dica'],
-    colors: { primary: '#F59E0B', secondary: '#EF4444', bg: '#1c1917' },
-    apply: { palette: 'quente', fontFamily: 'Poppins', imageLayout: 'top', textPosition: { vertical: 'bottom', horizontal: 'left' } },
-  },
-  // ── Novidade ───────────────────────────────────────────────────────────────
-  {
-    id: 'novidade_launch',
-    label: 'Lancamento 🚀',
-    description: 'Para divulgar novidades e lancamentos',
-    postTypes: ['novidade'],
-    colors: { primary: '#8B5CF6', secondary: '#EC4899', bg: '#1a1a2e' },
-    apply: { palette: 'vibrante', fontFamily: 'Montserrat', imageLayout: 'super-sale', textPosition: { vertical: 'top', horizontal: 'center' } },
-  },
-  {
-    id: 'novidade_elegante',
-    label: 'Novidade Elegante 🌟',
-    description: 'Para produtos premium e exclusivos',
-    postTypes: ['novidade'],
-    colors: { primary: '#A855F7', secondary: '#6366F1', bg: '#0c0a1a' },
-    apply: { palette: 'elegante', fontFamily: 'Playfair Display', imageLayout: 'frame', textPosition: { vertical: 'bottom', horizontal: 'center' } },
-  },
-  // ── Institucional ──────────────────────────────────────────────────────────
-  {
-    id: 'institucional_corp',
-    label: 'Corporativo 🏢',
-    description: 'Tom profissional e sobrio',
-    postTypes: ['institucional'],
-    colors: { primary: '#3B82F6', secondary: '#10B981', bg: '#0f172a' },
-    apply: { palette: 'profissional', fontFamily: 'Inter', imageLayout: 'left', textPosition: { vertical: 'center', horizontal: 'left' } },
-  },
-  {
-    id: 'institucional_clean',
-    label: 'Clean Minimalista 🎯',
-    description: 'Menos e mais — foco na mensagem',
-    postTypes: ['institucional'],
-    colors: { primary: '#A855F7', secondary: '#6366F1', bg: '#0c0a1a' },
-    apply: { palette: 'elegante', fontFamily: 'Raleway', imageLayout: 'background', textPosition: { vertical: 'center', horizontal: 'center' } },
-  },
-  {
-    id: 'institucional_comunicado',
-    label: 'Comunicado 📢',
-    description: 'Para avisos, comunicados e horarios',
-    postTypes: ['institucional'],
-    colors: { primary: '#F59E0B', secondary: '#EF4444', bg: '#1c1917' },
-    apply: { palette: 'quente', fontFamily: 'Oswald', imageLayout: 'top', textPosition: { vertical: 'bottom', horizontal: 'center' } },
-  },
-  // ── Data Comemorativa ─────────────────────────────────────────────────────
-  {
-    id: 'data_festivo',
-    label: 'Festivo 🎉',
-    description: 'Para datas comemorativas e celebracoes',
-    postTypes: ['data_comemorativa'],
-    colors: { primary: '#EC4899', secondary: '#F59E0B', bg: '#1a0a1e' },
-    apply: { palette: 'vibrante', fontFamily: 'Bebas Neue', imageLayout: 'background', textPosition: { vertical: 'center', horizontal: 'center' } },
-  },
-  {
-    id: 'data_elegante',
-    label: 'Data Elegante 🥂',
-    description: 'Para datas com tom sofisticado',
-    postTypes: ['data_comemorativa'],
-    colors: { primary: '#A855F7', secondary: '#6366F1', bg: '#0c0a1a' },
-    apply: { palette: 'elegante', fontFamily: 'Playfair Display', imageLayout: 'frame', textPosition: { vertical: 'center', horizontal: 'center' } },
-  },
-  // ── Universal ─────────────────────────────────────────────────────────────
   {
     id: 'dark_premium',
     label: 'Dark Premium 🖤',
-    description: 'Estilo escuro premium para qualquer conteudo',
+    description: 'Estilo escuro e premium para qualquer conteudo',
     postTypes: ['promocao', 'dica', 'novidade', 'institucional', 'data_comemorativa', 'nenhum'],
     colors: { primary: '#A855F7', secondary: '#6366F1', bg: '#050508' },
-    apply: { palette: 'elegante', fontFamily: 'Poppins', imageLayout: 'background', textPosition: { vertical: 'center', horizontal: 'center' } },
+    apply: { palette: 'elegante', fontFamily: 'Poppins' },
   },
   {
     id: 'natural_clean',
@@ -598,22 +491,36 @@ const CARD_THEMES: CardTheme[] = [
     description: 'Tom natural, ideal para saude e beleza',
     postTypes: ['promocao', 'dica', 'novidade', 'institucional', 'data_comemorativa', 'nenhum'],
     colors: { primary: '#10B981', secondary: '#3B82F6', bg: '#022c22' },
-    apply: { palette: 'profissional', fontFamily: 'Lato', imageLayout: 'side-frame', textPosition: { vertical: 'center', horizontal: 'left' } },
+    apply: { palette: 'profissional', fontFamily: 'Lato' },
   },
   {
-    id: 'urban_street',
-    label: 'Urban Street 🏙️',
-    description: 'Para barbearia, moda e lifestyle urbano',
+    id: 'vibrant_pop',
+    label: 'Vibrante Pop 💜',
+    description: 'Cores fortes e tipografia moderna',
     postTypes: ['promocao', 'dica', 'novidade', 'institucional', 'data_comemorativa', 'nenhum'],
-    colors: { primary: '#EF4444', secondary: '#1F2937', bg: '#000000' },
-    apply: { palette: 'quente', fontFamily: 'Oswald', imageLayout: 'right', textPosition: { vertical: 'center', horizontal: 'left' } },
+    colors: { primary: '#EC4899', secondary: '#8B5CF6', bg: '#1a0a2e' },
+    apply: { palette: 'vibrante', fontFamily: 'Montserrat' },
+  },
+  {
+    id: 'sunrise_warm',
+    label: 'Sunrise Warm 🔥',
+    description: 'Tom quente, energizante e de alto contraste',
+    postTypes: ['promocao', 'dica', 'novidade', 'institucional', 'data_comemorativa', 'nenhum'],
+    colors: { primary: '#F59E0B', secondary: '#EF4444', bg: '#1c0800' },
+    apply: { palette: 'quente', fontFamily: 'Bebas Neue' },
+  },
+  {
+    id: 'corporate_blue',
+    label: 'Corporativo 🏢',
+    description: 'Profissional e confiavel para negocios',
+    postTypes: ['promocao', 'dica', 'novidade', 'institucional', 'data_comemorativa', 'nenhum'],
+    colors: { primary: '#3B82F6', secondary: '#10B981', bg: '#0f172a' },
+    apply: { palette: 'profissional', fontFamily: 'Roboto' },
   },
 ]
 
 function getThemesForPostType(postType: PostType): CardTheme[] {
-  const specific = CARD_THEMES.filter((t) => t.postTypes.includes(postType) && t.postTypes.length < 5)
-  const universal = CARD_THEMES.filter((t) => t.postTypes.length >= 5)
-  return [...specific, ...universal]
+  return CARD_THEMES.filter((t) => t.postTypes.includes(postType))
 }
 
 function getSmartDefaults(niche: string | undefined, postType: PostType | 'nenhum'): Partial<CardConfig> {
@@ -1201,15 +1108,15 @@ function CardPreview({
       ? { ...(config.imageUrl ? { backgroundImage: `url(${config.imageUrl})` } : { background: placeholderBg }), backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
       : { background: placeholderBg }
 
-    if (layout === 'background') {
+    if (layout === 'background' || layout === 'external') {
       return (
         <div
           style={{
             ...baseImageStyle,
             position: 'absolute',
             inset: 0,
-            opacity: config.imageOpacity / 100,
-            filter: `blur(${config.imageBlur}px)`,
+            opacity: layout === 'external' ? 1 : config.imageOpacity / 100,
+            filter: layout === 'external' ? 'none' : `blur(${config.imageBlur}px)`,
           }}
         />
       )
@@ -1303,9 +1210,9 @@ function CardPreview({
     return hasImageLayout && config.imageLayout === 'dual-product'
   }
 
-  // Background layout
+  // Background layout (inclui external: imagem cobre o card todo)
   function isBgLayout() {
-    return hasImageLayout && config.imageLayout === 'background'
+    return hasImageLayout && (config.imageLayout === 'background' || config.imageLayout === 'external')
   }
 
   // Logo
@@ -1495,7 +1402,7 @@ function CardPreview({
           </div>
         )}
 
-        {config.display.showCta && config.cta && (
+        {config.display.showCta && config.cta && config.cta !== 'nenhum' && (
           <div
             style={{
               marginTop: 12,
@@ -1631,7 +1538,7 @@ function CardPreview({
           }}
         />
         {/* CTA bottom left */}
-        {config.display.showCta && config.cta && (
+        {config.display.showCta && config.cta && config.cta !== 'nenhum' && (
           <div style={{ position: 'absolute', bottom: 20, left: 24, zIndex: 10 }}>
             <div style={{ background: ptConfig.accentGradient, color: '#fff', fontSize: config.fontSizes.cta, fontWeight: 700, padding: '8px 22px', borderRadius: 30, fontFamily: fontStack, boxShadow: `0 4px 15px ${pal.primary}50` }}>
               {config.cta}
@@ -1705,7 +1612,7 @@ function CardPreview({
               <span style={{ fontSize: config.fontSizes.price, fontWeight: 900, color: pal.secondary, fontFamily: fontStack }}>R$ {config.promoPrice}</span>
             </div>
           )}
-          {config.display.showCta && config.cta && (
+          {config.display.showCta && config.cta && config.cta !== 'nenhum' && (
             <div style={{ background: ptConfig.accentGradient, color: '#fff', fontSize: config.fontSizes.cta, fontWeight: 700, padding: '10px 28px', borderRadius: 30, fontFamily: fontStack, boxShadow: `0 4px 15px ${pal.primary}50`, display: 'inline-block' }}>
               {config.cta}
             </div>
@@ -1806,7 +1713,7 @@ function CardPreview({
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent 60%)' }} />
           <div style={{ position: 'absolute', bottom: 12, left: 16, right: 16, zIndex: 5 }}>
             <div style={{ fontSize: config.fontSizes.title * 0.8, fontWeight: 900, color: '#fff', fontFamily: fontStack }}>{config.headline || 'Produto 2'}</div>
-            {config.display.showCta && config.cta && (
+            {config.display.showCta && config.cta && config.cta !== 'nenhum' && (
               <div style={{ marginTop: 8, background: ptConfig.accentGradient, color: '#fff', fontSize: config.fontSizes.cta, fontWeight: 700, padding: '6px 18px', borderRadius: 20, display: 'inline-block', fontFamily: fontStack }}>{config.cta}</div>
             )}
           </div>
@@ -1847,7 +1754,7 @@ function CardPreview({
               <span style={{ fontSize: config.fontSizes.price * 0.8, fontWeight: 900, color: pal.secondary, fontFamily: fontStack }}>R$ {config.promoPrice}</span>
             </div>
           )}
-          {config.display.showCta && config.cta && (
+          {config.display.showCta && config.cta && config.cta !== 'nenhum' && (
             <div style={{ marginTop: 10, background: ptConfig.accentGradient, color: '#fff', fontSize: config.fontSizes.cta, fontWeight: 700, padding: '8px 22px', borderRadius: 30, display: 'inline-block', fontFamily: fontStack, boxShadow: `0 4px 15px ${pal.primary}50` }}>{config.cta}</div>
           )}
         </div>
@@ -1887,7 +1794,7 @@ function CardPreview({
               <span style={{ fontSize: config.fontSizes.price * 0.75, fontWeight: 900, color: pal.secondary, fontFamily: fontStack }}>R$ {config.promoPrice}</span>
             </div>
           )}
-          {config.display.showCta && config.cta && (
+          {config.display.showCta && config.cta && config.cta !== 'nenhum' && (
             <div style={{ marginTop: 10, background: ptConfig.accentGradient, color: '#fff', fontSize: config.fontSizes.cta, fontWeight: 700, padding: '8px 20px', borderRadius: 30, display: 'inline-block', fontFamily: fontStack }}>{config.cta}</div>
           )}
         </div>
@@ -1969,7 +1876,7 @@ function CardPreview({
     >
       {renderDecorations()}
       {isBgLayout() && renderImageBackground()}
-      {isBgLayout() && (
+      {isBgLayout() && config.imageLayout !== 'external' && (
         <div style={{ position: 'absolute', inset: 0, background: `${pal.bg}99`, zIndex: 2 }} />
       )}
       {renderLogo()}
@@ -2056,10 +1963,13 @@ function GenerateCardPage() {
   const [aiConfigInfo, setAiConfigInfo] = useState<{ provider: string; model: string; active: boolean } | null>(null)
   const [showEnlargedPreview, setShowEnlargedPreview] = useState(false)
   const [enlargedSlide, setEnlargedSlide] = useState(0)
-  // Modal inicial de escolha do caminho: null = ainda nao escolheu, 'custom' = form vazio, 'ai' = abrir modal de IA
-  const [startChoice, setStartChoice] = useState<'custom' | 'ai' | null>(null)
+  // Modal inicial de escolha do caminho: null = ainda nao escolheu, 'custom' = form vazio, 'ai' = abrir modal de IA, 'existing' = usar card externo
+  const [startChoice, setStartChoice] = useState<'custom' | 'ai' | 'existing' | null>(null)
   const [showStartChoice, setShowStartChoice] = useState(true)
+  const [showExistingUpload, setShowExistingUpload] = useState(false)
+  const [existingCardPreview, setExistingCardPreview] = useState<string | null>(null)
   const aiFileInputRef = useRef<HTMLInputElement>(null)
+  const existingFileInputRef = useRef<HTMLInputElement>(null)
 
   // Carrega info da IA configurada (para badge + aviso)
   useEffect(() => {
@@ -2299,6 +2209,35 @@ function GenerateCardPage() {
     reader.readAsDataURL(file)
     e.target.value = ''
   }, [])
+
+  // ---------- Handle existing card upload ----------
+  const handleExistingCardUpload = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione um arquivo de imagem')
+      return
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Imagem muito grande (max 20MB)')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setExistingCardPreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }, [])
+
+  const handleConfirmExistingCard = useCallback(() => {
+    if (!existingCardPreview) return
+    updateConfig('imageUrl', existingCardPreview)
+    updateConfig('imageLayout', 'external')
+    updateConfig('includeImage', true)
+    updateConfig('cta', 'nenhum')
+    updateConfig('display', { showLogo: false, showCta: true, showPrice: true, showOriginalPrice: true })
+    setStartChoice('existing')
+    setShowStartChoice(false)
+    setShowExistingUpload(false)
+  }, [existingCardPreview, updateConfig])
 
   // ---------- Generate full card/carousel with AI (texto + imagens) ----------
   const handleGenerateImage = useCallback(async () => {
@@ -2984,6 +2923,7 @@ function GenerateCardPage() {
                         <SelectValue placeholder="Selecione o CTA" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
                         <SelectItem value="Compre agora">Compre agora</SelectItem>
                         <SelectItem value="Saiba mais">Saiba mais</SelectItem>
                         <SelectItem value="Visite nosso site">Visite nosso site</SelectItem>
@@ -3000,7 +2940,7 @@ function GenerateCardPage() {
                   </div>
 
                   {/* CTA Destination URL (compartilhado) */}
-                  <div className="space-y-1.5 sm:col-span-2">
+                  <div className={`space-y-1.5 sm:col-span-2${config.cta === 'nenhum' ? ' hidden' : ''}`}>
                     <Label htmlFor="ctaUrl">
                       {config.cta === 'Chame no WhatsApp' ? 'WhatsApp (com DDD)' :
                        config.cta === 'Ligue agora' ? 'Telefone (com DDD)' :
@@ -3192,17 +3132,46 @@ function GenerateCardPage() {
               {/* ----------------------------------------------------------- */}
               <Section title="Temas visuais" icon={Palette} defaultOpen={false}>
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-400">Aplique um tema visual ao card. O tema ajusta cores, fonte e layout automaticamente.</p>
+                  <p className="text-xs text-gray-400">Aplique um tema visual ao card. O tema ajusta apenas cores e tipografia — sem alterar o layout da imagem.</p>
                   <div className="grid grid-cols-1 gap-2">
+                    {/* Nenhum — restaura defaults de cor e fonte */}
+                    <button
+                      onClick={() => {
+                        setConfig((prev) => ({
+                          ...prev,
+                          palette: DEFAULT_CONFIG.palette,
+                          fontFamily: DEFAULT_CONFIG.fontFamily,
+                          customColors: { ...DEFAULT_CONFIG.customColors },
+                          textColor: DEFAULT_CONFIG.textColor,
+                          titleColor: DEFAULT_CONFIG.titleColor,
+                        }))
+                        setDirtyAfterApprove(true)
+                        toast.success('Tema removido')
+                      }}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-brand-border hover:border-gray-500 hover:bg-brand-surface transition-all text-left group"
+                    >
+                      <div className="flex-shrink-0 flex gap-1">
+                        <div className="w-6 h-10 rounded-md bg-gray-700 flex items-center justify-center">
+                          <X className="w-3 h-3 text-gray-400" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-200 group-hover:text-white">Nenhum</p>
+                        <p className="text-xs text-gray-500">Volta ao padrao de cores e fonte</p>
+                      </div>
+                      <div className="text-gray-600 group-hover:text-gray-300 transition-colors text-xs">
+                        Aplicar →
+                      </div>
+                    </button>
                     {getThemesForPostType(config.postType).map((theme) => (
                       <button
                         key={theme.id}
                         onClick={() => {
-                          const overrides: Partial<CardConfig> = { ...theme.apply }
                           setConfig((prev) => ({
                             ...prev,
-                            ...overrides,
-                            customColors: theme.apply.palette ? prev.customColors : theme.colors,
+                            palette: theme.apply.palette ?? prev.palette,
+                            fontFamily: theme.apply.fontFamily ?? prev.fontFamily,
+                            customColors: theme.apply.palette === 'custom' ? theme.colors : prev.customColors,
                           }))
                           setDirtyAfterApprove(true)
                           toast.success(`Tema "${theme.label}" aplicado!`)
@@ -3452,34 +3421,36 @@ function GenerateCardPage() {
                       </div>
                     </>
                   )}
-                  {/* Type badge position */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-gray-400">Posicao do tipo</Label>
-                    <div className="flex gap-2 flex-wrap">
-                      {(['inline', 'top-left', 'top-center', 'top-right'] as TypeBadgePosition[]).map((pos) => {
-                        const labels: Record<TypeBadgePosition, string> = {
-                          inline: 'Inline',
-                          'top-left': 'Esquerda',
-                          'top-center': 'Centro',
-                          'top-right': 'Direita',
-                        }
-                        return (
-                          <button
-                            key={pos}
-                            onClick={() => updateConfig('typeBadgePosition', pos)}
-                            className={cn(
-                              'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                              config.typeBadgePosition === pos
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-brand-surface text-gray-400 hover:text-gray-200 border border-brand-border'
-                            )}
-                          >
-                            {labels[pos]}
-                          </button>
-                        )
-                      })}
+                  {/* Type badge position — so aparece quando ha um tipo de post selecionado */}
+                  {config.postType !== 'nenhum' && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-gray-400">Posicao do badge de categoria</Label>
+                      <div className="flex gap-2 flex-wrap">
+                        {(['inline', 'top-left', 'top-center', 'top-right'] as TypeBadgePosition[]).map((pos) => {
+                          const labels: Record<TypeBadgePosition, string> = {
+                            inline: 'Inline',
+                            'top-left': 'Esquerda',
+                            'top-center': 'Centro',
+                            'top-right': 'Direita',
+                          }
+                          return (
+                            <button
+                              key={pos}
+                              onClick={() => updateConfig('typeBadgePosition', pos)}
+                              className={cn(
+                                'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                config.typeBadgePosition === pos
+                                  ? 'bg-primary-500 text-white'
+                                  : 'bg-brand-surface text-gray-400 hover:text-gray-200 border border-brand-border'
+                              )}
+                            >
+                              {labels[pos]}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Logo URL, size and position */}
                   {config.display.showLogo && (
@@ -3829,78 +3800,188 @@ function GenerateCardPage() {
         </div>
         )}
       </div>
-      {/* Modal de escolha inicial: Personalizar vs Gerar com IA */}
+      {/* Modal de escolha inicial: Personalizar vs Gerar com IA vs Utilizar Existente */}
       {showStartChoice && !editCardId && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-brand-card border border-brand-border rounded-2xl w-full max-w-2xl p-6 shadow-2xl">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 mb-3">
-                <Sparkles className="w-6 h-6 text-violet-300" />
-              </div>
-              <h2 className="text-xl font-semibold text-white">Como deseja criar seu card?</h2>
-              <p className="text-sm text-gray-400 mt-1">Escolha um caminho para comecar</p>
-            </div>
+          <div className="bg-brand-card border border-brand-border rounded-2xl w-full max-w-3xl p-6 shadow-2xl">
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Personalizar */}
-              <button
-                onClick={() => {
-                  setStartChoice('custom')
-                  setShowStartChoice(false)
-                }}
-                className="group text-left rounded-xl border border-brand-border bg-brand-surface/50 hover:bg-brand-surface hover:border-primary-500/60 transition-all p-5 space-y-3"
-              >
-                <div className="w-10 h-10 rounded-lg bg-gray-800 group-hover:bg-primary-500/20 flex items-center justify-center transition-colors">
-                  <FileText className="w-5 h-5 text-gray-300 group-hover:text-primary-300" />
+            {!showExistingUpload ? (
+              <>
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 mb-3">
+                    <Sparkles className="w-6 h-6 text-violet-300" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-white">Como deseja criar seu card?</h2>
+                  <p className="text-sm text-gray-400 mt-1">Escolha um caminho para comecar</p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-white">Personalizar</h3>
-                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                    Comece com o formulario vazio e preencha manualmente cada campo.
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 group-hover:text-primary-300">
-                  Controle total
-                </span>
-              </button>
 
-              {/* Gerar com IA */}
-              <button
-                onClick={() => {
-                  setStartChoice('ai')
-                  setShowStartChoice(false)
-                  // Abre imediatamente o modal de IA com o prompt pre-montado
-                  setTimeout(() => handleOpenAiModal(), 100)
-                }}
-                className="group text-left rounded-xl border border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20 hover:border-violet-400 transition-all p-5 space-y-3 relative overflow-hidden"
-              >
-                <div className="absolute top-2 right-2 text-[9px] font-bold text-violet-300 bg-violet-500/20 px-1.5 py-0.5 rounded-full">
-                  RECOMENDADO
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-violet-300" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-white">Gerar com IA</h3>
-                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                    A IA cria titulos, textos, CTAs, cores e imagens coerentes com o seu nicho.
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-violet-300">
-                  Rapido e automatico
-                </span>
-              </button>
-            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Personalizar */}
+                  <button
+                    onClick={() => {
+                      setStartChoice('custom')
+                      setShowStartChoice(false)
+                    }}
+                    className="group text-left rounded-xl border border-brand-border bg-brand-surface/50 hover:bg-brand-surface hover:border-primary-500/60 transition-all p-5 space-y-3"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-gray-800 group-hover:bg-primary-500/20 flex items-center justify-center transition-colors">
+                      <FileText className="w-5 h-5 text-gray-300 group-hover:text-primary-300" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">Personalizar</h3>
+                      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                        Comece com o formulario vazio e preencha manualmente cada campo.
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 group-hover:text-primary-300">
+                      Controle total
+                    </span>
+                  </button>
 
-            <button
-              onClick={() => {
-                setStartChoice('custom')
-                setShowStartChoice(false)
-              }}
-              className="w-full mt-5 text-xs text-gray-500 hover:text-gray-300 transition-colors"
-            >
-              Pular e escolher depois
-            </button>
+                  {/* Gerar com IA */}
+                  <button
+                    onClick={() => {
+                      setStartChoice('ai')
+                      setShowStartChoice(false)
+                      setTimeout(() => handleOpenAiModal(), 100)
+                    }}
+                    className="group text-left rounded-xl border border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20 hover:border-violet-400 transition-all p-5 space-y-3 relative overflow-hidden"
+                  >
+                    <div className="absolute top-2 right-2 text-[9px] font-bold text-violet-300 bg-violet-500/20 px-1.5 py-0.5 rounded-full">
+                      RECOMENDADO
+                    </div>
+                    <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-violet-300" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">Gerar com IA</h3>
+                      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                        A IA cria titulos, textos, CTAs, cores e imagens coerentes com o seu nicho.
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-violet-300">
+                      Rapido e automatico
+                    </span>
+                  </button>
+
+                  {/* Utilizar um Existente */}
+                  <button
+                    onClick={() => {
+                      setShowExistingUpload(true)
+                      setExistingCardPreview(null)
+                    }}
+                    className="group text-left rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/5 to-teal-500/5 hover:from-cyan-500/15 hover:to-teal-500/15 hover:border-cyan-400/60 transition-all p-5 space-y-3"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-cyan-500/10 group-hover:bg-cyan-500/20 flex items-center justify-center transition-colors">
+                      <Upload className="w-5 h-5 text-cyan-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">Utilizar um Existente</h3>
+                      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                        Importe um card criado em outra plataforma ou formato.
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-cyan-400/70 group-hover:text-cyan-300">
+                      Importar imagem
+                    </span>
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setStartChoice('custom')
+                    setShowStartChoice(false)
+                  }}
+                  className="w-full mt-5 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  Pular e escolher depois
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Upload area for existing card */}
+                <div className="flex items-center gap-3 mb-5">
+                  <button
+                    onClick={() => {
+                      setShowExistingUpload(false)
+                      setExistingCardPreview(null)
+                    }}
+                    className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Voltar
+                  </button>
+                  <div className="flex-1 text-center">
+                    <h2 className="text-base font-semibold text-white">Importar card existente</h2>
+                    <p className="text-xs text-gray-400 mt-0.5">Envie a imagem do seu card para carregar no preview</p>
+                  </div>
+                </div>
+
+                {existingCardPreview ? (
+                  <div className="space-y-4">
+                    <div className="relative rounded-xl overflow-hidden border border-brand-border bg-black flex items-center justify-center" style={{ minHeight: 220 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={existingCardPreview}
+                        alt="Preview do card"
+                        className="max-h-[300px] max-w-full object-contain"
+                      />
+                      <button
+                        onClick={() => setExistingCardPreview(null)}
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 text-gray-400 hover:text-red-400 flex items-center justify-center"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setExistingCardPreview(null)}
+                        className="flex-1 py-2 rounded-lg border border-brand-border text-xs text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
+                      >
+                        Trocar imagem
+                      </button>
+                      <button
+                        onClick={handleConfirmExistingCard}
+                        className="flex-1 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium transition-colors"
+                      >
+                        Usar esse card
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-brand-border hover:border-cyan-500/50 bg-brand-surface/30 hover:bg-cyan-500/5 transition-all cursor-pointer p-10"
+                    onClick={() => existingFileInputRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      const file = e.dataTransfer.files?.[0]
+                      if (file) handleExistingCardUpload(file)
+                    }}
+                  >
+                    <div className="w-14 h-14 rounded-full bg-cyan-500/10 flex items-center justify-center">
+                      <Upload className="w-7 h-7 text-cyan-400" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-white">Clique ou arraste sua imagem aqui</p>
+                      <p className="text-xs text-gray-500 mt-1">PNG, JPG, WEBP — max 20MB</p>
+                    </div>
+                  </div>
+                )}
+
+                <input
+                  ref={existingFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleExistingCardUpload(file)
+                    e.target.value = ''
+                  }}
+                />
+              </>
+            )}
           </div>
         </div>
       )}
