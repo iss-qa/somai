@@ -12,16 +12,22 @@ import { ComunicacaoService } from '../services/comunicacao.service'
  * - GET /api/cron/publish-due (external cron service)
  * - Internal setInterval in server.ts (self-contained fallback)
  */
-export async function publishDuePosts(limit = 10): Promise<{
+export async function publishDuePosts(
+  limit = 10,
+  companyId?: string,
+): Promise<{
   processed: number
   results: Array<{ id: string; status: string; error?: string }>
 }> {
   const now = new Date()
 
-  const duePosts = await PostQueue.find({
+  const filter: Record<string, unknown> = {
     status: QueueStatus.Queued,
     scheduled_at: { $lte: now },
-  })
+  }
+  if (companyId) filter.company_id = companyId
+
+  const duePosts = await PostQueue.find(filter)
     .populate('card_id')
     .limit(limit)
     .lean()

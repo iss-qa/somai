@@ -95,6 +95,21 @@ export default function CompanyLayout({
     return () => { cancelled = true }
   }, [setUser])
 
+  // Gatilho lazy para processar posts agendados da empresa.
+  // Necessario porque o Vercel Hobby plan limita crons a frequencia diaria —
+  // cada vez que o usuario abre o app, verifica e publica posts atrasados.
+  // Throttled via localStorage para no maximo 1x por minuto.
+  useEffect(() => {
+    try {
+      const key = 'soma-last-publish-trigger'
+      const last = Number(localStorage.getItem(key) || '0')
+      const now = Date.now()
+      if (now - last < 60_000) return
+      localStorage.setItem(key, String(now))
+      api.post('/api/post-queue/process-due').catch(() => {})
+    } catch { /* storage indisponivel — ignora */ }
+  }, [pathname])
+
   const handleLogout = async () => {
     clearUser()
     // Call API to clear httpOnly cookie, then hard redirect

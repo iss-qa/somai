@@ -4,6 +4,7 @@ import { QueueStatus } from '@soma-ai/shared'
 import { authenticate } from '../plugins/auth'
 import postQueue from '../queues/post.queue'
 import { ComunicacaoService } from '../services/comunicacao.service'
+import { publishDuePosts } from '../jobs/publish-due.job'
 
 export default async function postQueueRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -218,6 +219,27 @@ export default async function postQueueRoutes(app: FastifyInstance) {
       await Card.findByIdAndUpdate(queueItem.card_id, { status: 'approved' })
 
       return reply.send({ message: 'Agendamento cancelado', item: queueItem })
+    },
+  )
+
+  // ── POST /process-due ─────────────────────────
+  // Gatilho lazy para processar a fila da empresa atual quando o cron diario
+  // ainda nao rodou. Seguro para chamar do cliente — filtra por company_id.
+  app.post(
+    '/process-due',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const { companyId, role } = request.user!
+
+      // Admin pode processar tudo; company user processa so sua fila
+      const isAdmin = role === 'superadmin' || role === 'support'
+      const target = isAdmin ? undefined : companyId
+
+      if (!isAdmin && !companyId) {
+        return reply.status(400).send({ error: 'Empresa nao encontrada' })
+      }
+
+      const result = await publishDuePosts(10, target || undefined)
+      return reply.send({ ok: true, ...result })
     },
   )
 }
