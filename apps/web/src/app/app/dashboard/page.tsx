@@ -135,6 +135,8 @@ function TrialBanner() {
     return () => clearInterval(interval)
   }, [user?.trialExpiresAt])
 
+  // Admin liberou acesso — nao exibe mais o banner
+  if (user?.accessEnabled === true) return null
   if (!user?.trialExpiresAt || !timeLeft) return null
 
   const expired = timeLeft === 'Expirado'
