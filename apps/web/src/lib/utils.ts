@@ -44,7 +44,7 @@ export function truncate(str: string, maxLength: number): string {
 
 export const SITE = {
   name: 'Soma.ai',
-  tagline: 'Sistema Operacional de Marketing com IA',
+  tagline: 'Plataforma de Marketing com IA',
   description:
     'Marketing automático para pequenas empresas. Você atende, a Soma cuida das suas redes, dos seus vídeos e do seu WhatsApp — tudo em um só lugar, com inteligência artificial.',
   url: 'https://somai.issqa.com.br',

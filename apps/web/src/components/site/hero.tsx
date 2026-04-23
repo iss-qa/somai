@@ -57,7 +57,7 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.12 }}
             className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-zinc-300 sm:text-lg"
           >
-            Sistema operacional de marketing com IA para pequenas empresas.
+            Plataforma de marketing com IA para pequenas empresas.
             Geramos posts, vídeos, roteiros, campanhas e mensagens no WhatsApp —
             automaticamente, no seu estilo, todos os dias.
           </motion.p>

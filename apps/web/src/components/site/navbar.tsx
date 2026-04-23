@@ -51,12 +51,12 @@ export function Navbar() {
             <Logo />
           </a>
 
-          <ul className="hidden lg:flex items-center gap-1 text-sm text-zinc-300">
+          <ul className="hidden lg:flex items-center gap-1 text-[15px] font-medium text-zinc-300">
             {links.map((l) => (
               <li key={l.href}>
                 <a
                   href={l.href}
-                  className="rounded-full px-3.5 py-2 transition-colors hover:bg-white/5 hover:text-white"
+                  className="rounded-full px-4 py-2.5 transition-colors hover:bg-white/5 hover:text-white"
                 >
                   {l.label}
                 </a>
@@ -67,16 +67,16 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             <a
               href={SITE.appUrl}
-              className="hidden md:inline-flex text-sm text-zinc-300 hover:text-white rounded-full px-4 py-2 transition"
+              className="hidden md:inline-flex text-[15px] font-medium text-zinc-300 hover:text-white rounded-full px-4 py-2.5 transition"
             >
               Entrar
             </a>
             <a
               href={`${SITE.appUrl}?signup=1`}
-              className="group/nav hidden sm:inline-flex items-center gap-1.5 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 px-4 py-2 text-sm font-medium text-white shadow-glow hover:brightness-110 hover:shadow-glow-lg transition-all active:scale-95"
+              className="group/nav hidden sm:inline-flex items-center gap-1.5 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 px-5 py-2.5 text-[15px] font-semibold text-white shadow-glow hover:brightness-110 hover:shadow-glow-lg transition-all active:scale-95"
             >
               Começar agora
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover/nav:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/nav:translate-x-0.5" />
             </a>
             <button
               type="button"

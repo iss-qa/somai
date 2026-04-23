@@ -1,19 +1,14 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import { SITE } from '@/lib/utils'
 import './globals.css'
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
-})
-
-const display = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
+  weight: ['200', '300', '400', '500', '600', '700', '800'],
 })
 
 export const viewport: Viewport = {
@@ -116,7 +111,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${display.variable} dark`}>
+    <html lang="pt-BR" className={`${jakarta.variable} dark`}>
       <body className="font-sans antialiased bg-brand-dark text-foreground">
         {children}
         <Toaster
