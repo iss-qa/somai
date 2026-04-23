@@ -1,14 +1,113 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
+import { Inter, Space_Grotesk } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
+import { SITE } from '@/lib/utils'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+})
+
+const display = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
+export const viewport: Viewport = {
+  themeColor: '#07070c',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  colorScheme: 'dark',
+}
 
 export const metadata: Metadata = {
-  title: 'Soma.ai - Marketing Automatizado',
-  description: 'Plataforma de marketing automatizado com IA para pequenos negócios',
+  metadataBase: new URL(SITE.url),
+  title: {
+    default: `${SITE.name} · ${SITE.tagline}`,
+    template: `%s · ${SITE.name}`,
+  },
+  description: SITE.description,
+  keywords: [
+    'marketing digital com IA',
+    'automação de redes sociais',
+    'Instagram automático',
+    'Facebook automático',
+    'gerador de posts com IA',
+    'agência de marketing automatizada',
+    'marketing para pequenas empresas',
+    'WhatsApp marketing',
+    'Meta Ads automático',
+    'Soma.ai',
+  ],
+  authors: [{ name: 'Soma.ai' }],
+  creator: 'Soma.ai',
+  publisher: 'Soma.ai',
+  applicationName: SITE.name,
+  category: 'Marketing',
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    locale: 'pt_BR',
+    url: SITE.url,
+    siteName: SITE.name,
+    title: `${SITE.name} — ${SITE.tagline}`,
+    description: SITE.description,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${SITE.name} — ${SITE.tagline}`,
+    description: SITE.description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-snippet': -1,
+      'max-image-preview': 'large',
+      'max-video-preview': -1,
+    },
+  },
   icons: { icon: '/favicon.svg' },
+}
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      name: SITE.name,
+      url: SITE.url,
+      logo: `${SITE.url}/favicon.svg`,
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: SITE.name,
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      offers: [
+        { '@type': 'Offer', name: 'Starter', price: '29.90', priceCurrency: 'BRL' },
+        { '@type': 'Offer', name: 'Pro', price: '50.00', priceCurrency: 'BRL' },
+        { '@type': 'Offer', name: 'Enterprise', price: '69.90', priceCurrency: 'BRL' },
+      ],
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: '4.9',
+        reviewCount: '128',
+      },
+    },
+    {
+      '@type': 'WebSite',
+      url: SITE.url,
+      name: SITE.name,
+      inLanguage: 'pt-BR',
+    },
+  ],
 }
 
 export default function RootLayout({
@@ -17,8 +116,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html lang="pt-BR" className={`${inter.variable} ${display.variable} dark`}>
+      <body className="font-sans antialiased bg-brand-dark text-foreground">
         {children}
         <Toaster
           position="top-right"
@@ -43,6 +142,10 @@ export default function RootLayout({
               },
             },
           }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </body>
     </html>

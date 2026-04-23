@@ -41,3 +41,14 @@ export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str
   return str.slice(0, maxLength) + '...'
 }
+
+export const SITE = {
+  name: 'Soma.ai',
+  tagline: 'Sistema Operacional de Marketing com IA',
+  description:
+    'Marketing automático para pequenas empresas. Você atende, a Soma cuida das suas redes, dos seus vídeos e do seu WhatsApp — tudo em um só lugar, com inteligência artificial.',
+  url: 'https://somai.issqa.com.br',
+  appUrl: 'https://somai.issqa.com.br/login',
+  whatsapp: 'https://wa.me/5571996838735?text=Quero%20conhecer%20a%20Soma.ai',
+  whatsappNumber: '5571996838735',
+} as const

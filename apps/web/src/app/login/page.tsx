@@ -57,57 +57,57 @@ function unformatPhone(value: string): string {
 type Panel = 'login' | 'signup' | 'recovery' | 'recovery-verify'
 
 const NICHES = [
-  { value: 'farmacia', label: 'Farmacia' },
+  { value: 'farmacia', label: 'Farmácia' },
   { value: 'pet', label: 'Pet Shop' },
   { value: 'moda', label: 'Moda' },
-  { value: 'cosmeticos', label: 'Cosmeticos' },
+  { value: 'cosmeticos', label: 'Cosméticos' },
   { value: 'mercearia', label: 'Mercearia' },
-  { value: 'calcados', label: 'Calcados' },
+  { value: 'calcados', label: 'Calçados' },
   { value: 'restaurante', label: 'Restaurante' },
   { value: 'confeitaria', label: 'Confeitaria e Doceria' },
   { value: 'hamburgueria', label: 'Hamburgueria' },
   { value: 'cafeteria', label: 'Cafeteria' },
-  { value: 'suplementos', label: 'Suplementos e Vida Saudavel' },
-  { value: 'estetica', label: 'Clinica de Estetica' },
+  { value: 'suplementos', label: 'Suplementos e Vida Saudável' },
+  { value: 'estetica', label: 'Clínica de Estética' },
   { value: 'odontologia', label: 'Odontologia' },
   { value: 'academia', label: 'Academia e Fitness' },
-  { value: 'salao_beleza', label: 'Salao de Beleza' },
+  { value: 'salao_beleza', label: 'Salão de Beleza' },
   { value: 'barbearia', label: 'Barbearia' },
-  { value: 'imobiliaria', label: 'Imobiliaria' },
-  { value: 'educacao', label: 'Educacao e Cursos' },
+  { value: 'imobiliaria', label: 'Imobiliária' },
+  { value: 'educacao', label: 'Educação e Cursos' },
   { value: 'arquitetura', label: 'Arquitetura e Interiores' },
   { value: 'contabilidade', label: 'Contabilidade' },
   { value: 'viagens', label: 'Turismo e Viagens' },
-  { value: 'eletronicos', label: 'Eletronicos e Celulares' },
-  { value: 'decoracao', label: 'Moveis e Decoracao' },
+  { value: 'eletronicos', label: 'Eletrônicos e Celulares' },
+  { value: 'decoracao', label: 'Móveis e Decoração' },
   { value: 'papelaria', label: 'Papelaria e Presentes' },
   { value: 'automotivo', label: 'Automotivo' },
-  { value: 'construcao', label: 'Material de Construcao' },
-  { value: 'igreja', label: 'Igreja e Ministerio' },
+  { value: 'construcao', label: 'Material de Construção' },
+  { value: 'igreja', label: 'Igreja e Ministério' },
   { value: 'advocacia', label: 'Advocacia' },
-  { value: 'saude', label: 'Saude e Bem-estar' },
+  { value: 'saude', label: 'Saúde e Bem-estar' },
   { value: 'tecnologia', label: 'Tecnologia e Software' },
   { value: 'consultoria', label: 'Consultoria' },
-  { value: 'fotografia', label: 'Fotografia e Video' },
+  { value: 'fotografia', label: 'Fotografia e Vídeo' },
   { value: 'joalheria', label: 'Joalheria e Relojoaria' },
   { value: 'floricultura', label: 'Floricultura' },
-  { value: 'otica', label: 'Otica' },
+  { value: 'otica', label: 'Ótica' },
   { value: 'outro', label: 'Outro' },
 ];
 
 const FEATURES = [
   { icon: Sparkles, text: 'Cards gerados por IA' },
-  { icon: Instagram, text: 'Publicacao automatica' },
-  { icon: Zap, text: 'Videos com inteligencia artificial' },
+  { icon: Instagram, text: 'Publicação automática' },
+  { icon: Zap, text: 'Vídeos com inteligência artificial' },
   { icon: BarChart3, text: 'Campanhas no Meta Ads' },
   { icon: Calendar, text: 'Agendamento inteligente' },
   { icon: MessageCircle, text: 'Alertas via WhatsApp' },
 ]
 
 const PLANS = [
-  { value: 'starter', label: 'Starter', price: 'R$ 39,90/mes', setup: 'R$ 297' },
-  { value: 'pro', label: 'Pro', price: 'R$ 69,90/mes', setup: 'R$ 497' },
-  { value: 'enterprise', label: 'Enterprise', price: 'R$ 89,90/mes', setup: 'R$ 720' },
+  { value: 'starter', label: 'Starter', price: 'R$ 29,90/mes', setup: 'R$ 50' },
+  { value: 'pro', label: 'Pro', price: 'R$ 50,00/mes', setup: 'R$ 100' },
+  { value: 'enterprise', label: 'Enterprise', price: 'R$ 69,90/mes', setup: 'R$ 200' },
 ]
 
 // ─── Component ──────────────────────────────────
@@ -150,13 +150,24 @@ export default function LoginPage() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
+  // Pré-seleciona painel/plano via query params (?signup=1&plan=pro)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('signup') === '1') setPanel('signup')
+    const qsPlan = params.get('plan')
+    if (qsPlan && ['starter', 'pro', 'enterprise'].includes(qsPlan)) {
+      setSelectedPlan(qsPlan)
+    }
+  }, [])
+
   const switchPanel = useCallback((to: Panel) => {
     setPanel(to)
   }, [])
 
   async function detectCity() {
     if (!navigator.geolocation) {
-      toast.error('Geolocalizacao nao suportada neste navegador')
+      toast.error('Geolocalização não suportada neste navegador')
       return
     }
     setLocating(true)
@@ -180,13 +191,13 @@ export default function LoginPage() {
           if (detectedCity) setCity(detectedCity)
           if (detectedState) setSignupState(detectedState)
         } catch {
-          toast.error('Nao foi possivel detectar a cidade')
+          toast.error('Não foi possível detectar a cidade')
         } finally {
           setLocating(false)
         }
       },
       () => {
-        toast.error('Permissao de localizacao negada')
+        toast.error('Permissão de localização negada')
         setLocating(false)
       },
       { timeout: 10000 },
@@ -216,7 +227,7 @@ export default function LoginPage() {
       const isAdmin = data.user.role === 'superadmin' || data.user.role === 'support'
       router.push(isAdmin ? '/admin/dashboard' : '/app/dashboard')
     } catch (err: any) {
-      toast.error(err.message || 'Credenciais invalidas')
+      toast.error(err.message || 'Credenciais inválidas')
     } finally {
       setLoginLoading(false)
     }
@@ -226,16 +237,16 @@ export default function LoginPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     if (!companyName || !responsibleName || !signupEmail || !whatsapp || !signupPassword) {
-      toast.error('Preencha todos os campos obrigatorios')
+      toast.error('Preencha todos os campos obrigatórios')
       return
     }
     const cleanPhone = unformatPhone(whatsapp)
     if (cleanPhone.length < 10) {
-      toast.error('Informe um numero de WhatsApp valido')
+      toast.error('Informe um número de WhatsApp válido')
       return
     }
     if (signupPassword.length < 6) {
-      toast.error('Senha deve ter no minimo 6 caracteres')
+      toast.error('Senha deve ter no mínimo 6 caracteres')
       return
     }
     setSignupLoading(true)
@@ -269,15 +280,15 @@ export default function LoginPage() {
   // ── Recovery ──────────────────────────────────
   async function handleRecoveryRequest(e: React.FormEvent) {
     e.preventDefault()
-    if (!recoveryEmail) { toast.error('Informe seu email'); return }
+    if (!recoveryEmail) { toast.error('Informe seu e-mail'); return }
     setRecoveryLoading(true)
     try {
       const data = await api.post('/api/auth/recovery/request', { email: recoveryEmail })
       if (data.whatsapp_masked) setMaskedWa(data.whatsapp_masked)
-      toast.success('Codigo enviado via WhatsApp!')
+      toast.success('Código enviado via WhatsApp!')
       switchPanel('recovery-verify')
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao solicitar recuperacao')
+      toast.error(err.message || 'Erro ao solicitar recuperação')
     } finally {
       setRecoveryLoading(false)
     }
@@ -285,7 +296,7 @@ export default function LoginPage() {
 
   async function handleRecoveryVerify(e: React.FormEvent) {
     e.preventDefault()
-    if (!recoveryCode || !newPassword) { toast.error('Preencha o codigo e a nova senha'); return }
+    if (!recoveryCode || !newPassword) { toast.error('Preencha o código e a nova senha'); return }
     setRecoveryLoading(true)
     try {
       await api.post('/api/auth/recovery/verify', {
@@ -293,10 +304,10 @@ export default function LoginPage() {
         code: recoveryCode,
         new_password: newPassword,
       })
-      toast.success('Senha alterada! Faca login.')
+      toast.success('Senha alterada! Faça login.')
       switchPanel('login')
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao verificar codigo')
+      toast.error(err.message || 'Erro ao verificar código')
     } finally {
       setRecoveryLoading(false)
     }
@@ -351,14 +362,21 @@ export default function LoginPage() {
               {isSignup ? (
                 <>
                   <h2 className="text-2xl lg:text-3xl font-bold text-white leading-tight mb-3">
-                    Ja e parceiro?
+                    Já é parceiro?
                   </h2>
                   <p className="text-white/70 text-sm lg:text-base leading-relaxed mb-8">
-                    Acesse seu painel para gerenciar postagens, videos e campanhas com inteligencia artificial.
+                    Acesse seu painel para gerenciar postagens, vídeos e campanhas com inteligência artificial.
                   </p>
-                  <button onClick={() => switchPanel('login')} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-white/30 text-white font-medium text-sm hover:bg-white/10 active:scale-[0.97] transition-all duration-300">
-                    Fazer login
-                    <ArrowRight className="w-4 h-4" />
+                  <button
+                    onClick={() => switchPanel('login')}
+                    className="group/cta relative inline-flex items-center gap-2 overflow-hidden rounded-xl border-2 border-white/30 bg-white/5 px-6 py-3 text-sm font-medium text-white backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/15 hover:shadow-[0_10px_40px_-10px_rgba(255,255,255,0.4)] active:scale-[0.97]"
+                  >
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 skew-x-[-20deg] bg-white/30 opacity-0 transition-all duration-500 group-hover/cta:left-[110%] group-hover/cta:opacity-100"
+                    />
+                    <span className="relative z-10">Fazer login</span>
+                    <ArrowRight className="relative z-10 w-4 h-4 transition-transform duration-300 group-hover/cta:translate-x-1" />
                   </button>
                 </>
               ) : (
@@ -367,11 +385,18 @@ export default function LoginPage() {
                     Quero ser parceiro!
                   </h2>
                   <p className="text-white/70 text-sm lg:text-base leading-relaxed mb-8">
-                    Marketing automatico para pequenas empresas. Voce atende, a Soma AI cuida das redes com postagens automaticas.
+                    Marketing automático para pequenas empresas. Você atende, a Soma.ai cuida das redes com postagens automáticas.
                   </p>
-                  <button onClick={() => switchPanel('signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-white/30 text-white font-medium text-sm hover:bg-white/10 active:scale-[0.97] transition-all duration-300">
-                    Cadastrar empresa
-                    <ArrowRight className="w-4 h-4" />
+                  <button
+                    onClick={() => switchPanel('signup')}
+                    className="group/cta relative inline-flex items-center gap-2 overflow-hidden rounded-xl border-2 border-white/30 bg-white/5 px-6 py-3 text-sm font-medium text-white backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/15 hover:shadow-[0_10px_40px_-10px_rgba(255,255,255,0.4)] active:scale-[0.97]"
+                  >
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 skew-x-[-20deg] bg-white/30 opacity-0 transition-all duration-500 group-hover/cta:left-[110%] group-hover/cta:opacity-100"
+                    />
+                    <span className="relative z-10">Cadastrar empresa</span>
+                    <ArrowRight className="relative z-10 w-4 h-4 transition-transform duration-300 group-hover/cta:translate-x-1" />
                   </button>
                 </>
               )}
@@ -445,7 +470,7 @@ export default function LoginPage() {
                 </div>
                 <div className="mt-3 text-center lg:hidden">
                   <button onClick={() => switchPanel('signup')} className="text-sm text-gray-500">
-                    Nao tem conta? <span className="text-primary-400 font-medium">Quero ser parceiro</span>
+                    Não tem conta? <span className="text-primary-400 font-medium">Quero ser parceiro</span>
                   </button>
                 </div>
               </>
@@ -485,7 +510,7 @@ export default function LoginPage() {
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <Input type={showSignupPw ? 'text' : 'password'} placeholder="Crie uma senha (min. 6) *" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} className="pl-10 pr-10" autoComplete="new-password" disabled={signupLoading} />
+                      <Input type={showSignupPw ? 'text' : 'password'} placeholder="Crie uma senha (mín. 6) *" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} className="pl-10 pr-10" autoComplete="new-password" disabled={signupLoading} />
                       <button type="button" onClick={() => setShowSignupPw(!showSignupPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
                         {showSignupPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -515,7 +540,7 @@ export default function LoginPage() {
                   </div>
                   {/* Plan selector — destaque */}
                   <div className="space-y-2 pt-2">
-                    <p className="text-xs text-gray-400 font-medium">Escolha seu plano — 3 dias gratis</p>
+                    <p className="text-xs text-gray-400 font-medium">Escolha seu plano — 3 dias grátis</p>
                     <div className="grid grid-cols-3 gap-2">
                       {PLANS.map((p) => (
                         <button
@@ -542,13 +567,13 @@ export default function LoginPage() {
                   </div>
                   <div className="pt-3">
                     <Button type="submit" className="w-full h-11" disabled={signupLoading}>
-                      {signupLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Cadastrando...</> : <><Sparkles className="mr-2 h-4 w-4" />Comecar gratis</>}
+                      {signupLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Cadastrando...</> : <><Sparkles className="mr-2 h-4 w-4" />Começar grátis</>}
                     </Button>
                   </div>
                 </form>
                 <div className="mt-4 text-center lg:hidden">
                   <button onClick={() => switchPanel('login')} className="text-sm text-gray-500">
-                    Ja tem conta? <span className="text-primary-400 font-medium">Fazer login</span>
+                    Já tem conta? <span className="text-primary-400 font-medium">Fazer login</span>
                   </button>
                 </div>
               </>
@@ -560,7 +585,7 @@ export default function LoginPage() {
                 <div className="mb-6">
                   <h3 className="text-xl font-bold text-white">Recuperar acesso</h3>
                   <p className="text-sm text-gray-400 mt-1">
-                    Enviaremos um codigo de recuperacao via <span className="text-green-400 font-medium">WhatsApp</span>
+                    Enviaremos um código de recuperação via <span className="text-green-400 font-medium">WhatsApp</span>
                   </p>
                 </div>
                 <form onSubmit={handleRecoveryRequest} className="space-y-4">
@@ -573,10 +598,10 @@ export default function LoginPage() {
                   </div>
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
                     <MessageCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                    <p className="text-xs text-green-300">O codigo sera enviado para o WhatsApp vinculado a sua empresa</p>
+                    <p className="text-xs text-green-300">O código será enviado para o WhatsApp vinculado à sua empresa</p>
                   </div>
                   <Button type="submit" className="w-full h-11" disabled={recoveryLoading}>
-                    {recoveryLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando...</> : 'Enviar codigo via WhatsApp'}
+                    {recoveryLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando...</> : 'Enviar código via WhatsApp'}
                   </Button>
                 </form>
                 <div className="mt-5 text-center">
@@ -592,15 +617,15 @@ export default function LoginPage() {
                   <div className="w-12 h-12 rounded-xl bg-green-500/15 flex items-center justify-center mb-4">
                     <MessageCircle className="w-6 h-6 text-green-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-white">Verificar codigo</h3>
+                  <h3 className="text-xl font-bold text-white">Verificar código</h3>
                   <p className="text-sm text-gray-400 mt-1">
-                    Insira o codigo de 6 digitos enviado para{' '}
+                    Insira o código de 6 dígitos enviado para{' '}
                     {maskedWa && <span className="text-white font-medium">{maskedWa}</span>}
                   </p>
                 </div>
                 <form onSubmit={handleRecoveryVerify} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label className="text-gray-300 text-sm">Codigo de recuperacao</Label>
+                    <Label className="text-gray-300 text-sm">Código de recuperação</Label>
                     <Input placeholder="000000" value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="text-center text-2xl tracking-[0.3em] font-mono" maxLength={6} disabled={recoveryLoading} />
                   </div>
                   <div className="space-y-1.5">
@@ -615,7 +640,7 @@ export default function LoginPage() {
                   </Button>
                 </form>
                 <div className="mt-5 text-center">
-                  <button onClick={() => switchPanel('recovery')} className="text-sm text-gray-500 hover:text-primary-400 transition-colors">Reenviar codigo</button>
+                  <button onClick={() => switchPanel('recovery')} className="text-sm text-gray-500 hover:text-primary-400 transition-colors">Reenviar código</button>
                 </div>
               </>
             )}
