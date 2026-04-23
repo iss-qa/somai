@@ -92,7 +92,38 @@ export const postWorker = new Worker<PostJobData>(
             company_name: company.name,
             metadata: { job_id: job.id, platform: 'instagram_stories' },
           })
-          await MetaService.publishInstagramStory(companyId, imageUrl)
+          const result = await MetaService.publishInstagramStory(companyId, imageUrl)
+          instagramPostId = result.instagram_story_id
+        } else if (postType === 'reels') {
+          await LogService.info('worker', 'post.publishing', `Publicando no Instagram Reels`, {
+            company_id: companyId,
+            company_name: company.name,
+            metadata: { job_id: job.id, platform: 'instagram_reels' },
+          })
+          const result = await MetaService.publishInstagramReels(companyId, imageUrl, fullCaption)
+          instagramPostId = result.instagram_post_id
+        } else if (postType === 'carousel') {
+          // Busca os slides do card para publicar como carrossel
+          const card: any = await Card.findById(cardId).lean()
+          const slideUrls: string[] = card?.slide_image_urls || []
+          if (slideUrls.length >= 2) {
+            await LogService.info('worker', 'post.publishing', `Publicando no Instagram Carrossel (${slideUrls.length} imagens)`, {
+              company_id: companyId,
+              company_name: company.name,
+              metadata: { job_id: job.id, platform: 'instagram_carousel', slides: slideUrls.length },
+            })
+            const result = await MetaService.publishInstagramCarousel(companyId, slideUrls, fullCaption)
+            instagramPostId = result.instagram_post_id
+          } else {
+            // Fallback: publica como feed se nao houver slides suficientes
+            await LogService.info('worker', 'post.publishing', `Publicando no Instagram Feed (carousel sem slides suficientes)`, {
+              company_id: companyId,
+              company_name: company.name,
+              metadata: { job_id: job.id, platform: 'instagram_feed' },
+            })
+            const result = await MetaService.publishInstagramFeed(companyId, imageUrl, fullCaption)
+            instagramPostId = result.instagram_post_id
+          }
         } else {
           await LogService.info('worker', 'post.publishing', `Publicando no Instagram Feed`, {
             company_id: companyId,

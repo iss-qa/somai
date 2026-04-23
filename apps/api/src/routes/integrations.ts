@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { Integration } from '@soma-ai/db'
 import { authenticate } from '../plugins/auth'
 import { EncryptionService } from '../services/encryption.service'
+import { MetaService } from '../services/meta.service'
 
 export default async function integrationsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -341,11 +342,22 @@ export default async function integrationsRoutes(app: FastifyInstance) {
         })
       }
 
-      // TODO: Actually call Meta debug_token endpoint
+      // Try to decrypt the token first — catches stale ENCRYPTION_KEY
+      try {
+        EncryptionService.decrypt(integration.meta.access_token)
+      } catch {
+        return reply.send({
+          valid: false,
+          message: 'Token Meta invalido ou corrompido. Reconecte sua conta em Integracoes → Meta.',
+        })
+      }
+
+      const result = await MetaService.verifyToken(companyId)
       return reply.send({
-        valid: true,
-        message: 'Token valido (placeholder)',
-        expires_at: integration.meta.token_expires_at,
+        ...result,
+        message: result.valid
+          ? 'Token valido'
+          : 'Token expirado ou invalido. Reconecte sua conta em Integracoes → Meta.',
       })
     },
   )

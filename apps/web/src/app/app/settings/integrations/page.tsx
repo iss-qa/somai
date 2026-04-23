@@ -220,6 +220,11 @@ function IntegrationsContent() {
         accountId: igAccountId,
         pageId: fbPageId,
       })
+      if (result?.valid === false) {
+        setConnected(false)
+        toast.error(result.message || 'Token invalido. Reconecte sua conta.')
+        return
+      }
       setConnected(true)
       setConnectedUsername(result?.username || igAccountId)
       toast.success(

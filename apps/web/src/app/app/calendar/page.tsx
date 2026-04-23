@@ -89,6 +89,7 @@ const PLATFORM_OPTIONS = [
   { value: 'instagram_feed', label: 'Instagram Feed', platforms: ['instagram'], postType: 'feed' },
   { value: 'instagram_stories', label: 'Instagram Stories', platforms: ['instagram'], postType: 'stories' },
   { value: 'instagram_reels', label: 'Instagram Reels', platforms: ['instagram'], postType: 'reels' },
+  { value: 'instagram_carousel', label: 'Instagram Carrossel', platforms: ['instagram'], postType: 'carousel' },
   { value: 'facebook', label: 'Facebook', platforms: ['facebook'], postType: 'feed' },
   { value: 'instagram_facebook', label: 'Instagram + Facebook', platforms: ['instagram', 'facebook'], postType: 'feed' },
 ]
@@ -97,8 +98,9 @@ function getPlatformValueFromFormat(format: string): string {
   switch (format) {
     case 'feed':
     case 'feed_1x1':
-    case 'carousel':
       return 'instagram_feed'
+    case 'carousel':
+      return 'instagram_carousel'
     case 'stories':
     case 'stories_9x16':
       return 'instagram_stories'
@@ -890,8 +892,11 @@ function CalendarPageInner() {
                   </SelectTrigger>
                   <SelectContent>
                     {PLATFORM_OPTIONS.map((opt) => {
-                      const isFeedCard = selectedFormat === 'feed' || selectedFormat === 'carousel'
-                      const isDisabled = isFeedCard && opt.postType !== 'feed'
+                      const isFeedCard = selectedFormat === 'feed'
+                      const isCarouselCard = selectedFormat === 'carousel'
+                      let isDisabled = false
+                      if (isFeedCard) isDisabled = opt.postType !== 'feed'
+                      if (isCarouselCard) isDisabled = opt.postType !== 'carousel' && opt.postType !== 'feed'
                       return (
                         <SelectItem key={opt.value} value={opt.value} disabled={isDisabled}>
                           {opt.label}

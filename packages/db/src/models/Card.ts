@@ -14,6 +14,7 @@ export interface ICard extends Document {
   ai_prompt_used: string
   generated_image_url: string
   generated_video_url: string
+  slide_image_urls: string[]
   media_type: 'image' | 'video'
   caption: string
   hashtags: string[]
@@ -48,6 +49,7 @@ const CardSchema = new Schema<ICard>(
     ai_prompt_used: { type: String, default: '' },
     generated_image_url: { type: String, default: '' },
     generated_video_url: { type: String, default: '' },
+    slide_image_urls: [{ type: String }],
     media_type: { type: String, enum: ['image', 'video'], default: 'image' },
     caption: { type: String, default: '' },
     hashtags: [{ type: String }],

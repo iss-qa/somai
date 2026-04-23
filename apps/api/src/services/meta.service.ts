@@ -7,10 +7,15 @@ const GRAPH_API = 'https://graph.facebook.com/v25.0'
 async function getIntegration(companyId: string) {
   const integration: any = await Integration.findOne({ company_id: companyId }).lean()
   if (!integration?.meta?.access_token) {
-    throw new Error('Meta integration nao configurada para esta empresa')
+    throw new Error('Integracao com Instagram nao configurada. Acesse Integracoes → Meta para conectar sua conta.')
   }
 
-  const token = EncryptionService.decrypt(integration.meta.access_token)
+  let token: string
+  try {
+    token = EncryptionService.decrypt(integration.meta.access_token)
+  } catch {
+    throw new Error('Token Meta invalido ou corrompido. Reconecte sua conta em Integracoes → Meta para resolver.')
+  }
 
   return {
     token,
@@ -215,6 +220,81 @@ export class MetaService {
     }
 
     console.log(`[MetaService] Instagram Reels publicado: ${published.id}`)
+    return {
+      success: true,
+      instagram_post_id: published.id as string,
+      published_at: new Date(),
+    }
+  }
+
+  /**
+   * Publish a carousel (album) to Instagram with multiple images.
+   * Requer ao menos 2 imagens e no maximo 10.
+   */
+  static async publishInstagramCarousel(
+    companyId: string,
+    imageUrls: string[],
+    caption: string,
+  ) {
+    if (imageUrls.length < 2) {
+      throw new Error('Carrossel requer ao menos 2 imagens')
+    }
+    const { token, igUserId } = await getIntegration(companyId)
+
+    // Step 1: Create child containers for each image
+    const childIds: string[] = []
+    for (const rawUrl of imageUrls.slice(0, 10)) {
+      const publicUrl = await ensurePublicUrl(rawUrl)
+      const childRes = await fetch(`${GRAPH_API}/${igUserId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_url: publicUrl,
+          is_carousel_item: true,
+          access_token: token,
+        }),
+      })
+      const child: any = await childRes.json()
+      if (child.error) {
+        throw new Error(`Erro ao criar item do carrossel: ${child.error.message}`)
+      }
+      childIds.push(child.id as string)
+    }
+
+    // Step 2: Create carousel container
+    const containerRes = await fetch(`${GRAPH_API}/${igUserId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        media_type: 'CAROUSEL_ALBUM',
+        children: childIds.join(','),
+        caption,
+        access_token: token,
+      }),
+    })
+    const container: any = await containerRes.json()
+    if (container.error) {
+      throw new Error(`Erro ao criar container carrossel: ${container.error.message}`)
+    }
+
+    // Step 3: Wait for carousel container to be ready
+    await waitForContainer(container.id, token, 15, 2000)
+
+    // Step 4: Publish carousel
+    const publishRes = await fetch(`${GRAPH_API}/${igUserId}/media_publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        creation_id: container.id,
+        access_token: token,
+      }),
+    })
+    const published: any = await publishRes.json()
+    if (published.error) {
+      throw new Error(`Erro ao publicar carrossel: ${published.error.message}`)
+    }
+
+    console.log(`[MetaService] Instagram carrossel publicado: ${published.id}`)
     return {
       success: true,
       instagram_post_id: published.id as string,

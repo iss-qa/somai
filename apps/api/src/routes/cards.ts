@@ -212,6 +212,9 @@ export default async function cardsRoutes(app: FastifyInstance) {
       if (body?.generated_video_url) {
         card.generated_video_url = body.generated_video_url
       }
+      if (Array.isArray(body?.slide_image_urls) && body.slide_image_urls.length > 0) {
+        card.slide_image_urls = body.slide_image_urls
+      }
       if (body?.media_type === 'video' || body?.media_type === 'image') {
         card.media_type = body.media_type
       }

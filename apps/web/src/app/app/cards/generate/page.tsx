@@ -874,6 +874,134 @@ function Section({
 }
 
 // ---------------------------------------------------------------------------
+// Image Dropzone (URL + upload + drag-drop numa única área)
+// ---------------------------------------------------------------------------
+
+function ImageDropzone({
+  value,
+  onChange,
+  onClear,
+  onPickFromLibrary,
+  libraryCount,
+  libraryLabel = 'Escolher da biblioteca',
+}: {
+  value: string
+  onChange: (url: string) => void
+  onClear: () => void
+  onPickFromLibrary: () => void
+  libraryCount: number
+  libraryLabel?: string
+}) {
+  const [dragOver, setDragOver] = useState(false)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  function readFile(file: File) {
+    if (!file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => onChange(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const hasImage = !!value
+
+  return (
+    <div className="space-y-2.5">
+      <div
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }}
+        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false) }}
+        onDrop={(e) => {
+          e.preventDefault()
+          setDragOver(false)
+          const file = e.dataTransfer.files[0]
+          if (file) readFile(file)
+        }}
+        className={cn(
+          'relative rounded-lg border-2 border-dashed transition-all',
+          dragOver
+            ? 'border-primary-500 bg-primary-500/10'
+            : 'border-brand-border bg-brand-surface/30 hover:border-primary-500/40',
+        )}
+      >
+        {hasImage ? (
+          <div className="flex items-center gap-3 p-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={value}
+              alt="Pré-visualização"
+              className="h-16 w-16 rounded-md object-cover border border-brand-border flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-400 truncate">
+                {value.startsWith('data:') ? 'Imagem carregada' : value}
+              </p>
+              <div className="mt-1.5 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  className="text-[11px] text-gray-400 hover:text-white underline-offset-2 hover:underline"
+                >
+                  Trocar
+                </button>
+                <button
+                  type="button"
+                  onClick={onClear}
+                  className="text-[11px] text-red-400 hover:text-red-300 underline-offset-2 hover:underline"
+                >
+                  Remover
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="w-full flex flex-col items-center justify-center gap-1.5 py-6 text-center cursor-pointer"
+          >
+            <Upload className="w-6 h-6 text-gray-500" />
+            <div className="text-xs text-gray-400">
+              <span className="text-gray-200 font-medium">Clique para enviar</span>
+              {' '}ou arraste uma imagem
+            </div>
+            <div className="text-[10px] text-gray-600">PNG, JPG ou WEBP</div>
+          </button>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) readFile(file)
+            if (inputRef.current) inputRef.current.value = ''
+          }}
+        />
+      </div>
+
+      {/* URL manual + biblioteca */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Input
+          placeholder="ou cole a URL da imagem"
+          value={value.startsWith('data:') ? '' : value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 h-9 text-xs"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 gap-2 text-xs sm:w-auto"
+          onClick={onPickFromLibrary}
+        >
+          <FolderOpen className="w-3.5 h-3.5" />
+          {libraryLabel} ({libraryCount})
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Image Layout Thumbnail Component
 // ---------------------------------------------------------------------------
 
@@ -2124,6 +2252,23 @@ function GenerateCardPage() {
     }))
   }, [])
 
+  /**
+   * Define a imagem (principal ou secundária) e ativa `includeImage`
+   * automaticamente quando o usuário adiciona uma imagem — evita a
+   * confusão de ter imagem setada mas o preview não renderizá-la.
+   */
+  const setImage = useCallback((slot: 'image1' | 'image2', url: string) => {
+    setConfig((prev) => {
+      const key = slot === 'image1' ? 'imageUrl' : 'imageUrl2'
+      const next: CardConfig = { ...prev, [key]: url }
+      if (url && !prev.includeImage) {
+        next.includeImage = true
+      }
+      return next
+    })
+    setDirtyAfterApprove(true)
+  }, [])
+
   // ---------- Sync carouselSlideContents length com carouselSlides / objective ----------
   useEffect(() => {
     setConfig((prev) => {
@@ -2490,6 +2635,9 @@ function GenerateCardPage() {
       await api.patch(`/api/cards/${cardId}/approve`, {
         generated_image_url: imageDataUrl,
         generated_video_url: videoDataUrl,
+        slide_image_urls: config.format === 'carousel' && config.slideImageUrls?.length > 0
+          ? config.slideImageUrls
+          : undefined,
         media_type: isVideo ? 'video' : 'image',
         headline: cardName,
       })
@@ -2841,10 +2989,10 @@ function GenerateCardPage() {
             <div className={cn('w-full space-y-4', !isCarousel && 'lg:w-[55%]')}>
 
               {/* ----------------------------------------------------------- */}
-              {/* Section 1: Conteudo do card */}
+              {/* Section 1: Conteúdo do card */}
               {/* ----------------------------------------------------------- */}
               <Section
-                title={isCarousel ? `Conteudo do card ${activeSlide + 1}` : 'Conteudo do card'}
+                title={isCarousel ? `Conteúdo do card ${activeSlide + 1}` : 'Conteúdo do card'}
                 icon={FileText}
                 defaultOpen
               >
@@ -3027,7 +3175,7 @@ function GenerateCardPage() {
               {/* Carousel options (only when carousel selected) */}
               {/* ----------------------------------------------------------- */}
               {isCarousel && (
-                <Section title="Opcoes do Carrossel" icon={Layers} defaultOpen>
+                <Section title="Opções do Carrossel" icon={Layers} defaultOpen>
                   <div className="space-y-4">
                     {/* Shape */}
                     <div className="space-y-2">
@@ -3148,7 +3296,7 @@ function GenerateCardPage() {
                 {config.palette === 'custom' && (
                   <div className="grid grid-cols-3 gap-3 mt-3 p-3 rounded-lg bg-brand-surface border border-brand-border">
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Primaria</Label>
+                      <Label className="text-xs">Primária</Label>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -3160,7 +3308,7 @@ function GenerateCardPage() {
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Secundaria</Label>
+                      <Label className="text-xs">Secundária</Label>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -3274,115 +3422,28 @@ function GenerateCardPage() {
                           onCheckedChange={(v) => updateConfig('includeImage', v)}
                         />
                       </div>
-                      {/* Image URL + Library side by side */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">URL da imagem</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="https://exemplo.com/imagem.jpg"
-                              value={config.imageUrl}
-                              onChange={(e) => updateConfig('imageUrl', e.target.value)}
-                              className="flex-1"
-                            />
-                            <label className="flex items-center justify-center h-10 px-3 rounded-lg border border-brand-border bg-brand-surface text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors cursor-pointer">
-                              <Upload className="w-4 h-4" />
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0]
-                                  if (file) {
-                                    const reader = new FileReader()
-                                    reader.onloadend = () => {
-                                      updateConfig('imageUrl', reader.result as string)
-                                    }
-                                    reader.readAsDataURL(file)
-                                  }
-                                }}
-                              />
-                            </label>
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Ou da biblioteca</Label>
-                          <Button
-                            variant="outline"
-                            className="w-full gap-2 h-10"
-                            onClick={() => { setMediaPickerTarget('image1'); setShowMediaPicker(true) }}
-                          >
-                            <FolderOpen className="w-4 h-4" />
-                            Escolher da biblioteca ({mediaItems.length})
-                          </Button>
-                        </div>
-                      </div>
 
-                      {/* Drag-drop zone */}
-                      <div
-                        className="border-2 border-dashed border-brand-border rounded-lg p-4 text-center hover:border-primary-500/40 transition-colors cursor-pointer"
-                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
-                        onDrop={(e) => {
-                          e.preventDefault()
-                          const file = e.dataTransfer.files[0]
-                          if (file && file.type.startsWith('image/')) {
-                            const reader = new FileReader()
-                            reader.onload = () => updateConfig('imageUrl', reader.result as string)
-                            reader.readAsDataURL(file)
-                          }
-                        }}
-                      >
-                        <Upload className="w-5 h-5 text-gray-500 mx-auto mb-1" />
-                        <p className="text-xs text-gray-500">Arraste uma imagem aqui</p>
-                      </div>
+                      {/* Dropzone unificado: URL + drag-drop + upload num só bloco */}
+                      <ImageDropzone
+                        value={config.imageUrl}
+                        onChange={(url) => setImage('image1', url)}
+                        onClear={() => setImage('image1', '')}
+                        onPickFromLibrary={() => { setMediaPickerTarget('image1'); setShowMediaPicker(true) }}
+                        libraryCount={mediaItems.length}
+                      />
 
-                      {/* Image preview thumbnail */}
-                      {config.imageUrl && (
-                        <div className="relative inline-block">
-                          <img src={config.imageUrl} alt="Preview" className="h-20 rounded-lg border border-brand-border" />
-                          <button onClick={() => updateConfig('imageUrl', '')} className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-xs">&times;</button>
-                        </div>
-                      )}
-
-                      {/* Image 2 URL (dual-product only) */}
+                      {/* Image 2 (dual-product / side-by-side / side-frame) */}
                       {(config.imageLayout === 'dual-product' || config.imageLayout === 'side-by-side' || config.imageLayout === 'side-frame') && (
                         <div className="space-y-1.5">
                           <Label className="text-xs">Imagem 2 (produto inferior)</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="https://exemplo.com/imagem2.jpg"
-                              value={config.imageUrl2}
-                              onChange={(e) => updateConfig('imageUrl2', e.target.value)}
-                              className="flex-1"
-                            />
-                            <label className="flex items-center justify-center h-10 px-3 rounded-lg border border-brand-border bg-brand-surface text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors cursor-pointer">
-                              <Upload className="w-4 h-4" />
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0]
-                                  if (file) {
-                                    const reader = new FileReader()
-                                    reader.onloadend = () => {
-                                      updateConfig('imageUrl2', reader.result as string)
-                                    }
-                                    reader.readAsDataURL(file)
-                                  }
-                                }}
-                              />
-                            </label>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full gap-2 mt-2"
-                            onClick={() => { setMediaPickerTarget('image2'); setShowMediaPicker(true) }}
-                          >
-                            <FolderOpen className="w-4 h-4" />
-                            Escolher 2a imagem da biblioteca
-                          </Button>
+                          <ImageDropzone
+                            value={config.imageUrl2}
+                            onChange={(url) => setImage('image2', url)}
+                            onClear={() => setImage('image2', '')}
+                            onPickFromLibrary={() => { setMediaPickerTarget('image2'); setShowMediaPicker(true) }}
+                            libraryCount={mediaItems.length}
+                            libraryLabel="Escolher 2ª imagem da biblioteca"
+                          />
                         </div>
                       )}
 
@@ -3440,9 +3501,9 @@ function GenerateCardPage() {
               </Section>
 
               {/* ----------------------------------------------------------- */}
-              {/* Section: Opcoes de exibicao */}
+              {/* Section: Opções de exibição */}
               {/* ----------------------------------------------------------- */}
-              <Section title="Opcoes de exibicao" icon={Eye}>
+              <Section title="Opções de exibição" icon={Eye}>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm">Incluir logo</Label>
@@ -3647,7 +3708,7 @@ function GenerateCardPage() {
                   {/* Text colors */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Cor do titulo</Label>
+                      <Label className="text-xs">Cor do título</Label>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -3685,7 +3746,7 @@ function GenerateCardPage() {
               {/* ----------------------------------------------------------- */}
               {/* Section 6: Posicao do texto */}
               {/* ----------------------------------------------------------- */}
-              <Section title="Posicao do texto" icon={Move}>
+              <Section title="Posição do texto" icon={Move}>
                 <div className="space-y-4">
                   {/* Vertical */}
                   <div className="space-y-2">
@@ -4346,12 +4407,7 @@ function GenerateCardPage() {
                       <button
                         key={item.id}
                         onClick={() => {
-                          if (mediaPickerTarget === 'image2') {
-                            updateConfig('imageUrl2', item.url)
-                          } else {
-                            updateConfig('imageUrl', item.url)
-                            if (!config.includeImage) updateConfig('includeImage', true)
-                          }
+                          setImage(mediaPickerTarget === 'image2' ? 'image2' : 'image1', item.url)
                           setShowMediaPicker(false)
                           toast.success('Imagem selecionada!')
                         }}
