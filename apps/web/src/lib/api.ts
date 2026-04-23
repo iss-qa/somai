@@ -6,6 +6,17 @@ function getTokenFromCookie(): string | null {
   return match ? decodeURIComponent(match[1]) : null
 }
 
+// Endpoints que podem demorar (geracao de IA, upload de video, etc) — 3 min
+const SLOW_PATHS = [
+  '/api/cards/generate-image',
+  '/api/cards/generate-content-plan',
+  '/api/cards/',  // approve/update com video base64
+  '/api/videos/',
+]
+function getTimeoutMs(path: string): number {
+  return SLOW_PATHS.some((p) => path.startsWith(p)) ? 180_000 : 30_000
+}
+
 async function fetcher<T = any>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     ...options?.headers as Record<string, string>,
@@ -20,7 +31,7 @@ async function fetcher<T = any>(path: string, options?: RequestInit): Promise<T>
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30000)
+  const timeout = setTimeout(() => controller.abort(), getTimeoutMs(path))
 
   const res = await fetch(`${API_URL}${path}`, {
     credentials: 'include',

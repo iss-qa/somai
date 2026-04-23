@@ -2606,16 +2606,6 @@ function GenerateCardPage() {
                 <Sparkles className="w-4 h-4" />
                 Gerar com IA
               </Button>
-              {!aiConfigInfo?.active && (
-                <a
-                  href="/app/integrations"
-                  className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 hover:bg-amber-500/20 transition-colors"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                  Configure a IA
-                </a>
-              )}
-
               {/* Divider */}
               <div className="h-8 w-px bg-brand-border hidden sm:block" />
 
