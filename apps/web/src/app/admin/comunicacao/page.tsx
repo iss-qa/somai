@@ -145,13 +145,13 @@ const statusConfig = {
   },
 }
 
-// ── Firing rules for Soma.ai ─────────────────────────
+// ── Firing rules for Soma.AI ─────────────────────────
 
 const REGRAS_DISPARO = [
   {
     evento: 'Boas-vindas',
     gatilho: 'Empresa cadastrada/ativada',
-    descricao: 'Mensagem de boas-vindas ao Soma.ai com resumo de funcionalidades',
+    descricao: 'Mensagem de boas-vindas ao Soma.AI com resumo de funcionalidades',
   },
   {
     evento: 'Card Publicado',

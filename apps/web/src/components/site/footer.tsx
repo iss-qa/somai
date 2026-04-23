@@ -43,7 +43,7 @@ export function Footer() {
           <div className="md:col-span-2">
             <Logo />
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-zinc-400">
-              A Soma.ai é o sistema operacional de marketing das pequenas empresas brasileiras.
+              A Soma.AI é o sistema operacional de marketing das pequenas empresas brasileiras.
               Automação, IA e resultado — em um só lugar.
             </p>
             <div className="mt-5 flex items-center gap-2">
@@ -84,7 +84,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col-reverse items-center justify-between gap-4 border-t border-white/5 pt-6 text-xs text-zinc-500 md:flex-row">
-          <div>© {year} Soma.ai · ISSQA. Todos os direitos reservados.</div>
+          <div>© {year} Soma.AI · ISSQA. Todos os direitos reservados.</div>
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />

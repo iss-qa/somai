@@ -233,7 +233,7 @@ export default function AdminSettingsPage() {
           <CardContent className="space-y-4">
             <div className="rounded-lg border border-brand-border bg-brand-surface p-5 text-center space-y-3">
               <div>
-                <h3 className="text-lg font-bold text-white">Soma.ai</h3>
+                <h3 className="text-lg font-bold text-white">Soma.AI</h3>
                 <Badge variant="outline" className="mt-1">
                   v0.0.1
                 </Badge>

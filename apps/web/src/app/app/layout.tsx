@@ -65,7 +65,7 @@ const mobileNavItems = [
 
 function getPageTitle(pathname: string): string {
   const item = navItems.find((i) => pathname.startsWith(i.href))
-  return item?.label || 'Soma.ai'
+  return item?.label || 'Soma.AI'
 }
 
 export default function CompanyLayout({
@@ -158,7 +158,7 @@ export default function CompanyLayout({
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <span className="text-lg font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
-              Soma.ai
+              Soma.AI
             </span>
           </Link>
           <button

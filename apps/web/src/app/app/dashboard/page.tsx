@@ -141,7 +141,7 @@ function TrialBanner() {
 
   const expired = timeLeft === 'Expirado'
 
-  const waMsg = 'Ola, meu periodo de teste do Soma.ai encerrou e quero ativar meu plano.'
+  const waMsg = 'Ola, meu periodo de teste do Soma.AI encerrou e quero ativar meu plano.'
 
   return (
     <div className={`flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl border ${
@@ -180,7 +180,7 @@ function TrialBanner() {
             WhatsApp
           </a>
           <a
-            href={SUPPORT_CONTACT.mailtoUrl('Ativar plano Soma.ai')}
+            href={SUPPORT_CONTACT.mailtoUrl('Ativar plano Soma.AI')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-surface border border-brand-border hover:border-gray-600 text-gray-200 text-xs font-medium transition-colors"
           >
             <Mail className="w-3.5 h-3.5" />

@@ -46,9 +46,9 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.05 }}
             className="mt-6 font-display text-[40px] leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-[76px] lg:leading-[1.02]"
           >
-            Você atende.
+            Você atende. Soma.
             <br className="hidden sm:block" />
-            <span className="text-gradient">A Soma.ai cuida das suas redes.</span>
+            <span className="text-gradient">AI cria e posta por você.</span>
           </motion.h1>
 
           <motion.p
@@ -59,7 +59,7 @@ export function Hero() {
           >
             Plataforma de marketing com IA para pequenas empresas.
             Geramos posts, vídeos, roteiros, campanhas e mensagens no WhatsApp —
-            automaticamente, no seu estilo, todos os dias.
+            automaticamente, no seu estilo, todos os dias, de forma simples, rápida e objetiva.
           </motion.p>
 
           <motion.div

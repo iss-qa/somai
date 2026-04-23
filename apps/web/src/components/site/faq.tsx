@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 const QUESTIONS = [
   {
     q: 'Preciso entender de marketing ou de tecnologia?',
-    a: 'Não. A Soma.ai foi pensada para donos de pequenos negócios. Você conta sobre a sua empresa em 5 minutos, conecta o Instagram em 1 clique e a IA faz todo o resto. Se travar em algum passo, o time de suporte ajuda em português.',
+    a: 'Não. A Soma.AI foi pensada para donos de pequenos negócios. Você conta sobre a sua empresa em 5 minutos, conecta o Instagram em 1 clique e a IA faz todo o resto. Se travar em algum passo, o time de suporte ajuda em português.',
   },
   {
     q: 'Os posts ficam parecidos com os de outros clientes?',

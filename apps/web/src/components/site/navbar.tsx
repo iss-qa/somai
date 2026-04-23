@@ -47,7 +47,7 @@ export function Navbar() {
           )}
           aria-label="Navegação principal"
         >
-          <a href="#top" className="flex items-center" aria-label="Soma.ai — ir para o topo">
+          <a href="#top" className="flex items-center" aria-label="Soma.AI — ir para o topo">
             <Logo />
           </a>
 

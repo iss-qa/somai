@@ -874,7 +874,7 @@ function BillingSection({
                     onClick={() => {
                       const phone = company.whatsapp?.replace(/\D/g, '') || ''
                       const text = encodeURIComponent(
-                        `Ola ${company.responsible_name}! Segue o link para pagamento do setup do Soma.ai:\n\n` +
+                        `Ola ${company.responsible_name}! Segue o link para pagamento do setup do Soma.AI:\n\n` +
                         `Valor: R$ ${((setupCharge.value || 0) / 100).toFixed(2).replace('.', ',')}\n` +
                         `Link: ${setupCharge.paymentLinkUrl || ''}\n\n` +
                         `Ou copie o codigo PIX:\n${setupCharge.brCode || ''}`

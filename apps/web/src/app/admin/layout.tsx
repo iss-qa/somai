@@ -110,7 +110,7 @@ export default function AdminLayout({
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <span className="text-lg font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
-              Soma.ai
+              Soma.AI
             </span>
             <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
               Admin

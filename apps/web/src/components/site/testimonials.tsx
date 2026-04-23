@@ -67,7 +67,7 @@ export function Testimonials() {
               <span className="text-gradient-static">e a vender mais.</span>
             </>
           }
-          subtitle="Mais de 1.200 negócios já confiam na Soma.ai para cuidar do marketing todos os dias."
+          subtitle="Mais de 1.200 negócios já confiam na Soma.AI para cuidar do marketing todos os dias."
         />
 
         <div className="mt-14 columns-1 gap-5 md:columns-2 lg:columns-3 space-y-5">

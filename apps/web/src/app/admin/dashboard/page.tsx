@@ -189,7 +189,7 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
                 <p className="text-sm text-gray-400 leading-relaxed mb-4">
-                  Estas empresas estao usando o Soma.ai gratuitamente. Entre em contato para converter em assinantes antes que o trial expire.
+                  Estas empresas estao usando o Soma.AI gratuitamente. Entre em contato para converter em assinantes antes que o trial expire.
                 </p>
                 <button
                   onClick={() => router.push('/admin/companies')}

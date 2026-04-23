@@ -43,12 +43,12 @@ export function truncate(str: string, maxLength: number): string {
 }
 
 export const SITE = {
-  name: 'Soma.ai',
+  name: 'Soma.AI',
   tagline: 'Plataforma de Marketing com IA',
   description:
-    'Marketing automático para pequenas empresas. Você atende, a Soma cuida das suas redes, dos seus vídeos e do seu WhatsApp — tudo em um só lugar, com inteligência artificial.',
+    'Plataforma de marketing com IA para pequenas empresas. Geramos posts, vídeos, roteiros, campanhas e mensagens no WhatsApp — automaticamente, no seu estilo, todos os dias, de forma simples, rápida e objetiva.',
   url: 'https://somai.issqa.com.br',
   appUrl: 'https://somai.issqa.com.br/login',
-  whatsapp: 'https://wa.me/5571996838735?text=Quero%20conhecer%20a%20Soma.ai',
+  whatsapp: 'https://wa.me/5571996838735?text=Quero%20conhecer%20a%20Soma.AI',
   whatsappNumber: '5571996838735',
 } as const

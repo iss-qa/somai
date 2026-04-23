@@ -268,7 +268,7 @@ export default function LoginPage() {
       if (data.token) {
         document.cookie = `soma-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
       }
-      toast.success('Cadastro realizado! Bem-vindo ao Soma.ai!')
+      toast.success('Cadastro realizado! Bem-vindo ao Soma.AI!')
       router.push('/app/dashboard')
     } catch (err: any) {
       toast.error(err.message || 'Erro ao cadastrar')
@@ -355,7 +355,7 @@ export default function LoginPage() {
               <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
                 <Sparkles className="w-4.5 h-4.5 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">Soma.ai</span>
+              <span className="text-xl font-bold text-white">Soma.AI</span>
             </div>
 
             <div key={`brand-${panel}`} className="animate-form-fade-in">
@@ -385,7 +385,7 @@ export default function LoginPage() {
                     Quero ser parceiro!
                   </h2>
                   <p className="text-white/70 text-sm lg:text-base leading-relaxed mb-8">
-                    Marketing automático para pequenas empresas. Você atende, a Soma.ai cuida das redes com postagens automáticas.
+                    Marketing automático para pequenas empresas. Você atende, a Soma.AI cuida das redes com postagens automáticas.
                   </p>
                   <button
                     onClick={() => switchPanel('signup')}
@@ -650,7 +650,7 @@ export default function LoginPage() {
 
       {/* Footer */}
       <p className="relative z-10 mt-6 text-center text-sm text-white/80 font-medium tracking-wide">
-        Soma.ai — Marketing automatizado com IA
+        Soma.AI — Marketing automatizado com IA
       </p>
     </div>
   )

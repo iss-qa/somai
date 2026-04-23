@@ -71,7 +71,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
               </h3>
               <p className="text-sm text-gray-400 leading-relaxed mb-6">
                 Seu periodo de teste gratuito expirou. Para continuar
-                utilizando o Soma.ai, entre em contato com nossa equipe para
+                utilizando o Soma.AI, entre em contato com nossa equipe para
                 ativar seu plano.
               </p>
               <ContactButtons />
@@ -147,8 +147,8 @@ function TrialExpiredLock({ plan }: { plan?: string }) {
 // ─── Botoes de contato WhatsApp / Email ──────────────────────────────────────
 
 function ContactButtons({ fullWidth = false }: { fullWidth?: boolean }) {
-  const waMsg = 'Ola, meu periodo de teste do Soma.ai encerrou e quero ativar meu plano.'
-  const mailSubject = 'Ativar plano Soma.ai'
+  const waMsg = 'Ola, meu periodo de teste do Soma.AI encerrou e quero ativar meu plano.'
+  const mailSubject = 'Ativar plano Soma.AI'
   return (
     <div className={`grid ${fullWidth ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2.5`}>
       <a

@@ -75,7 +75,7 @@ function TutorialImage({ src, alt, label }: { src: string; alt: string; label: s
   )
 }
 
-/* ── Production URLs (always Soma.ai domain) ── */
+/* ── Production URLs (always Soma.AI domain) ── */
 const SOMA_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'somai.issqa.com.br'
 const SOMA_ORIGIN = `https://${SOMA_DOMAIN}`
 const SOMA_REDIRECT_URI = `${SOMA_ORIGIN}/app/settings/integrations`
@@ -473,8 +473,8 @@ export default function IntegrationChecklist({
 
                 <div className="p-3 rounded bg-blue-500/10 border border-blue-500/20 space-y-2">
                   <p className="text-xs text-blue-300">
-                    <strong>Importante:</strong> o domínio e a URI de redirecionamento são sempre do <strong>Soma.ai</strong> ({SOMA_DOMAIN}), não do site do parceiro.
-                    Cada empresa cria seu app no Facebook Developers, mas o redirecionamento aponta para a plataforma Soma.ai.
+                    <strong>Importante:</strong> o domínio e a URI de redirecionamento são sempre do <strong>Soma.AI</strong> ({SOMA_DOMAIN}), não do site do parceiro.
+                    Cada empresa cria seu app no Facebook Developers, mas o redirecionamento aponta para a plataforma Soma.AI.
                     <strong> Não é necessário que cada cliente tenha um domínio próprio.</strong>
                   </p>
                 </div>
@@ -496,7 +496,7 @@ export default function IntegrationChecklist({
                     <li className="flex items-start gap-2">
                       <Bullet n={2} />
                       <span>
-                        No campo <strong className="text-gray-200">&quot;Domínios do aplicativo&quot;</strong>, adicione o domínio do Soma.ai:
+                        No campo <strong className="text-gray-200">&quot;Domínios do aplicativo&quot;</strong>, adicione o domínio do Soma.AI:
                       </span>
                     </li>
                   </ol>

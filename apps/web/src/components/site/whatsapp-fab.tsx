@@ -44,7 +44,7 @@ export function WhatsAppFab() {
             </div>
             <div className="mt-1.5 font-display text-white">Oi! Posso ajudar?</div>
             <div className="mt-1 leading-snug text-zinc-400">
-              Tire dúvidas sobre a Soma.ai pelo WhatsApp — respondemos em minutos.
+              Tire dúvidas sobre a Soma.AI pelo WhatsApp — respondemos em minutos.
             </div>
             <span
               aria-hidden
