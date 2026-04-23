@@ -12,6 +12,7 @@ interface PostItemProps {
     card_id?: { generated_image_url?: string }
     platforms: string[]
     published_at: string | null
+    scheduled_at?: string | null
     created_at: string
     status: 'published' | 'failed' | 'cancelled' | 'queued' | 'processing'
   }
@@ -76,7 +77,11 @@ export function PostItem({ post, compact = false }: PostItemProps) {
           </div>
           <span className="text-xs text-gray-500 flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            {formatDateTime(post.published_at || post.created_at)}
+            {formatDateTime(
+              post.status === 'queued' || post.status === 'processing'
+                ? (post.scheduled_at || post.created_at)
+                : (post.published_at || post.created_at)
+            )}
           </span>
         </div>
       </div>

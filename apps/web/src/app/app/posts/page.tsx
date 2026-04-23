@@ -27,7 +27,10 @@ import {
   Instagram,
   Facebook,
   Image as ImageIcon,
+  Clock,
 } from 'lucide-react'
+
+type PostStatus = 'published' | 'failed' | 'cancelled' | 'queued'
 
 interface Post {
   _id: string
@@ -35,14 +38,16 @@ interface Post {
   thumbnail?: string
   platforms: string[]
   published_at: string | null
+  scheduled_at?: string | null
   created_at: string
-  status: 'published' | 'failed' | 'cancelled'
+  status: PostStatus
   card_id?: { generated_image_url?: string }
 }
 
 interface PostMetrics {
   total: number
   published: number
+  queued: number
   cancelled: number
   failed: number
 }
@@ -52,6 +57,7 @@ export default function PostsPage() {
   const [metrics, setMetrics] = useState<PostMetrics>({
     total: 0,
     published: 0,
+    queued: 0,
     cancelled: 0,
     failed: 0,
   })
@@ -62,12 +68,27 @@ export default function PostsPage() {
   useEffect(() => {
     async function loadPosts() {
       try {
-        const data = await api.get<{ posts: Post[]; pagination: any }>('/api/posts')
-        const loadedPosts = data.posts || []
-        setPosts(loadedPosts)
+        const [postsRes, queueRes] = await Promise.all([
+          api.get<{ posts: Post[]; pagination: any }>('/api/posts'),
+          api.get<{ items: any[]; pagination: any }>('/api/post-queue?status=queued&limit=200').catch(() => ({ items: [] as any[] })),
+        ])
+        const loadedPosts = postsRes.posts || []
+        const queuedItems: Post[] = (queueRes.items || []).map((q: any) => ({
+          _id: q._id,
+          caption: q.caption || '',
+          platforms: q.platforms || [],
+          published_at: null,
+          scheduled_at: q.scheduled_at,
+          created_at: q.created_at || q.createdAt,
+          status: 'queued' as const,
+          card_id: q.card_id && typeof q.card_id === 'object' ? { generated_image_url: q.card_id.generated_image_url } : undefined,
+        }))
+        const merged = [...queuedItems, ...loadedPosts]
+        setPosts(merged)
         setMetrics({
-          total: loadedPosts.length,
+          total: merged.length,
           published: loadedPosts.filter((p) => p.status === 'published').length,
+          queued: queuedItems.length,
           cancelled: loadedPosts.filter((p) => p.status === 'cancelled').length,
           failed: loadedPosts.filter((p) => p.status === 'failed').length,
         })
@@ -104,9 +125,10 @@ export default function PostsPage() {
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard title="Total" value={metrics.total} icon={Send} color="blue" />
         <MetricCard title="Publicados" value={metrics.published} icon={CheckCircle} color="green" />
+        <MetricCard title="Na fila" value={metrics.queued} icon={Clock} color="blue" />
         <MetricCard title="Cancelados" value={metrics.cancelled} icon={Calendar} color="yellow" />
         <MetricCard title="Falhas" value={metrics.failed} icon={AlertCircle} color="red" />
       </div>
@@ -121,6 +143,7 @@ export default function PostsPage() {
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
             <SelectItem value="published">Publicados</SelectItem>
+            <SelectItem value="queued">Na fila</SelectItem>
             <SelectItem value="failed">Falhas</SelectItem>
             <SelectItem value="cancelled">Cancelados</SelectItem>
           </SelectContent>
@@ -192,7 +215,7 @@ export default function PostsPage() {
                       </td>
                       <td className="p-4">
                         <span className="text-sm text-gray-400">
-                          {formatDateTime(post.published_at || post.created_at)}
+                          {formatDateTime(post.status === 'queued' ? (post.scheduled_at || post.created_at) : (post.published_at || post.created_at))}
                         </span>
                       </td>
                       <td className="p-4">
@@ -202,12 +225,16 @@ export default function PostsPage() {
                               ? 'success'
                               : post.status === 'failed'
                               ? 'destructive'
+                              : post.status === 'queued'
+                              ? 'default'
                               : 'secondary'
                           }
+                          className={post.status === 'queued' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : ''}
                         >
                           {post.status === 'published' && 'Publicado'}
                           {post.status === 'failed' && 'Falhou'}
                           {post.status === 'cancelled' && 'Cancelado'}
+                          {post.status === 'queued' && 'Na fila'}
                         </Badge>
                       </td>
                       <td className="p-4 text-right">
