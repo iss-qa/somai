@@ -551,6 +551,7 @@ export default async function authRoutes(app: FastifyInstance) {
   )
 
   // ── GET /me ───────────────────────────────────
+  // Retorna dados frescos do usuario + company (para rehidratar sessao sem logout/login)
   app.get(
     '/me',
     { preHandler: [authenticate] },
@@ -559,15 +560,52 @@ export default async function authRoutes(app: FastifyInstance) {
 
       const isAdmin = role === 'superadmin' || role === 'support'
       const Model = isAdmin ? AdminUser : User
-      const user: any = await Model.findById(userId)
+      const foundUser: any = await Model.findById(userId)
         .select('-password_hash')
         .lean()
 
-      if (!user) {
+      if (!foundUser) {
         return reply.status(404).send({ error: 'Usuario nao encontrado' })
       }
 
-      return reply.send({ user: { ...user, _id: String(user._id) } })
+      let companyName: string | null = null
+      let planSlug: string | null = null
+      let niche: string | null = null
+      let accessEnabled = true
+      let trialExpiresAt: string | null = null
+      let logoUrl: string | null = null
+
+      if (!isAdmin && foundUser.company_id) {
+        const company: any = await Company.findById(foundUser.company_id)
+          .populate('plan_id')
+          .lean()
+        if (company) {
+          companyName = company.name
+          planSlug = company.plan_id?.slug || null
+          niche = company.niche || null
+          accessEnabled = company.access_enabled || false
+          trialExpiresAt = company.trial_expires_at
+            ? new Date(company.trial_expires_at).toISOString()
+            : null
+          logoUrl = company.logo_url || null
+        }
+      }
+
+      return reply.send({
+        user: {
+          id: String(foundUser._id),
+          name: foundUser.name,
+          email: foundUser.email,
+          role: foundUser.role,
+          companyId: isAdmin ? null : String(foundUser.company_id),
+          companyName,
+          plan: planSlug,
+          niche,
+          accessEnabled,
+          trialExpiresAt,
+          logo_url: logoUrl,
+        },
+      })
     },
   )
 }

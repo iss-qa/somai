@@ -64,6 +64,8 @@ export const useAuthStore = create<AuthState>()(
       isTrialExpired: () => {
         const { user } = get()
         if (!user) return false
+        // Admin liberou acesso explicitamente — sobrepoe qualquer trial
+        if (user.accessEnabled === true) return false
         if (!user.trialExpiresAt) return false
         // Planos pagos nao sao afetados pelo vencimento do trial
         if (user.plan === 'pro' || user.plan === 'enterprise') return false

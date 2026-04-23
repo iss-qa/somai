@@ -215,6 +215,8 @@ export default async function companiesRoutes(app: FastifyInstance) {
         {
           access_enabled: true,
           status: CompanyStatus.Active,
+          // Desbloquear implica acesso efetivo — limpa o trial para nao bloquear o frontend
+          trial_expires_at: null,
         },
         { new: true },
       ).lean()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -76,11 +76,24 @@ export default function CompanyLayout({
   const pathname = usePathname()
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
+  const setUser = useAuthStore((s) => s.setUser)
   const clearUser = useAuthStore((s) => s.clearUser)
   const isTrialExpired = useAuthStore((s) => s.isTrialExpired)
   const isAdmin = useAuthStore((s) => s.isAdmin)
   const trialExpired = isTrialExpired() && !isAdmin()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Rehidrata dados do usuario no mount — garante que liberacoes do admin
+  // reflitam imediatamente sem precisar de logout/login.
+  useEffect(() => {
+    let cancelled = false
+    api.get<{ user: any }>('/api/auth/me')
+      .then((data) => {
+        if (!cancelled && data?.user) setUser(data.user)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [setUser])
 
   const handleLogout = async () => {
     clearUser()
