@@ -2,10 +2,10 @@
 const nextConfig = {
   // Gera um servidor auto-contido em .next/standalone — ideal para Docker
   output: 'standalone',
-  // Necessario para o standalone encontrar workspace packages fora do apps/web
-  outputFileTracingRoot: new URL('../..', import.meta.url).pathname,
   transpilePackages: ['@soma-ai/shared', '@soma-ai/db'],
   experimental: {
+    // No Next 14 outputFileTracingRoot fica em experimental (virou top-level so no Next 15)
+    outputFileTracingRoot: new URL('../..', import.meta.url).pathname,
     serverComponentsExternalPackages: ['mongoose', 'fastify', '@fastify/cors', '@fastify/jwt', '@fastify/cookie', '@fastify/multipart', 'bcryptjs', 'ioredis', 'bullmq', 'dotenv'],
   },
   webpack: (config, { isServer }) => {
