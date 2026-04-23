@@ -245,7 +245,7 @@ export default function MediaLibraryPage() {
 
     for (const file of files) {
       if (!ACCEPTED_TYPES.includes(file.type)) {
-        toast.error(`"${file.name}" nao e um formato aceito. Use JPG, PNG ou WebP.`)
+        toast.error(`"${file.name}" não e um formato aceito. Use JPG, PNG ou WebP.`)
         continue
       }
       if (file.size > MAX_FILE_SIZE) {
@@ -415,7 +415,7 @@ export default function MediaLibraryPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-white">Midias</h2>
+          <h2 className="text-xl font-semibold text-white">Mídias</h2>
           <p className="text-sm text-gray-400 mt-1">
             Gerencie as imagens dos seus produtos para usar nos cards
           </p>

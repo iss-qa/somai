@@ -533,7 +533,7 @@ function CalendarPageInner() {
         <div>
           <h2 className="text-xl font-semibold text-white">Calendario</h2>
           <p className="text-sm text-gray-400 mt-1">
-            Gerencie suas publicacoes agendadas
+            Gerencie suas publicações agendadas
           </p>
         </div>
         <Button className="gap-2" onClick={() => openScheduleModal()}>
@@ -682,7 +682,7 @@ function CalendarPageInner() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary-400" />
-            Proximas publicacoes
+            Próximas publicações
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -702,7 +702,7 @@ function CalendarPageInner() {
             <div className="text-center py-8">
               <CalendarIcon className="w-10 h-10 text-gray-700 mx-auto mb-3" />
               <p className="text-sm text-gray-400">
-                Nenhuma publicacao agendada
+                Nenhuma publicação agendada
               </p>
               <p className="text-xs text-gray-600 mt-1">
                 Agende posts para eles aparecerem aqui
@@ -743,7 +743,7 @@ function CalendarPageInner() {
             ) : (
               <div className="text-center py-6">
                 <p className="text-sm text-gray-500">
-                  Nenhuma publicacao para esta data
+                  Nenhuma publicação para esta data
                 </p>
               </div>
             )}
@@ -908,7 +908,7 @@ function CalendarPageInner() {
               <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
                 <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
                 <p className="text-xs text-blue-300">
-                  Stories nao suportam legenda nem hashtags. Apenas a imagem sera publicada.
+                  Stories não suportam legenda nem hashtags. Apenas a imagem será publicada.
                 </p>
               </div>
             )}
@@ -990,7 +990,7 @@ function CalendarPageInner() {
           <DialogHeader>
             <DialogTitle>Detalhes do Agendamento</DialogTitle>
             <DialogDescription>
-              Informacoes sobre o post agendado
+              Informações sobre o post agendado
             </DialogDescription>
           </DialogHeader>
 

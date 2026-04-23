@@ -779,7 +779,7 @@ function FilaTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-400">Status atual da fila de publicacoes</span>
+        <span className="text-sm text-gray-400">Status atual da fila de publicações</span>
         <Button
           variant="outline"
           size="sm"

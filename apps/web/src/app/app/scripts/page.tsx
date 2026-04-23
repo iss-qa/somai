@@ -70,69 +70,69 @@ interface CategoryTemplate {
 
 const NICHE_TEMPLATES: Record<string, CategoryTemplate[]> = {
   farmacia: [
-    { name: 'Promocao de Medicamentos', title: 'Promocao Especial - Farmacia', text: 'Ola! Tudo bem?\n\nPassando pra avisar que estamos com uma promocao imperdivel!\n\n[Nome do produto] com desconto especial por tempo limitado.\n\nCorre pra garantir o seu! Estoque limitado.\n\nQualquer duvida, chama aqui no WhatsApp!' },
-    { name: 'Dica de Saude', title: 'Dica de Saude - Farmacia', text: 'Oi! Tudo bem?\n\nVoce sabia que [dica de saude]?\n\nAqui na farmacia temos tudo que voce precisa pra cuidar da sua saude.\n\nVem conversar com a gente!' },
+    { name: 'Promocao de Medicamentos', title: 'Promocao Especial - Farmacia', text: 'Olá! Tudo bem?\n\nPassando pra avisar que estamos com uma promocao imperdivel!\n\n[Nome do produto] com desconto especial por tempo limitado.\n\nCorre pra garantir o seu! Estoque limitado.\n\nQualquer duvida, chama aqui no WhatsApp!' },
+    { name: 'Dica de Saude', title: 'Dica de Saude - Farmacia', text: 'Oi! Tudo bem?\n\nVoce sabia que [dica de saude]?\n\nAqui na farmacia temos tudo que você precisa pra cuidar da sua saude.\n\nVem conversar com a gente!' },
     { name: 'Novidades da Farmacia', title: 'Novidades da Farmacia', text: 'Oi! Tudo bem?\n\nTemos novidades na farmacia!\n\nChegou [produto novo] e ja esta disponivel.\n\nPassa aqui pra conferir ou chama no WhatsApp!' },
-    { name: 'Dia do Cliente', title: 'Dia Especial do Cliente', text: 'Ola, cliente especial!\n\nHoje e dia de cuidar de voce!\n\nPreparamos condicoes exclusivas pra nossos clientes fieis.\n\nVem aproveitar!' },
+    { name: 'Dia do Cliente', title: 'Dia Especial do Cliente', text: 'Olá, cliente especial!\n\nHoje e dia de cuidar de você!\n\nPreparamos condicoes exclusivas pra nossos clientes fieis.\n\nVem aproveitar!' },
     { name: 'Campanha Sazonal', title: 'Campanha Sazonal - Farmacia', text: 'Oi! Tudo bem?\n\n[Nome da campanha] chegou na farmacia!\n\nPreparamos ofertas especiais pra essa epoca do ano.\n\nConfira nossas promocoes!' },
-    { name: 'Dermocosmeticos', title: 'Dermocosmeticos - Novidades', text: 'Oi! Tudo bem?\n\nVoce ja conhece nossa linha de dermocosmeticos?\n\nTemos [marca/produto] com precos especiais.\n\nCuide da sua pele com quem entende!' },
-    { name: 'Programa de Fidelidade', title: 'Programa de Fidelidade', text: 'Ola!\n\nVoce ja faz parte do nosso programa de fidelidade?\n\nA cada compra voce acumula pontos e troca por descontos!\n\nVem saber mais!' },
+    { name: 'Dermocosmeticos', title: 'Dermocosmeticos - Novidades', text: 'Oi! Tudo bem?\n\nVoce ja conhece nossa linha de dermocosmeticos?\n\nTemos [marca/produto] com preços especiais.\n\nCuide da sua pele com quem entende!' },
+    { name: 'Programa de Fidelidade', title: 'Programa de Fidelidade', text: 'Olá!\n\nVoce ja faz parte do nosso programa de fidelidade?\n\nA cada compra você acumula pontos e troca por descontos!\n\nVem saber mais!' },
     { name: 'Outro', title: '', text: '' },
   ],
   pet: [
     { name: 'Apresentacao do Petshop', title: 'Apresentacao do Petshop', text: 'Oi! Tudo bem?\n\nJa conhece nosso petshop?\n\nAqui cuidamos do seu pet com muito amor e carinho!\n\nTemos racao, brinquedos, banho e tosa, e muito mais.\n\nVem nos visitar ou chama aqui no WhatsApp!' },
-    { name: 'Promocao de Racao', title: 'Promocao de Racao', text: 'Ola! Tudo bem?\n\nRacao [marca] com preco especial!\n\nDe: R$ [preco original]\nPor: R$ [preco promocional]\n\nCorre que e por tempo limitado!\n\nFaca seu pedido pelo WhatsApp!' },
+    { name: 'Promocao de Racao', title: 'Promocao de Racao', text: 'Olá! Tudo bem?\n\nRacao [marca] com preço especial!\n\nDe: R$ [preço original]\nPor: R$ [preço promocional]\n\nCorre que e por tempo limitado!\n\nFaca seu pedido pelo WhatsApp!' },
     { name: 'Dica de Cuidados', title: 'Dica de Cuidados com Pets', text: 'Oi! Tudo bem?\n\nVoce sabia que [dica de cuidado com pet]?\n\nAqui no petshop temos tudo pra manter seu pet saudavel e feliz!\n\nVem conversar com a gente!' },
-    { name: 'Banho e Tosa', title: 'Banho e Tosa - Agende', text: 'Oi! Tudo bem?\n\nSeu pet esta precisando de um banho e tosa?\n\nAgende agora e aproveite nossas condicoes especiais!\n\nBanho: R$ [preco]\nBanho + Tosa: R$ [preco]\n\nChama no WhatsApp pra agendar!' },
-    { name: 'Novos Produtos', title: 'Novos Produtos - Petshop', text: 'Ola!\n\nChegaram novidades no petshop!\n\n[Descreva os novos produtos]\n\nVem conferir ou faca seu pedido pelo WhatsApp!' },
-    { name: 'Adocao de Pets', title: 'Campanha de Adocao', text: 'Ola! Tudo bem?\n\nEstamos com uma campanha de adocao responsavel!\n\nTemos [tipo de pet] esperando um lar cheio de amor.\n\nVenha conhecer e se apaixonar!' },
+    { name: 'Banho e Tosa', title: 'Banho e Tosa - Agende', text: 'Oi! Tudo bem?\n\nSeu pet esta precisando de um banho e tosa?\n\nAgende agora e aproveite nossas condicoes especiais!\n\nBanho: R$ [preço]\nBanho + Tosa: R$ [preço]\n\nChama no WhatsApp pra agendar!' },
+    { name: 'Novos Produtos', title: 'Novos Produtos - Petshop', text: 'Olá!\n\nChegaram novidades no petshop!\n\n[Descreva os novos produtos]\n\nVem conferir ou faca seu pedido pelo WhatsApp!' },
+    { name: 'Adocao de Pets', title: 'Campanha de Adocao', text: 'Olá! Tudo bem?\n\nEstamos com uma campanha de adocao responsavel!\n\nTemos [tipo de pet] esperando um lar cheio de amor.\n\nVenha conhecer e se apaixonar!' },
     { name: 'Vacinacao', title: 'Vacinacao em Dia', text: 'Oi! Tudo bem?\n\nA vacinacao do seu pet esta em dia?\n\nAqui no petshop temos todas as vacinas necessarias.\n\nAgende agora pelo WhatsApp!' },
     { name: 'Outro', title: '', text: '' },
   ],
   moda: [
-    { name: 'Lancamento de Colecao', title: 'Nova Colecao - Lancamento', text: 'Oi! Tudo bem?\n\nA nova colecao chegou!\n\nPecas lindas, tendencias da estacao, e precos que cabem no bolso.\n\nVem conferir! Estoque limitado.\n\nChama no WhatsApp pra ver o catalogo!' },
-    { name: 'Promocao de Roupas', title: 'Promocao Imperdivel', text: 'Ola! Tudo bem?\n\nPromocao especial na loja!\n\n[Descricao da promocao]\n\nAproveite antes que acabe!\n\nFaca seu pedido pelo WhatsApp!' },
+    { name: 'Lancamento de Colecao', title: 'Nova Colecao - Lancamento', text: 'Oi! Tudo bem?\n\nA nova colecao chegou!\n\nPecas lindas, tendencias da estacao, e preços que cabem no bolso.\n\nVem conferir! Estoque limitado.\n\nChama no WhatsApp pra ver o catalogo!' },
+    { name: 'Promocao de Roupas', title: 'Promocao Imperdivel', text: 'Olá! Tudo bem?\n\nPromocao especial na loja!\n\n[Descrição da promocao]\n\nAproveite antes que acabe!\n\nFaca seu pedido pelo WhatsApp!' },
     { name: 'Tendencias da Estacao', title: 'Tendencias da Estacao', text: 'Oi! Tudo bem?\n\nVoce ja conferiu as tendencias dessa estacao?\n\n[Descreva as tendencias]\n\nTemos tudo aqui na loja! Vem ver!' },
-    { name: 'Look do Dia', title: 'Look do Dia - Inspiracao', text: 'Oi! Tudo bem?\n\nLook do dia pra voce se inspirar!\n\n[Descreva o look]\n\nTodas as pecas disponiveis na loja.\n\nChama no WhatsApp pra garantir o seu!' },
-    { name: 'Liquidacao', title: 'Liquidacao - Ate X% OFF', text: 'Ola!\n\nLiquidacao com ate [X]% de desconto!\n\nPecas selecionadas por precos incriveis.\n\nCorre que e por tempo limitado!\n\nVem pra loja ou chama no WhatsApp!' },
-    { name: 'Depoimento de Cliente', title: 'O que nossos clientes dizem', text: 'Oi! Tudo bem?\n\nOlha so o que a [nome] falou sobre a experiencia com a gente:\n\n"[Depoimento do cliente]"\n\nQuer ter essa experiencia tambem? Vem pra ca!' },
+    { name: 'Look do Dia', title: 'Look do Dia - Inspiracao', text: 'Oi! Tudo bem?\n\nLook do dia pra você se inspirar!\n\n[Descreva o look]\n\nTodas as pecas disponiveis na loja.\n\nChama no WhatsApp pra garantir o seu!' },
+    { name: 'Liquidacao', title: 'Liquidacao - Ate X% OFF', text: 'Olá!\n\nLiquidacao com ate [X]% de desconto!\n\nPecas selecionadas por preços incriveis.\n\nCorre que e por tempo limitado!\n\nVem pra loja ou chama no WhatsApp!' },
+    { name: 'Depoimento de Cliente', title: 'O que nossos clientes dizem', text: 'Oi! Tudo bem?\n\nOlha so o que a [nome] falou sobre a experiencia com a gente:\n\n"[Depoimento do cliente]"\n\nQuer ter essa experiencia também? Vem pra ca!' },
     { name: 'Outro', title: '', text: '' },
   ],
   cosmeticos: [
     { name: 'Lancamento de Produto', title: 'Lancamento - Cosmeticos', text: 'Oi! Tudo bem?\n\nChegou [nome do produto]!\n\n[Beneficios do produto]\n\nVem experimentar! Disponivel na loja e pelo WhatsApp.' },
-    { name: 'Tutorial de Maquiagem', title: 'Tutorial de Maquiagem', text: 'Oi! Tudo bem?\n\nPreparei um tutorial especial pra voce!\n\n[Descreva o passo a passo]\n\nTodos os produtos usados estao disponiveis na loja.\n\nChama no WhatsApp pra saber mais!' },
+    { name: 'Tutorial de Maquiagem', title: 'Tutorial de Maquiagem', text: 'Oi! Tudo bem?\n\nPreparei um tutorial especial pra você!\n\n[Descreva o passo a passo]\n\nTodos os produtos usados estao disponiveis na loja.\n\nChama no WhatsApp pra saber mais!' },
     { name: 'Cuidados com a Pele', title: 'Cuidados com a Pele', text: 'Oi! Tudo bem?\n\nVoce sabia que [dica de skincare]?\n\nAqui na loja temos os melhores produtos pra sua rotina de cuidados.\n\nVem conversar com a gente!' },
-    { name: 'Promocao Especial', title: 'Promocao Especial - Cosmeticos', text: 'Ola! Tudo bem?\n\nPromocao imperdivel!\n\n[Produto] de R$ [preco original] por R$ [preco promo].\n\nCorre que e por tempo limitado!' },
+    { name: 'Promocao Especial', title: 'Promocao Especial - Cosmeticos', text: 'Olá! Tudo bem?\n\nPromocao imperdivel!\n\n[Produto] de R$ [preço original] por R$ [preço promo].\n\nCorre que e por tempo limitado!' },
     { name: 'Antes e Depois', title: 'Antes e Depois - Resultados', text: 'Oi! Tudo bem?\n\nOlha so esse resultado incrivel!\n\n[Descreva o antes e depois]\n\nQuer ter esse resultado? Chama no WhatsApp!' },
-    { name: 'Depoimento de Cliente', title: 'Depoimento - Cosmeticos', text: 'Oi! Tudo bem?\n\nOlha o que a [nome] achou:\n\n"[Depoimento]"\n\nExperimente voce tambem!' },
+    { name: 'Depoimento de Cliente', title: 'Depoimento - Cosmeticos', text: 'Oi! Tudo bem?\n\nOlha o que a [nome] achou:\n\n"[Depoimento]"\n\nExperimente você também!' },
     { name: 'Outro', title: '', text: '' },
   ],
   mercearia: [
-    { name: 'Ofertas da Semana', title: 'Ofertas da Semana', text: 'Ola! Tudo bem?\n\nConfira as ofertas da semana!\n\n[Liste os produtos e precos]\n\nValido ate [data].\n\nFaca seu pedido pelo WhatsApp!' },
+    { name: 'Ofertas da Semana', title: 'Ofertas da Semana', text: 'Olá! Tudo bem?\n\nConfira as ofertas da semana!\n\n[Liste os produtos e preços]\n\nValido ate [data].\n\nFaca seu pedido pelo WhatsApp!' },
     { name: 'Produtos Frescos', title: 'Produtos Frescos do Dia', text: 'Oi! Tudo bem?\n\nChegaram produtos fresquinhos hoje!\n\n[Liste os produtos]\n\nVem garantir os seus! Estoque limitado.' },
     { name: 'Receita do Dia', title: 'Receita do Dia', text: 'Oi! Tudo bem?\n\nReceita especial do dia:\n\n[Nome da receita]\n\nIngredientes:\n[Liste os ingredientes]\n\nTodos disponiveis aqui na mercearia!\n\nVem conferir!' },
-    { name: 'Novidades no Estoque', title: 'Novidades no Estoque', text: 'Ola!\n\nChegaram novidades!\n\n[Descreva os novos produtos]\n\nVem conferir ou faca seu pedido pelo WhatsApp!' },
-    { name: 'Hortifruti', title: 'Hortifruti Fresquinho', text: 'Oi! Tudo bem?\n\nHortifruti fresquinho chegou!\n\n[Liste frutas e verduras]\n\nPrecos especiais pra voce.\n\nVem pra mercearia!' },
-    { name: 'Delivery', title: 'Delivery - Entregamos pra Voce', text: 'Ola! Tudo bem?\n\nSabia que fazemos delivery?\n\nFaca seu pedido pelo WhatsApp e receba no conforto da sua casa!\n\nEntrega rapida e sem taxa minima.\n\nChama aqui!' },
+    { name: 'Novidades no Estoque', title: 'Novidades no Estoque', text: 'Olá!\n\nChegaram novidades!\n\n[Descreva os novos produtos]\n\nVem conferir ou faca seu pedido pelo WhatsApp!' },
+    { name: 'Hortifruti', title: 'Hortifruti Fresquinho', text: 'Oi! Tudo bem?\n\nHortifruti fresquinho chegou!\n\n[Liste frutas e verduras]\n\nPrecos especiais pra você.\n\nVem pra mercearia!' },
+    { name: 'Delivery', title: 'Delivery - Entregamos pra Você', text: 'Olá! Tudo bem?\n\nSabia que fazemos delivery?\n\nFaca seu pedido pelo WhatsApp e receba no conforto da sua casa!\n\nEntrega rápida e sem taxa minima.\n\nChama aqui!' },
     { name: 'Outro', title: '', text: '' },
   ],
   calcados: [
-    { name: 'Lancamento de Colecao', title: 'Nova Colecao de Calcados', text: 'Oi! Tudo bem?\n\nA nova colecao chegou!\n\nModelos incriveis, confortaveis e com precos especiais.\n\nVem conferir! Chama no WhatsApp pra ver o catalogo.' },
-    { name: 'Promocao de Calcados', title: 'Promocao de Calcados', text: 'Ola! Tudo bem?\n\nPromocao imperdivel!\n\n[Modelo] de R$ [preco original] por R$ [preco promo].\n\nCorre que e por tempo limitado!' },
+    { name: 'Lancamento de Colecao', title: 'Nova Colecao de Calcados', text: 'Oi! Tudo bem?\n\nA nova colecao chegou!\n\nModelos incriveis, confortaveis e com preços especiais.\n\nVem conferir! Chama no WhatsApp pra ver o catalogo.' },
+    { name: 'Promocao de Calcados', title: 'Promocao de Calcados', text: 'Olá! Tudo bem?\n\nPromocao imperdivel!\n\n[Modelo] de R$ [preço original] por R$ [preço promo].\n\nCorre que e por tempo limitado!' },
     { name: 'Tendencias', title: 'Tendencias em Calcados', text: 'Oi! Tudo bem?\n\nAs tendencias da estacao estao aqui!\n\n[Descreva as tendencias]\n\nTemos todos os modelos na loja.\n\nVem conferir!' },
     { name: 'Conforto e Qualidade', title: 'Conforto e Qualidade', text: 'Oi! Tudo bem?\n\nProcurando calcado confortavel e de qualidade?\n\nConheca nossa linha [marca/modelo].\n\nSeu pe merece o melhor!\n\nVem experimentar na loja!' },
-    { name: 'Liquidacao', title: 'Liquidacao de Calcados', text: 'Ola!\n\nLiquidacao com ate [X]% OFF!\n\nModelos selecionados por precos incriveis.\n\nVem pra loja ou chama no WhatsApp!' },
+    { name: 'Liquidacao', title: 'Liquidacao de Calcados', text: 'Olá!\n\nLiquidacao com ate [X]% OFF!\n\nModelos selecionados por preços incriveis.\n\nVem pra loja ou chama no WhatsApp!' },
     { name: 'Depoimento de Cliente', title: 'O que nossos clientes dizem', text: 'Oi! Tudo bem?\n\nOlha o que a [nome] falou:\n\n"[Depoimento]"\n\nQuer ter essa experiencia? Vem pra ca!' },
     { name: 'Outro', title: '', text: '' },
   ],
   outro: [
-    { name: 'Apresentacao do Negocio', title: 'Apresentacao - Seu Negocio', text: 'Oi! Tudo bem?\n\nJa conhece nosso negocio?\n\n[Descreva brevemente o que voce faz]\n\nEstamos aqui pra te ajudar!\n\nChama no WhatsApp pra saber mais.' },
-    { name: 'Recrutamento de Admins', title: 'Vagas Abertas - Venha Fazer Parte', text: 'Ola! Tudo bem?\n\nEstamos crescendo e buscando pessoas incriveis pra nossa equipe!\n\n[Descreva a vaga e requisitos]\n\nInteressado? Chama no WhatsApp!' },
+    { name: 'Apresentacao do Negocio', title: 'Apresentacao - Seu Negocio', text: 'Oi! Tudo bem?\n\nJa conhece nosso negocio?\n\n[Descreva brevemente o que você faz]\n\nEstamos aqui pra te ajudar!\n\nChama no WhatsApp pra saber mais.' },
+    { name: 'Recrutamento de Admins', title: 'Vagas Abertas - Venha Fazer Parte', text: 'Olá! Tudo bem?\n\nEstamos crescendo e buscando pessoas incriveis pra nossa equipe!\n\n[Descreva a vaga e requisitos]\n\nInteressado? Chama no WhatsApp!' },
     { name: 'Convite para Participante', title: 'Convite Especial', text: 'Oi! Tudo bem?\n\nVoce esta convidado(a) pra [evento/acao]!\n\n[Detalhes do convite]\n\nConfirme sua presenca pelo WhatsApp!' },
     { name: 'Follow-up / Lembrete', title: 'Lembrete Importante', text: 'Oi! Tudo bem?\n\nPassando pra lembrar que [assunto do lembrete].\n\nQualquer duvida, estamos a disposicao!\n\nChama no WhatsApp.' },
-    { name: 'Depoimento / Prova Social', title: 'O que nossos clientes dizem', text: 'Oi! Tudo bem?\n\nOlha o que a [nome] falou sobre a gente:\n\n"[Depoimento]"\n\nVem viver essa experiencia tambem!' },
-    { name: 'Promocional / Oferta', title: 'Oferta Especial - Por Tempo Limitado', text: 'Ola! Tudo bem?\n\nPreparamos uma oferta especial pra voce!\n\n[Descreva a oferta]\n\nCorre que e por tempo limitado!\n\nChama no WhatsApp pra garantir.' },
-    { name: 'Educativo / Como Funciona', title: 'Como Funciona - Guia Rapido', text: 'Oi! Tudo bem?\n\nVoce sabe como funciona [assunto]?\n\n[Explique de forma simples]\n\nQualquer duvida, chama no WhatsApp!' },
+    { name: 'Depoimento / Prova Social', title: 'O que nossos clientes dizem', text: 'Oi! Tudo bem?\n\nOlha o que a [nome] falou sobre a gente:\n\n"[Depoimento]"\n\nVem viver essa experiencia também!' },
+    { name: 'Promocional / Oferta', title: 'Oferta Especial - Por Tempo Limitado', text: 'Olá! Tudo bem?\n\nPreparamos uma oferta especial pra você!\n\n[Descreva a oferta]\n\nCorre que e por tempo limitado!\n\nChama no WhatsApp pra garantir.' },
+    { name: 'Educativo / Como Funciona', title: 'Como Funciona - Guia Rápido', text: 'Oi! Tudo bem?\n\nVoce sabe como funciona [assunto]?\n\n[Explique de forma simples]\n\nQualquer duvida, chama no WhatsApp!' },
     { name: 'Outro', title: '', text: '' },
   ],
 }
@@ -233,7 +233,7 @@ function ScriptsContent() {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('Audio deve ter no maximo 10MB')
+      toast.error('Audio deve ter no máximo 10MB')
       return
     }
     const base64 = await fileToBase64(file)
@@ -245,19 +245,19 @@ function ScriptsContent() {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 25 * 1024 * 1024) {
-      toast.error('Video deve ter no maximo 25MB')
+      toast.error('Vídeo deve ter no máximo 25MB')
       return
     }
     const base64 = await fileToBase64(file)
     setFormVideoUrl(base64)
-    toast.success('Video adicionado')
+    toast.success('Vídeo adicionado')
   }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
     if (formImages.length + files.length > 5) {
-      toast.error('Maximo de 5 imagens')
+      toast.error('Máximo de 5 imagens')
       return
     }
     const newImages: string[] = []
@@ -322,7 +322,7 @@ function ScriptsContent() {
   // ── Save ────────────────────────────────────
   const handleSave = async () => {
     if (!formTitle.trim()) {
-      toast.error('Titulo e obrigatorio')
+      toast.error('Titulo e obrigatório')
       return
     }
     setSaving(true)
@@ -551,7 +551,7 @@ function ScriptsContent() {
                           )}
                           {script.video_url && (
                             <span className="flex items-center gap-1 text-xs text-blue-400">
-                              <Video className="w-3 h-3" /> Video anexado
+                              <Video className="w-3 h-3" /> Vídeo anexado
                             </span>
                           )}
                           {script.images.length > 0 && (
@@ -742,12 +742,12 @@ function ScriptsContent() {
             {/* Video upload */}
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">
-                <Video className="w-3.5 h-3.5" /> Video (opcional)
+                <Video className="w-3.5 h-3.5" /> Vídeo (opcional)
               </Label>
               {formVideoUrl ? (
                 <div className="flex items-center gap-2 p-2 rounded-md bg-blue-500/5 border border-blue-500/20">
                   <Video className="w-4 h-4 text-blue-400" />
-                  <span className="text-xs text-blue-400 flex-1">Video adicionado</span>
+                  <span className="text-xs text-blue-400 flex-1">Vídeo adicionado</span>
                   <Button
                     size="sm"
                     variant="ghost"

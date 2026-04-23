@@ -184,7 +184,7 @@ export default function PostsPage() {
   function handleRetry(post: Post) {
     const cardId = getCardId(post)
     if (!cardId) {
-      toast.error('Card original nao encontrado')
+      toast.error('Card original não encontrado')
       return
     }
     // Reabre a tela de agendamento passando o card como parametro
@@ -204,7 +204,7 @@ export default function PostsPage() {
       <div>
         <h2 className="text-xl font-semibold text-white">Postagens</h2>
         <p className="text-sm text-gray-400 mt-1">
-          Historico e status das suas publicacoes
+          Histórico e status das suas publicações
         </p>
       </div>
 
@@ -265,7 +265,7 @@ export default function PostsPage() {
                     Status
                   </th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider p-4">
-                    Acoes
+                    Ações
                   </th>
                 </tr>
               </thead>

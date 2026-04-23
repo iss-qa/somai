@@ -284,7 +284,7 @@ function CampaignsContent() {
             Nenhuma campanha criada
           </h3>
           <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
-            Crie campanhas para anunciar no Instagram, Facebook e Google usando os cards e videos que voce ja criou.
+            Crie campanhas para anunciar no Instagram, Facebook e Google usando os cards e videos que você ja criou.
           </p>
           <Button className="gap-2" onClick={() => router.push('/app/campaigns/new')}>
             <Plus className="w-4 h-4" />

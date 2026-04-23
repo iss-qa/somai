@@ -111,7 +111,7 @@ function CampaignDashboardContent() {
       const data = await api.get<{ campaign: CampaignDetail }>(`/api/campaigns/${id}`)
       setCampaign(data.campaign)
     } catch {
-      toast.error('Campanha nao encontrada')
+      toast.error('Campanha não encontrada')
       router.push('/app/campaigns')
     } finally {
       setLoading(false)
@@ -263,7 +263,7 @@ function CampaignDashboardContent() {
               <MetricRow label="CPM (Custo por 1000 impressoes)" value={formatCurrency(m.cpm)} />
               <MetricRow label="Conversoes" value={m.conversions.toLocaleString()} />
               <MetricRow label="Custo por conversao" value={m.cost_per_conversion > 0 ? formatCurrency(m.cost_per_conversion) : '—'} />
-              <MetricRow label="Ultima atualizacao" value={m.last_synced_at ? formatDate(m.last_synced_at) : 'Nunca'} />
+              <MetricRow label="Última atualização" value={m.last_synced_at ? formatDate(m.last_synced_at) : 'Nunca'} />
             </div>
           </CardContent>
         </Card>
@@ -298,7 +298,7 @@ function CampaignDashboardContent() {
                 <div>
                   <p className="text-sm font-medium text-white">Meta Ads</p>
                   <p className="text-[10px] text-gray-500">
-                    {campaign.platforms.meta_ads.placements?.join(', ') || 'Automatico'}
+                    {campaign.platforms.meta_ads.placements?.join(', ') || 'Automático'}
                   </p>
                 </div>
                 <Badge variant="secondary" className="ml-auto text-[10px]">
@@ -351,7 +351,7 @@ function CampaignDashboardContent() {
                 <div key={i} className="flex items-center gap-2 p-2 rounded-lg border border-brand-border bg-brand-surface">
                   <Video className="w-4 h-4 text-gray-400" />
                   <span className="text-xs text-gray-300">
-                    {video.title || `Video ${i + 1}`}
+                    {video.title || `Vídeo ${i + 1}`}
                   </span>
                 </div>
               ))}
@@ -365,7 +365,7 @@ function CampaignDashboardContent() {
         <CardContent className="p-5">
           <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-1.5">
             <Users className="w-4 h-4" />
-            Publico-alvo
+            Público-alvo
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>

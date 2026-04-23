@@ -25,7 +25,7 @@ export default function AppError({
           Algo deu errado
         </h2>
         <p className="text-gray-400 text-sm mb-6">
-          Ocorreu um erro inesperado. Tente recarregar a pagina.
+          Ocorreu um erro inesperado. Tente recarregar a página.
         </p>
         <div className="flex items-center justify-center gap-3">
           <Button onClick={reset} variant="default">

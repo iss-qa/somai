@@ -67,10 +67,10 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
           {trialExpired ? (
             <>
               <h3 className="text-xl font-bold text-white mb-2">
-                Periodo de teste encerrado
+                Período de teste encerrado
               </h3>
               <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                Seu periodo de teste gratuito expirou. Para continuar
+                Seu período de teste gratuito expirou. Para continuar
                 utilizando o Soma.AI, entre em contato com nossa equipe para
                 ativar seu plano.
               </p>
@@ -79,12 +79,12 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
           ) : (
             <>
               <h3 className="text-xl font-bold text-white mb-2">
-                Estamos preparando tudo para voce!
+                Estamos preparando tudo para você!
               </h3>
               <p className="text-sm text-gray-400 leading-relaxed mb-6">
                 Sua conta esta sendo configurada pela nossa equipe. Apos a
-                confirmacao do pagamento do setup, seu acesso sera liberado e
-                voce podera comecar a criar conteudo incrivel com IA.
+                confirmacao do pagamento do setup, seu acesso será liberado e
+                você podera começar a criar conteudo incrivel com IA.
               </p>
               <ContactButtons />
             </>
@@ -122,7 +122,7 @@ function TrialExpiredLock({ plan }: { plan?: string }) {
             <Clock className="w-6 h-6 text-red-400" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white mb-1">Periodo de teste encerrado</h3>
+            <h3 className="text-xl font-bold text-white mb-1">Período de teste encerrado</h3>
             <p className="text-sm text-gray-400 leading-relaxed">
               Para continuar criando cards, videos e agendamentos, ative seu plano
               com nosso time.
@@ -133,7 +133,7 @@ function TrialExpiredLock({ plan }: { plan?: string }) {
         <ContactButtons fullWidth />
 
         <div className="mt-5 pt-5 border-t border-brand-border text-[11px] text-gray-500 flex items-center justify-between">
-          <span>Dashboard e Integracoes continuam disponiveis.</span>
+          <span>Dashboard e Integrações continuam disponiveis.</span>
           <span className="inline-flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-primary-500" />
             Plano <span className="text-gray-300 capitalize">{plan || 'Starter'}</span>
@@ -147,7 +147,7 @@ function TrialExpiredLock({ plan }: { plan?: string }) {
 // ─── Botoes de contato WhatsApp / Email ──────────────────────────────────────
 
 function ContactButtons({ fullWidth = false }: { fullWidth?: boolean }) {
-  const waMsg = 'Ola, meu periodo de teste do Soma.AI encerrou e quero ativar meu plano.'
+  const waMsg = 'Olá, meu período de teste do Soma.AI encerrou e quero ativar meu plano.'
   const mailSubject = 'Ativar plano Soma.AI'
   return (
     <div className={`grid ${fullWidth ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-2.5`}>

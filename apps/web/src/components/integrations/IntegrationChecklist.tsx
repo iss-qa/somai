@@ -792,7 +792,7 @@ function AIConfigStep({ onComplete }: { onComplete: () => void }) {
   }, [])
 
   const handleResetUsage = async () => {
-    if (!confirm('Zerar os contadores de uso? Essa acao nao afeta a cota no provider.')) return
+    if (!confirm('Zerar os contadores de uso? Essa acao não afeta a cota no provider.')) return
     setResettingUsage(true)
     try {
       await api.post('/api/integrations/ai/usage/reset')
@@ -993,7 +993,7 @@ function AIConfigStep({ onComplete }: { onComplete: () => void }) {
             <div>
               <h4 className="text-sm font-semibold text-gray-200">Uso da IA (tokens consumidos)</h4>
               <p className="text-[11px] text-gray-500">
-                Contagem local por empresa. {usage.last_used_at ? `Ultimo uso: ${new Date(usage.last_used_at).toLocaleString('pt-BR')}` : 'Nenhum uso registrado ainda.'}
+                Contagem local por empresa. {usage.last_used_at ? `Último uso: ${new Date(usage.last_used_at).toLocaleString('pt-BR')}` : 'Nenhum uso registrado ainda.'}
               </p>
             </div>
             <button
@@ -1042,7 +1042,7 @@ function AIConfigStep({ onComplete }: { onComplete: () => void }) {
 
           {/* Provider limits note */}
           <div className="text-[10px] text-gray-500 leading-relaxed">
-            {currentConfig.provider === 'groq' && 'Groq gratis: ~30 req/min e 14.4k req/dia. Sem limite de tokens acumulado.'}
+            {currentConfig.provider === 'groq' && 'Groq grátis: ~30 req/min e 14.4k req/dia. Sem limite de tokens acumulado.'}
             {currentConfig.provider === 'gemini' && 'Gemini Free: 15 req/min e 1.500 req/dia.'}
             {currentConfig.provider === 'openrouter' && 'OpenRouter: cota depende do modelo - consulte openrouter.ai/activity.'}
             {currentConfig.provider === 'anthropic' && 'Anthropic: cobrado por token - veja anthropic.com/pricing.'}

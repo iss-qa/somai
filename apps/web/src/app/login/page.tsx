@@ -632,7 +632,7 @@ export default function LoginPage() {
                     <Label className="text-gray-300 text-sm">Nova senha</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <Input type="password" placeholder="Minimo 6 caracteres" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pl-10" disabled={recoveryLoading} />
+                      <Input type="password" placeholder="Mínimo 6 caracteres" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pl-10" disabled={recoveryLoading} />
                     </div>
                   </div>
                   <Button type="submit" className="w-full h-11" disabled={recoveryLoading || recoveryCode.length < 6}>

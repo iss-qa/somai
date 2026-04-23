@@ -228,7 +228,7 @@ export default function ComunicacaoPage() {
   const [showRegrasModal, setShowRegrasModal] = useState(false)
 
   // Manual message form
-  const [manualEscopo, setManualEscopo] = useState<'todos' | 'company_especifica'>('todos')
+  const [manualEscopo, setManualEscopo] = useState<'todos' | 'company_específica'>('todos')
   const [manualCompanyId, setManualCompanyId] = useState('')
   const [manualMensagem, setManualMensagem] = useState('')
   const [sending, setSending] = useState(false)
@@ -246,13 +246,13 @@ export default function ComunicacaoPage() {
     // Historico: carrega primeiro (bloqueia UI principal)
     try {
       const hist = await api.get<HistoricoResponse>(
-        `/api/admin/comunicacao/historico?${params}`,
+        `/api/admin/comunicacao/histórico?${params}`,
       )
       setMensagens(hist.mensagens)
       setTotal(hist.total)
       setPages(hist.pages)
     } catch (err: any) {
-      console.error('Erro ao carregar historico:', err)
+      console.error('Erro ao carregar histórico:', err)
       toast.error(err?.message || 'Erro ao carregar histórico')
     } finally {
       setLoading(false)
@@ -303,7 +303,7 @@ export default function ComunicacaoPage() {
       toast.error('Mensagem não pode ser vazia')
       return
     }
-    if (manualEscopo === 'company_especifica' && !manualCompanyId) {
+    if (manualEscopo === 'company_específica' && !manualCompanyId) {
       toast.error('Selecione uma empresa')
       return
     }
@@ -314,7 +314,7 @@ export default function ComunicacaoPage() {
         {
           mensagem: manualMensagem,
           escopo: manualEscopo,
-          company_id: manualEscopo === 'company_especifica' ? manualCompanyId : undefined,
+          company_id: manualEscopo === 'company_específica' ? manualCompanyId : undefined,
         },
       )
       toast.success(`Mensagem enviada para ${result.enviados} empresa(s)`)
@@ -518,7 +518,7 @@ export default function ComunicacaoPage() {
                     Status
                   </th>
                   <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">
-                    Acoes
+                    Ações
                   </th>
                 </tr>
               </thead>
@@ -767,18 +767,18 @@ export default function ComunicacaoPage() {
                 <select
                   value={manualEscopo}
                   onChange={(e) =>
-                    setManualEscopo(e.target.value as 'todos' | 'company_especifica')
+                    setManualEscopo(e.target.value as 'todos' | 'company_específica')
                   }
                   className="w-full rounded-lg border border-brand-border bg-brand-surface text-gray-200 text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-500"
                 >
                   <option value="todos">Todas as empresas ativas</option>
-                  <option value="company_especifica">
+                  <option value="company_específica">
                     Empresa específica
                   </option>
                 </select>
               </div>
 
-              {manualEscopo === 'company_especifica' && (
+              {manualEscopo === 'company_específica' && (
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">
                     Empresa
@@ -826,7 +826,7 @@ export default function ComunicacaoPage() {
                 disabled={
                   sending ||
                   !manualMensagem.trim() ||
-                  (manualEscopo === 'company_especifica' && !manualCompanyId)
+                  (manualEscopo === 'company_específica' && !manualCompanyId)
                 }
                 onClick={handleSendManual}
               >

@@ -46,7 +46,7 @@ import {
 
 // ─── Types ──────────────────────────────────────
 type TemplateId =
-  | 'dica_rapida'
+  | 'dica_rápida'
   | 'passo_a_passo'
   | 'beneficio_destaque'
   | 'depoimento'
@@ -77,8 +77,8 @@ const TEMPLATES: {
   icon: string
 }[] = [
   {
-    id: 'dica_rapida',
-    label: 'Dica Rapida',
+    id: 'dica_rápida',
+    label: 'Dica Rápida',
     desc: '1 card + narracao curta + CTA',
     slides: 1,
     icon: '⚡',
@@ -129,7 +129,7 @@ const PALETTES: {
 }[] = [
   {
     id: 'juntix_verde',
-    label: 'Verde (padrao)',
+    label: 'Verde (padrão)',
     colors: ['#22c55e', '#059669', '#facc15'],
   },
   {
@@ -158,7 +158,7 @@ const VOICES: { id: VoiceType; label: string }[] = [
 const SPEEDS = [
   { value: 0.8, label: 'Lenta' },
   { value: 1.0, label: 'Normal' },
-  { value: 1.2, label: 'Rapida' },
+  { value: 1.2, label: 'Rápida' },
 ]
 
 const MUSIC: { id: MusicType; label: string }[] = [
@@ -174,7 +174,7 @@ function VideoGeneratorContent() {
   const router = useRouter()
 
   // Config state
-  const [template, setTemplate] = useState<TemplateId>('dica_rapida')
+  const [template, setTemplate] = useState<TemplateId>('dica_rápida')
   const [duration, setDuration] = useState(15)
   const [contentMode, setContentMode] = useState<'cards' | 'text'>('cards')
   const [selectedCards, setSelectedCards] = useState<string[]>([])
@@ -339,7 +339,7 @@ function VideoGeneratorContent() {
 
           if (status.status === 'ready') {
             setGenerating(false)
-            toast.success('Video gerado com sucesso!')
+            toast.success('Vídeo gerado com sucesso!')
             return
           }
           if (status.status === 'failed') {
@@ -391,7 +391,7 @@ function VideoGeneratorContent() {
         <div>
           <h2 className="text-xl font-semibold text-white flex items-center gap-2">
             <Video className="w-5 h-5 text-primary-400" />
-            Gerador de Videos
+            Gerador de Vídeos
           </h2>
           <p className="text-sm text-gray-400 mt-0.5">
             Crie videos curtos para Reels, TikTok e YouTube Shorts
@@ -537,7 +537,7 @@ function VideoGeneratorContent() {
                               {card.headline || 'Card sem titulo'}
                             </p>
                             <p className="text-xs text-gray-500 truncate">
-                              {card.subtext || 'Sem descricao'}
+                              {card.subtext || 'Sem descrição'}
                             </p>
                           </div>
                           <Badge variant="secondary" className="text-[10px]">
@@ -606,7 +606,7 @@ function VideoGeneratorContent() {
               onChange={(e) =>
                 setNarration(e.target.value.slice(0, 150))
               }
-              placeholder="Texto da narracao (sera convertido em voz)..."
+              placeholder="Texto da narracao (será convertido em voz)..."
               className="w-full mt-1 p-3 rounded-lg bg-brand-surface border border-brand-border text-sm text-gray-200 placeholder:text-gray-600 resize-none h-20 focus:outline-none focus:border-primary-500"
             />
             <div className="flex gap-2 mt-2">
@@ -637,7 +637,7 @@ function VideoGeneratorContent() {
               <Link className="w-3.5 h-3.5" />
               Link do site
               <span className="text-xs text-gray-500 font-normal">
-                (aparece no video, nao e narrado)
+                (aparece no video, não e narrado)
               </span>
             </Label>
             <Input
@@ -749,7 +749,7 @@ function VideoGeneratorContent() {
               <Subtitles className="w-4 h-4 text-gray-400" />
               <div>
                 <p className="text-sm font-medium text-gray-200">
-                  Legenda automatica
+                  Legenda automática
                 </p>
                 <p className="text-xs text-gray-500">
                   Exibir texto sincronizado no video
@@ -793,7 +793,7 @@ function VideoGeneratorContent() {
             ) : (
               <>
                 <Video className="w-5 h-5" />
-                Gerar Video
+                Gerar Vídeo
               </>
             )}
           </Button>
@@ -1035,7 +1035,7 @@ function RecentVideos({
     <div className="sticky top-20">
       <Label className="text-gray-300 text-sm flex items-center gap-1.5 mb-3">
         <Clock className="w-3.5 h-3.5" />
-        Ultimos Videos
+        Ultimos Vídeos
       </Label>
       {videos.length > 0 ? (
         <div className="space-y-2">
@@ -1082,7 +1082,7 @@ function RecentVideos({
 // ─── Page Export ─────────────────────────────────
 export default function VideoGeneratePage() {
   return (
-    <FeatureGate feature="Videos com IA">
+    <FeatureGate feature="Vídeos com IA">
       <VideoGeneratorContent />
     </FeatureGate>
   )

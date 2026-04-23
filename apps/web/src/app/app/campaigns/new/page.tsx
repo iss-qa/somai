@@ -76,7 +76,7 @@ interface Interest {
 const CAMPAIGN_TYPES = [
   { id: 'awareness', label: 'Reconhecimento', desc: 'Mais pessoas conhecendo sua marca', icon: Megaphone, color: 'text-blue-400' },
   { id: 'traffic', label: 'Trafego', desc: 'Levar visitantes ao site/WhatsApp', icon: TrendingUp, color: 'text-green-400' },
-  { id: 'engagement', label: 'Engajamento', desc: 'Curtidas, comentarios, compartilhamentos', icon: Heart, color: 'text-pink-400' },
+  { id: 'engagement', label: 'Engajamento', desc: 'Curtidas, comentários, compartilhamentos', icon: Heart, color: 'text-pink-400' },
   { id: 'leads', label: 'Leads', desc: 'Capturar contatos de clientes', icon: Users, color: 'text-purple-400' },
   { id: 'sales', label: 'Vendas', desc: 'Conversoes e vendas diretas', icon: ShoppingCart, color: 'text-yellow-400' },
   { id: 'messages', label: 'Mensagens', desc: 'Conversas no WhatsApp/DM', icon: MessageCircle, color: 'text-emerald-400' },
@@ -102,7 +102,7 @@ const DURATION_OPTIONS = [
 
 const STEPS = [
   { label: 'Objetivo', icon: Target },
-  { label: 'Publico', icon: Users },
+  { label: 'Público', icon: Users },
   { label: 'Orcamento', icon: DollarSign },
   { label: 'Plataformas', icon: MonitorPlay },
   { label: 'Revisao', icon: Eye },
@@ -495,7 +495,7 @@ function CampaignWizardContent() {
                 <div className="flex items-center gap-3 mt-2">
                   <span className="text-gray-400 text-sm">R$</span>
                   <Input type="number" value={dailyBudget} onChange={(e) => setDailyBudget(Math.max(6, Number(e.target.value)))} min={6} className="max-w-32" />
-                  <span className="text-xs text-gray-500">/dia (minimo R$ 6,00)</span>
+                  <span className="text-xs text-gray-500">/dia (mínimo R$ 6,00)</span>
                 </div>
               </div>
 
@@ -620,7 +620,7 @@ function CampaignWizardContent() {
                 </div>
                 {googleEnabled && (
                   <p className="text-xs text-yellow-500 pl-13">
-                    Conecte sua conta Google Ads em Configuracoes para ativar.
+                    Conecte sua conta Google Ads em Configurações para ativar.
                   </p>
                 )}
               </div>
@@ -650,7 +650,7 @@ function CampaignWizardContent() {
                   <p className="text-sm font-medium text-white mt-0.5">{durationDays} dias</p>
                 </div>
                 <div className="p-3 rounded-lg border border-brand-border bg-brand-surface">
-                  <p className="text-xs text-gray-500">Publico</p>
+                  <p className="text-xs text-gray-500">Público</p>
                   <p className="text-sm font-medium text-white mt-0.5">{city || 'Qualquer'}, {ageMin}-{ageMax} anos</p>
                 </div>
                 <div className="p-3 rounded-lg border border-brand-border bg-brand-surface">
@@ -703,7 +703,7 @@ function CampaignWizardContent() {
           )}
           {step < 4 ? (
             <Button onClick={() => setStep(step + 1)} className="gap-1.5">
-              Proximo
+              Próximo
               <ArrowRight className="w-4 h-4" />
             </Button>
           ) : (

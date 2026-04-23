@@ -141,7 +141,7 @@ function TrialBanner() {
 
   const expired = timeLeft === 'Expirado'
 
-  const waMsg = 'Ola, meu periodo de teste do Soma.AI encerrou e quero ativar meu plano.'
+  const waMsg = 'Olá, meu período de teste do Soma.AI encerrou e quero ativar meu plano.'
 
   return (
     <div className={`flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl border ${
@@ -157,7 +157,7 @@ function TrialBanner() {
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-medium ${expired ? 'text-red-300' : 'text-amber-300'}`}>
-            {expired ? 'Periodo de teste encerrado' : 'Periodo de teste ativo'}
+            {expired ? 'Período de teste encerrado' : 'Período de teste ativo'}
           </p>
           <p className={`text-xs ${expired ? 'text-red-400/70' : 'text-amber-400/70'}`}>
             {expired
@@ -292,7 +292,7 @@ export default function DashboardPage() {
           color="yellow"
         />
         <MetricCard
-          title="Videos gerados"
+          title="Vídeos gerados"
           value={metrics.videosGenerated}
           icon={Video}
           color="purple"
@@ -371,7 +371,7 @@ export default function DashboardPage() {
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary-400" />
-              Proximas postagens
+              Próximas postagens
             </CardTitle>
             <Button
               variant="ghost"
@@ -407,7 +407,7 @@ export default function DashboardPage() {
         {/* Quick actions */}
         <div className="space-y-4">
           <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
-            Acoes rapidas
+            Ações rapidas
           </h3>
 
           <QuickAction
@@ -421,7 +421,7 @@ export default function DashboardPage() {
 
           <QuickAction
             title="Agendar Post"
-            description="Programe publicacoes"
+            description="Programe publicações"
             icon={Calendar}
             color="blue"
             onClick={() => router.push('/app/calendar')}
@@ -429,7 +429,7 @@ export default function DashboardPage() {
           />
 
           <QuickAction
-            title="Criar Video"
+            title="Criar Vídeo"
             description="Gere videos com IA"
             icon={Video}
             color="purple"

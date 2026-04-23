@@ -140,7 +140,7 @@ function IntegrationsContent() {
         toast.success(
           result.instagram_username
             ? `Conectado! Instagram: @${result.instagram_username}`
-            : `Conectado! Pagina: ${result.facebook_page_name}`,
+            : `Conectado! Página: ${result.facebook_page_name}`,
         )
       }
     } catch (err: any) {
@@ -270,7 +270,7 @@ function IntegrationsContent() {
   return (
     <div className="space-y-6 max-w-3xl animate-fadeIn">
       <div>
-        <h2 className="text-xl font-semibold text-white">Integracoes</h2>
+        <h2 className="text-xl font-semibold text-white">Integrações</h2>
         <p className="text-sm text-gray-400 mt-1">
           Conecte suas redes sociais para publicar automaticamente
         </p>
@@ -353,7 +353,7 @@ function IntegrationsContent() {
                 )}
                 {connectedPageName && (
                   <div className="space-y-1">
-                    <p className="text-[11px] uppercase tracking-wider text-gray-500">Pagina Facebook</p>
+                    <p className="text-[11px] uppercase tracking-wider text-gray-500">Página Facebook</p>
                     <a
                       href={fbPageUrl || `https://facebook.com/${fbPageId}`}
                       target="_blank"
@@ -449,7 +449,7 @@ function IntegrationsContent() {
                 <p className="font-medium">Token salvo automaticamente via OAuth</p>
                 <p className="text-emerald-400/70">
                   O token de longa duração foi obtido e salvo durante a conexão com o Facebook.
-                  Nao e necessario preenchimento manual.
+                  Não e necessario preenchimento manual.
                 </p>
               </div>
             </div>

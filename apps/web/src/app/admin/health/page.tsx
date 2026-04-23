@@ -287,7 +287,7 @@ export default function HealthPage() {
               <CheckCircle className="w-8 h-8 text-emerald-500/50 mx-auto mb-2" />
               <p className="text-sm text-gray-500">Nenhum erro recente</p>
               <p className="text-xs text-gray-600 mt-1">
-                Todos os servicos funcionando normalmente
+                Todos os serviços funcionando normalmente
               </p>
             </div>
           )}

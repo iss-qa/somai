@@ -24,6 +24,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { getCardTemplate, type TemplatePostType } from '@/lib/card-templates'
 import { useAuthStore } from '@/store/authStore'
 import { useMediaStore } from '@/store/mediaStore'
 import { toPng } from 'html-to-image'
@@ -166,7 +167,7 @@ const COLOR_PALETTES: ColorPalette[] = [
 const FORMAT_OPTIONS: { id: Format; label: string; icon: typeof Square; hint: string }[] = [
   { id: 'feed', label: 'Feed Quadrado', icon: Square, hint: 'Post quadrado 1:1 no feed do Instagram. Ideal para imagens de produtos, promocoes e conteudo informativo. Permanece no perfil permanentemente.' },
   { id: 'stories', label: 'Stories', icon: Smartphone, hint: 'Fotos ou videos curtos verticais (9:16) para engajamento diario. Desaparecem em 24h. Ideal para bastidores, enquetes e conexao com seguidores existentes.' },
-  { id: 'carousel', label: 'Carrossel', icon: Layers, hint: 'Ate 10 imagens em um unico post deslizavel no formato quadrado (1:1) ou vertical (9:16). Ideal para tutoriais, antes/depois e multiplos produtos.' },
+  { id: 'carousel', label: 'Carrossel', icon: Layers, hint: 'Ate 10 imagens em um único post deslizavel no formato quadrado (1:1) ou vertical (9:16). Ideal para tutoriais, antes/depois e multiplos produtos.' },
 ]
 
 const POST_TYPES: { value: PostType; label: string }[] = [
@@ -199,12 +200,12 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
       { headline: 'Ate 40% OFF', subtext: 'Medicamentos selecionados com desconto' },
       { headline: 'Dermocosmeticos', subtext: 'Cuidados com a pele por menos' },
       { headline: 'Vitaminas e suplementos', subtext: 'Cuide da sua saude todo dia' },
-      { headline: 'Higiene e beleza', subtext: 'Produtos essenciais com preco baixo' },
-      { headline: 'Nao perca!', subtext: 'Ofertas validas por tempo limitado', cta: 'Venha conferir' },
-      { headline: 'Farmacia sempre perto', subtext: 'Atendimento de qualidade pra voce', cta: 'Chame no WhatsApp' },
+      { headline: 'Higiene e beleza', subtext: 'Produtos essenciais com preço baixo' },
+      { headline: 'Não perca!', subtext: 'Ofertas validas por tempo limitado', cta: 'Venha conferir' },
+      { headline: 'Farmacia sempre perto', subtext: 'Atendimento de qualidade pra você', cta: 'Chame no WhatsApp' },
     ]},
     { id: 'dica_saude', label: 'Dica de Saude', slides: [
-      { headline: 'Voce sabia?', subtext: 'Dicas de saude para o seu dia a dia' },
+      { headline: 'Você sabia?', subtext: 'Dicas de saude para o seu dia a dia' },
       { headline: 'Hidratacao', subtext: 'Beba pelo menos 2 litros de agua por dia' },
       { headline: 'Alimentacao', subtext: 'Inclua frutas e verduras nas refeicoes' },
       { headline: 'Sono de qualidade', subtext: 'Durma de 7 a 8 horas por noite' },
@@ -215,9 +216,9 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
     { id: 'novo_produto', label: 'Lancamento de produto', slides: [
       { headline: 'Novidade!', subtext: 'Chegou na farmacia' },
       { headline: 'Conheca o produto', subtext: 'Qualidade e eficacia comprovada' },
-      { headline: 'Beneficios', subtext: 'Resultados que voce vai sentir' },
+      { headline: 'Beneficios', subtext: 'Resultados que você vai sentir' },
       { headline: 'Como usar', subtext: 'Modo de uso simples e pratico' },
-      { headline: 'Preco especial', subtext: 'Oferta de lancamento', cta: 'Aproveite' },
+      { headline: 'Preço especial', subtext: 'Oferta de lancamento', cta: 'Aproveite' },
       { headline: 'Disponivel agora', subtext: 'Venha buscar o seu' },
       { headline: 'Garanta o seu', subtext: 'Estoque limitado', cta: 'Compre agora' },
     ]},
@@ -234,12 +235,12 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
       { headline: 'Venha nos visitar!', subtext: 'Seu pet merece o melhor', cta: 'Chame no WhatsApp' },
     ]},
     { id: 'promo_racao', label: 'Promocao de Racao', slides: [
-      { headline: 'Super Oferta!', subtext: 'Racao com preco especial' },
+      { headline: 'Super Oferta!', subtext: 'Racao com preço especial' },
       { headline: 'Caes', subtext: 'Racao premium a partir de R$ XX' },
       { headline: 'Gatos', subtext: 'As melhores marcas com desconto' },
       { headline: 'Filhotes', subtext: 'Nutricao ideal para crescimento' },
-      { headline: 'Frete gratis*', subtext: 'Acima de R$ 100 em compras', cta: 'Peca ja' },
-      { headline: 'Entrega rapida', subtext: 'Receba no mesmo dia' },
+      { headline: 'Frete grátis*', subtext: 'Acima de R$ 100 em compras', cta: 'Peca ja' },
+      { headline: 'Entrega rápida', subtext: 'Receba no mesmo dia' },
       { headline: 'Aproveite!', subtext: 'Estoque limitado', cta: 'Compre agora' },
     ]},
     { id: 'cuidados', label: 'Dicas de cuidados com pets', slides: [
@@ -255,12 +256,12 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
   ],
   moda: [
     { id: 'nova_colecao', label: 'Lancamento de colecao', slides: [
-      { headline: 'Nova Colecao!', subtext: 'Chegou o que voce esperava' },
+      { headline: 'Nova Colecao!', subtext: 'Chegou o que você esperava' },
       { headline: 'Tendencia', subtext: 'As pecas mais desejadas da estacao' },
-      { headline: 'Looks exclusivos', subtext: 'Estilo unico para voce' },
-      { headline: 'Conforto + estilo', subtext: 'Qualidade que voce sente' },
+      { headline: 'Looks exclusivos', subtext: 'Estilo único para você' },
+      { headline: 'Conforto + estilo', subtext: 'Qualidade que você sente' },
       { headline: 'Tamanhos P ao GG', subtext: 'Moda para todos os corpos' },
-      { headline: 'Preco especial', subtext: 'Lancamento com desconto', cta: 'Confira' },
+      { headline: 'Preço especial', subtext: 'Lancamento com desconto', cta: 'Confira' },
       { headline: 'Garanta o seu', subtext: 'Estoque limitado!', cta: 'Compre agora' },
     ]},
     { id: 'liquidacao', label: 'Liquidacao', slides: [
@@ -270,16 +271,16 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
       { headline: 'Vestidos', subtext: 'Pecas selecionadas' },
       { headline: 'Acessorios', subtext: 'Complemente seu look' },
       { headline: 'So ate acabar!', subtext: 'Corre que ta acabando', cta: 'Vem pra loja' },
-      { headline: 'Frete gratis', subtext: 'Compras acima de R$ 150', cta: 'Compre online' },
+      { headline: 'Frete grátis', subtext: 'Compras acima de R$ 150', cta: 'Compre online' },
     ]},
     { id: 'depoimento', label: 'Depoimento / Prova social', slides: [
       { headline: 'O que dizem de nos', subtext: 'Clientes reais, resultados reais' },
       { headline: '"Amei a qualidade!"', subtext: '- Maria S.' },
-      { headline: '"Entrega super rapida"', subtext: '- Joao P.' },
+      { headline: '"Entrega super rápida"', subtext: '- Joao P.' },
       { headline: '"Virei cliente fiel"', subtext: '- Ana L.' },
       { headline: '"Melhor loja da cidade"', subtext: '- Carlos M.' },
       { headline: 'Junte-se a eles!', subtext: 'Milhares de clientes satisfeitos' },
-      { headline: 'Experimente voce tambem', subtext: 'Qualidade garantida', cta: 'Visite a loja' },
+      { headline: 'Experimente você também', subtext: 'Qualidade garantida', cta: 'Visite a loja' },
     ]},
     { id: 'personalizado', label: 'Personalizado', slides: [] },
   ],
@@ -290,7 +291,7 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
       { headline: 'Resultados', subtext: 'Pele renovada em 7 dias' },
       { headline: 'Como aplicar', subtext: 'Passo a passo simples' },
       { headline: 'Antes e depois', subtext: 'Resultados comprovados' },
-      { headline: 'Oferta especial', subtext: 'Preco de lancamento', cta: 'Garanta o seu' },
+      { headline: 'Oferta especial', subtext: 'Preço de lancamento', cta: 'Garanta o seu' },
       { headline: 'Disponivel agora', subtext: 'Na loja e online', cta: 'Compre ja' },
     ]},
     { id: 'tutorial', label: 'Tutorial / Passo a passo', slides: [
@@ -306,17 +307,17 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
   ],
   mercearia: [
     { id: 'ofertas', label: 'Ofertas da semana', slides: [
-      { headline: 'Ofertas da Semana', subtext: 'Precos que cabem no bolso' },
+      { headline: 'Ofertas da Semana', subtext: 'Preços que cabem no bolso' },
       { headline: 'Hortifruti', subtext: 'Fresquinho todo dia' },
       { headline: 'Acougue', subtext: 'Carnes selecionadas' },
       { headline: 'Padaria', subtext: 'Pao quentinho toda manha' },
       { headline: 'Bebidas', subtext: 'Geladas e com desconto' },
       { headline: 'Frios e laticinios', subtext: 'Qualidade garantida' },
-      { headline: 'Venha conferir!', subtext: 'Valido ate sabado', cta: 'Veja o encarte' },
+      { headline: 'Venha conferir!', subtext: 'Válido ate sabado', cta: 'Veja o encarte' },
     ]},
     { id: 'receita', label: 'Receita do dia', slides: [
-      { headline: 'Receita do Dia', subtext: 'Facil, rapido e delicioso' },
-      { headline: 'Ingredientes', subtext: 'Voce encontra tudo aqui' },
+      { headline: 'Receita do Dia', subtext: 'Fácil, rápido e delicioso' },
+      { headline: 'Ingredientes', subtext: 'Você encontra tudo aqui' },
       { headline: 'Modo de preparo', subtext: 'Passo 1: Prepare os ingredientes' },
       { headline: 'Passo 2', subtext: 'Misture e leve ao fogo' },
       { headline: 'Passo 3', subtext: 'Sirva e aproveite!' },
@@ -332,15 +333,15 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
       { headline: 'Sandalia', subtext: 'Estilo para o verao' },
       { headline: 'Social', subtext: 'Elegancia para ocasioes especiais' },
       { headline: 'Infantil', subtext: 'Calcados para os pequenos' },
-      { headline: 'Preco especial', subtext: 'Lancamento com desconto', cta: 'Confira' },
+      { headline: 'Preço especial', subtext: 'Lancamento com desconto', cta: 'Confira' },
       { headline: 'Visite a loja', subtext: 'Ou peca pelo WhatsApp', cta: 'Chame a gente' },
     ]},
     { id: 'personalizado', label: 'Personalizado', slides: [] },
   ],
   outro: [
     { id: 'apresentacao', label: 'O que e o negocio?', slides: [
-      { headline: 'Conheca nosso negocio', subtext: 'Solucoes feitas pra voce' },
-      { headline: 'Nossos servicos', subtext: 'Qualidade e compromisso' },
+      { headline: 'Conheca nosso negocio', subtext: 'Solucoes feitas pra você' },
+      { headline: 'Nossos serviços', subtext: 'Qualidade e compromisso' },
       { headline: 'Diferenciais', subtext: 'O que nos torna unicos' },
       { headline: 'Depoimentos', subtext: 'Clientes satisfeitos' },
       { headline: 'Como funciona', subtext: 'Simples e pratico' },
@@ -349,7 +350,7 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
     ]},
     { id: 'prova_social', label: 'Depoimento / Prova social', slides: [
       { headline: 'O que dizem de nos', subtext: 'Clientes reais' },
-      { headline: '"Excelente servico!"', subtext: '- Cliente 1' },
+      { headline: '"Excelente serviço!"', subtext: '- Cliente 1' },
       { headline: '"Super recomendo"', subtext: '- Cliente 2' },
       { headline: '"Melhor custo-beneficio"', subtext: '- Cliente 3' },
       { headline: '"Atendimento top"', subtext: '- Cliente 4' },
@@ -358,11 +359,11 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
     ]},
     { id: 'cta', label: 'Chamada para acao (CTA)', slides: [
       { headline: 'Oferta especial!', subtext: 'So por tempo limitado' },
-      { headline: 'O que voce ganha', subtext: 'Beneficios exclusivos' },
-      { headline: 'Como funciona', subtext: 'Simples e rapido' },
+      { headline: 'O que você ganha', subtext: 'Beneficios exclusivos' },
+      { headline: 'Como funciona', subtext: 'Simples e rápido' },
       { headline: 'Resultados reais', subtext: 'Comprovado por clientes' },
-      { headline: 'Preco acessivel', subtext: 'Cabe no seu bolso' },
-      { headline: 'Nao perca!', subtext: 'Vagas limitadas', cta: 'Garanta o seu' },
+      { headline: 'Preço acessivel', subtext: 'Cabe no seu bolso' },
+      { headline: 'Não perca!', subtext: 'Vagas limitadas', cta: 'Garanta o seu' },
       { headline: 'Comece agora!', subtext: 'Chame no WhatsApp', cta: 'Falar com atendente' },
     ]},
     { id: 'passo_a_passo', label: 'Passo a passo: como funciona', slides: [
@@ -372,7 +373,7 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
       { headline: 'Passo 3', subtext: 'Receba em casa ou retire' },
       { headline: 'Pronto!', subtext: 'Simples assim' },
       { headline: 'Duvidas?', subtext: 'Estamos aqui pra ajudar' },
-      { headline: 'Comece agora', subtext: 'E facil e rapido', cta: 'Fale conosco' },
+      { headline: 'Comece agora', subtext: 'E fácil e rápido', cta: 'Fale conosco' },
     ]},
     { id: 'seguranca', label: 'Seguranca e confianca', slides: [
       { headline: 'Por que confiar?', subtext: 'Transparencia e seguranca' },
@@ -380,7 +381,7 @@ const NICHE_OBJECTIVES: Record<string, CarouselObjective[]> = {
       { headline: 'Certificacoes', subtext: 'Qualidade reconhecida' },
       { headline: 'Politica de troca', subtext: 'Satisfacao garantida' },
       { headline: 'Pagamento seguro', subtext: 'Suas compras protegidas' },
-      { headline: 'Atendimento humano', subtext: 'Pessoas reais cuidando de voce' },
+      { headline: 'Atendimento humano', subtext: 'Pessoas reais cuidando de você' },
       { headline: 'Conte com a gente', subtext: 'Estamos aqui', cta: 'Saiba mais' },
     ]},
     { id: 'personalizado', label: 'Personalizado', slides: [] },
@@ -433,18 +434,18 @@ const IMAGE_LAYOUTS: { id: ImageLayout; label: string }[] = [
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)] }
 
 const RANDOM_HEADLINES: Record<string, string[]> = {
-  farmacia: ['Oferta da semana', 'Super desconto', 'Imperdivel', 'So hoje!', 'Queima de estoque', 'Preco imbativel', 'Economize agora', 'Aproveite'],
-  pet: ['Seu pet merece', 'Super oferta', 'Promo pet', 'Cuide com amor', 'Imperdivel', 'Novidade pet', 'Preco especial', 'Vem conferir'],
-  moda: ['Liquidacao total', 'Colecao nova', 'Tendencia 2026', 'Look perfeito', 'Pecas exclusivas', 'Desconto especial', 'Estilo unico'],
+  farmacia: ['Oferta da semana', 'Super desconto', 'Imperdivel', 'So hoje!', 'Queima de estoque', 'Preço imbativel', 'Economize agora', 'Aproveite'],
+  pet: ['Seu pet merece', 'Super oferta', 'Promo pet', 'Cuide com amor', 'Imperdivel', 'Novidade pet', 'Preço especial', 'Vem conferir'],
+  moda: ['Liquidacao total', 'Colecao nova', 'Tendencia 2026', 'Look perfeito', 'Pecas exclusivas', 'Desconto especial', 'Estilo único'],
   cosmeticos: ['Cuide-se', 'Beleza real', 'Glow up', 'Promo beauty', 'Sua pele agradece', 'Beauty week', 'Transforme-se'],
-  mercearia: ['Oferta do dia', 'Precos baixos', 'Fresquinho', 'Economia real', 'So aqui', 'Cesta cheia', 'Tem de tudo'],
-  calcados: ['Mega sale', 'Conforto + estilo', 'Nova colecao', 'Imperdivel', 'Ande com estilo', 'Lancamento', 'Preco quente'],
+  mercearia: ['Oferta do dia', 'Preços baixos', 'Fresquinho', 'Economia real', 'So aqui', 'Cesta cheia', 'Tem de tudo'],
+  calcados: ['Mega sale', 'Conforto + estilo', 'Nova colecao', 'Imperdivel', 'Ande com estilo', 'Lancamento', 'Preço quente'],
   outro: ['Oferta imperdivel', 'Novidade', 'So hoje', 'Desconto especial', 'Aproveite', 'Lancamento', 'Confira'],
 }
 
 const RANDOM_PRODUCTS: Record<string, string[]> = {
   farmacia: ['Vitamina C 1000mg', 'Dipirona 500mg', 'Protetor Solar FPS 50', 'Epocler', 'Neosoro', 'Dorflex', 'Benegrip', 'Shampoo Anticaspa', 'Hidratante Corporal', 'Colgate Total 12', 'Desodorante Rexona', 'Band-Aid', 'Omega 3', 'Melatonina 5mg', 'Dermocosmetico La Roche'],
-  pet: ['Racao Pedigree 15kg', 'Racao Golden 10kg', 'Antipulgas Frontline', 'Brinquedo Kong', 'Coleira Antipulgas', 'Racao Royal Canin', 'Petisco DentaStix', 'Cama para Gatos', 'Shampoo Pet Clean', 'Areia Sanitaria', 'Comedouro Automatico', 'Racao Whiskas', 'Osso Natural', 'Guia Retratil'],
+  pet: ['Racao Pedigree 15kg', 'Racao Golden 10kg', 'Antipulgas Frontline', 'Brinquedo Kong', 'Coleira Antipulgas', 'Racao Royal Canin', 'Petisco DentaStix', 'Cama para Gatos', 'Shampoo Pet Clean', 'Areia Sanitaria', 'Comedouro Automático', 'Racao Whiskas', 'Osso Natural', 'Guia Retratil'],
   moda: ['Vestido Floral', 'Jaqueta Jeans', 'Tenis Casual', 'Bolsa Couro', 'Camisa Social Slim', 'Saia Midi', 'Short Jeans', 'Blazer Feminino', 'Camiseta Basica', 'Macacao Longo', 'Calca Skinny', 'Top Cropped'],
   cosmeticos: ['Serum Vitamina C', 'Kit Skincare', 'Base MAC', 'Batom Matte', 'Mascara Cilios', 'Protetor Facial', 'Hidratante Nivea', 'Perfume Importado', 'Po Compacto', 'Primer', 'Paleta Sombras', 'Esmalte Risque'],
   mercearia: ['Arroz 5kg', 'Feijao Carioca 1kg', 'Oleo de Soja', 'Acucar Cristal', 'Cafe Pilao 500g', 'Macarrao Barilla', 'Molho de Tomate', 'Leite Integral', 'Farinha de Trigo', 'Cesta Basica', 'Frutas da Estacao', 'Ovos caipira'],
@@ -452,16 +453,16 @@ const RANDOM_PRODUCTS: Record<string, string[]> = {
   outro: ['Produto Premium', 'Kit Especial', 'Combo Exclusivo', 'Lancamento', 'Edicao Limitada', 'Best Seller', 'Destaque'],
 }
 
-const RANDOM_CTAS = ['Compre agora', 'Aproveite', 'Garanta o seu', 'Confira', 'Saiba mais', 'Veja mais', 'Quero o meu', 'Visite a loja', 'Peca ja', 'Nao perca', 'Experimente', 'Reserve agora', 'Adquira ja']
+const RANDOM_CTAS = ['Compre agora', 'Aproveite', 'Garanta o seu', 'Confira', 'Saiba mais', 'Veja mais', 'Quero o meu', 'Visite a loja', 'Peca ja', 'Não perca', 'Experimente', 'Reserve agora', 'Adquira ja']
 
 const RANDOM_EXTRAS: Record<string, string[]> = {
-  farmacia: ['Valido ate sexta! Consulte disponibilidade.', 'Entrega gratis para compras acima de R$50.', 'Seus cuidados com saude pelo melhor preco.', 'Qualidade e economia para voce e sua familia.', 'Consulte nosso farmaceutico.'],
-  pet: ['Seu melhor amigo merece o melhor!', 'Frete gratis para pedidos acima de R$100.', 'Qualidade premium para pets felizes.', 'Veterinario recomenda!', 'Entrega rapida na sua regiao.'],
-  moda: ['Pecas com estilo e conforto.', 'Vista-se com personalidade.', 'Envio para todo o Brasil.', 'Troca gratis em ate 30 dias.', 'Tendencias que voce vai amar.'],
+  farmacia: ['Válido ate sexta! Consulte disponibilidade.', 'Entrega grátis para compras acima de R$50.', 'Seus cuidados com saude pelo melhor preço.', 'Qualidade e economia para você e sua familia.', 'Consulte nosso farmaceutico.'],
+  pet: ['Seu melhor amigo merece o melhor!', 'Frete grátis para pedidos acima de R$100.', 'Qualidade premium para pets felizes.', 'Veterinario recomenda!', 'Entrega rápida na sua regiao.'],
+  moda: ['Pecas com estilo e conforto.', 'Vista-se com personalidade.', 'Envio para todo o Brasil.', 'Troca grátis em ate 30 dias.', 'Tendencias que você vai amar.'],
   cosmeticos: ['Sua beleza natural realcada.', 'Dermatologicamente testado.', 'Pele radiante em poucos dias.', 'Cruelty free e vegano.', 'Resultados visiveis desde a primeira aplicacao.'],
   mercearia: ['Produtos frescos todo dia.', 'Qualidade e economia na sua mesa.', 'Delivery pelo WhatsApp!', 'Ofertas validas enquanto durar o estoque.', 'Produtos selecionados da regiao.'],
-  calcados: ['Conforto que voce merece.', 'Frete gratis acima de R$199.', 'Design moderno e duravel.', 'Troca facilitada.', 'Do 34 ao 44, todos os tamanhos.'],
-  outro: ['Oferta por tempo limitado.', 'Nao perca essa oportunidade!', 'Qualidade garantida.', 'Atendimento personalizado.', 'Melhor custo-beneficio.'],
+  calcados: ['Conforto que você merece.', 'Frete grátis acima de R$199.', 'Design moderno e duravel.', 'Troca facilitada.', 'Do 34 ao 44, todos os tamanhos.'],
+  outro: ['Oferta por tempo limitado.', 'Não perca essa oportunidade!', 'Qualidade garantida.', 'Atendimento personalizado.', 'Melhor custo-beneficio.'],
 }
 
 // ---------------------------------------------------------------------------
@@ -553,7 +554,7 @@ function getSmartDefaults(niche: string | undefined, postType: PostType | 'nenhu
   }
 
   if (postType === 'dica') {
-    base.headline = pick(['Voce sabia?', 'Dica do especialista', 'Fique ligado', 'Dica do dia', 'Cuide-se bem'])
+    base.headline = pick(['Você sabia?', 'Dica do especialista', 'Fique ligado', 'Dica do dia', 'Cuide-se bem'])
     base.cta = pick(['Saiba mais', 'Confira', 'Leia mais', 'Descubra'])
   }
 
@@ -714,7 +715,7 @@ function buildAiPrompt(opts: {
     ? `Slide ${slideIndex + 1} de ${slideTotal} do carrossel.\n`
     : ''
 
-  const productPart = productName ? `Produto/servico: ${productName}.\n` : ''
+  const productPart = productName ? `Produto/serviço: ${productName}.\n` : ''
   const headlinePart = headline ? `Titulo/chamada: "${headline}".\n` : ''
   const textPart = extraText ? `Texto de apoio: "${extraText}".\n` : ''
 
@@ -726,7 +727,7 @@ function buildAiPrompt(opts: {
 Dimensoes: ${dimensions}
 Nicho do anunciante: ${nicheLabel}.
 ${postTypePart}${slidePart}${productPart}${headlinePart}${textPart}${refPart}Estilo: moderno, clean, visualmente atrativo para redes sociais, coerente com o nicho de ${nicheLabel}, sem poluicao visual, com espaco de respiro para sobrepor texto.
-A imagem deve ser fotografica ou ilustrativa de alta qualidade, adequada ao publico do nicho.`
+A imagem deve ser fotografica ou ilustrativa de alta qualidade, adequada ao público do nicho.`
 }
 
 // ---------------------------------------------------------------------------
@@ -1985,7 +1986,7 @@ function GenerateCardPage() {
   const [aiConfigInfo, setAiConfigInfo] = useState<{ provider: string; model: string; active: boolean } | null>(null)
   const [showEnlargedPreview, setShowEnlargedPreview] = useState(false)
   const [enlargedSlide, setEnlargedSlide] = useState(0)
-  // Modal inicial de escolha do caminho: null = ainda nao escolheu, 'custom' = form vazio, 'ai' = abrir modal de IA, 'existing' = usar card externo
+  // Modal inicial de escolha do caminho: null = ainda não escolheu, 'custom' = form vazio, 'ai' = abrir modal de IA, 'existing' = usar card externo
   const [startChoice, setStartChoice] = useState<'custom' | 'ai' | 'existing' | null>(null)
   const [showStartChoice, setShowStartChoice] = useState(true)
   const [showExistingUpload, setShowExistingUpload] = useState(false)
@@ -2045,12 +2046,36 @@ function GenerateCardPage() {
   // ---------- Config updater ----------
   const updateConfig = useCallback(<K extends keyof CardConfig>(key: K, value: CardConfig[K]) => {
     setConfig((prev) => {
-      const next = { ...prev, [key]: value }
+      let next = { ...prev, [key]: value }
+
+      // Ao trocar o tipo de post (exceto "nenhum"), carrega um exemplo
+      // pré-preenchido coerente com o nicho da empresa do usuário.
+      if (key === 'postType' && value !== 'nenhum' && value !== prev.postType) {
+        const tpl = getCardTemplate(user?.niche, value as TemplatePostType)
+        next = {
+          ...next,
+          productName: tpl.productName,
+          headline: tpl.headline,
+          extraText: tpl.extraText,
+          cta: tpl.cta,
+          ctaUrl: tpl.ctaUrl || prev.ctaUrl,
+          originalPrice: tpl.originalPrice,
+          promoPrice: tpl.promoPrice,
+          palette: tpl.palette,
+          fontFamily: tpl.fontFamily,
+          display: {
+            ...prev.display,
+            showPrice: tpl.showPrice,
+            showOriginalPrice: tpl.showOriginalPrice,
+          },
+        }
+      }
+
       // Auto-generate card name when relevant fields change
       if (key === 'format' || key === 'postType' || key === 'productName') {
         const f = key === 'format' ? (value as Format) : prev.format
         const pt = key === 'postType' ? (value as PostType) : prev.postType
-        const pn = key === 'productName' ? (value as string) : prev.productName
+        const pn = key === 'productName' ? (value as string) : next.productName
         if (!prev.cardName || prev.cardName === generateCardName(prev.format, prev.postType, prev.productName)) {
           next.cardName = generateCardName(f, pt, pn)
         }
@@ -2058,7 +2083,7 @@ function GenerateCardPage() {
       return next
     })
     setDirtyAfterApprove(true)
-  }, [])
+  }, [user?.niche])
 
   const updateDisplay = useCallback((key: keyof CardConfig['display'], value: boolean) => {
     setConfig((prev) => ({
@@ -2306,7 +2331,7 @@ function GenerateCardPage() {
 
       const planSlides = plan?.slides || []
       if (!planSlides.length) {
-        toast.error('Nao foi possivel gerar o conteudo. Tente novamente.', { id: progressToast })
+        toast.error('Não foi possivel gerar o conteudo. Tente novamente.', { id: progressToast })
         return
       }
 
@@ -2598,14 +2623,41 @@ function GenerateCardPage() {
         <div className="sticky top-0 z-30 bg-brand-dark/80 backdrop-blur-xl border-b border-brand-border">
           <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-3">
             <div className="flex flex-wrap items-center gap-3">
-              {/* Generate button */}
-              <Button
-                onClick={handleOpenAiModal}
-                className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-lg shadow-violet-600/25 gap-2"
-              >
-                <Sparkles className="w-4 h-4" />
-                Gerar com IA
-              </Button>
+              {/* Generate button — somente quando o modo escolhido é "Gerar com IA" */}
+              {startChoice === 'ai' && (
+                <>
+                  <Button
+                    onClick={handleOpenAiModal}
+                    className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-lg shadow-violet-600/25 gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Gerar com IA
+                  </Button>
+                  {/* Divider */}
+                  <div className="h-8 w-px bg-brand-border hidden sm:block" />
+                </>
+              )}
+
+              {/* Post type select — agora antes do formato */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 hidden sm:inline">Tipo:</span>
+                <Select
+                  value={config.postType}
+                  onValueChange={(v) => updateConfig('postType', v as PostType)}
+                >
+                  <SelectTrigger className="w-[170px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {POST_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Divider */}
               <div className="h-8 w-px bg-brand-border hidden sm:block" />
 
@@ -2631,29 +2683,6 @@ function GenerateCardPage() {
                     </button>
                   )
                 })}
-              </div>
-
-              {/* Divider */}
-              <div className="h-8 w-px bg-brand-border hidden sm:block" />
-
-              {/* Post type select */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 hidden sm:inline">Tipo:</span>
-                <Select
-                  value={config.postType}
-                  onValueChange={(v) => updateConfig('postType', v as PostType)}
-                >
-                  <SelectTrigger className="w-[170px] h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {POST_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Clear button */}
@@ -2897,7 +2926,7 @@ function GenerateCardPage() {
                   {config.postType === 'promocao' && (
                     <>
                       <div className="space-y-1.5">
-                        <Label htmlFor="originalPrice">Preco original</Label>
+                        <Label htmlFor="originalPrice">Preço original</Label>
                         <Input
                           id="originalPrice"
                           placeholder="199,90"
@@ -2906,7 +2935,7 @@ function GenerateCardPage() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="promoPrice">Preco promocional</Label>
+                        <Label htmlFor="promoPrice">Preço promocional</Label>
                         <Input
                           id="promoPrice"
                           placeholder="149,90"
@@ -2925,7 +2954,7 @@ function GenerateCardPage() {
                     </Label>
                     <Input
                       id="extraText"
-                      placeholder="Descricao breve do produto ou servico..."
+                      placeholder="Descrição breve do produto ou serviço..."
                       value={isCarousel ? (config.carouselSlideContents[activeSlide]?.subtext ?? '') : config.extraText}
                       onChange={(e) => {
                         if (isCarousel) {
@@ -3188,7 +3217,7 @@ function GenerateCardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-200 group-hover:text-white">Nenhum</p>
-                        <p className="text-xs text-gray-500">Volta ao padrao de cores e fonte</p>
+                        <p className="text-xs text-gray-500">Volta ao padrão de cores e fonte</p>
                       </div>
                       <div className="text-gray-600 group-hover:text-gray-300 transition-colors text-xs">
                         Aplicar →
@@ -3437,14 +3466,14 @@ function GenerateCardPage() {
                   {config.postType === 'promocao' && (
                     <>
                       <div className="flex items-center justify-between">
-                        <Label className="text-sm">Incluir preco</Label>
+                        <Label className="text-sm">Incluir preço</Label>
                         <Switch
                           checked={config.display.showPrice}
                           onCheckedChange={(v) => updateDisplay('showPrice', v)}
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <Label className="text-sm">Mostrar preco original riscado</Label>
+                        <Label className="text-sm">Mostrar preço original riscado</Label>
                         <Switch
                           checked={config.display.showOriginalPrice}
                           onCheckedChange={(v) => updateDisplay('showOriginalPrice', v)}
@@ -3595,7 +3624,7 @@ function GenerateCardPage() {
                     {([
                       { key: 'title' as const, label: 'Titulo', min: 16, max: 52 },
                       { key: 'subtitle' as const, label: 'Subtitulo', min: 10, max: 28 },
-                      { key: 'price' as const, label: 'Preco', min: 18, max: 56 },
+                      { key: 'price' as const, label: 'Preço', min: 18, max: 56 },
                       { key: 'cta' as const, label: 'CTA', min: 10, max: 24 },
                     ]).map((item) => (
                       <div key={item.key} className="space-y-1.5">
@@ -3855,7 +3884,7 @@ function GenerateCardPage() {
                     <Sparkles className="w-6 h-6 text-violet-300" />
                   </div>
                   <h2 className="text-xl font-semibold text-white">Como deseja criar seu card?</h2>
-                  <p className="text-sm text-gray-400 mt-1">Escolha um caminho para comecar</p>
+                  <p className="text-sm text-gray-400 mt-1">Escolha um caminho para começar</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -3903,7 +3932,7 @@ function GenerateCardPage() {
                       </p>
                     </div>
                     <span className="inline-flex items-center gap-1 text-[10px] font-medium text-violet-300">
-                      Rapido e automatico
+                      Rápido e automático
                     </span>
                   </button>
 
@@ -4213,7 +4242,7 @@ function GenerateCardPage() {
                   onClick={() => setEnlargedSlide((i) => Math.min(config.carouselSlides - 1, i + 1))}
                   disabled={idx === config.carouselSlides - 1}
                 >
-                  Proximo
+                  Próximo
                 </Button>
               </div>
             )}

@@ -45,14 +45,14 @@ const navItems = [
   { href: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/app/cards/generate', label: 'Gerar Card', icon: Sparkles },
   { href: '/app/cards/library', label: 'Biblioteca de Cards', icon: Image },
-  { href: '/app/cards/media', label: 'Midias', icon: FolderOpen },
+  { href: '/app/cards/media', label: 'Mídias', icon: FolderOpen },
   { href: '/app/calendar', label: 'Calendario', icon: Calendar },
   { href: '/app/posts', label: 'Postagens', icon: Send },
-  { href: '/app/videos/generate', label: 'Gerar Video', icon: Video, pro: true },
+  { href: '/app/videos/generate', label: 'Gerar Vídeo', icon: Video, pro: true },
   { href: '/app/scripts', label: 'Roteiros', icon: FileText, pro: true },
   { href: '/app/campaigns', label: 'Campanhas', icon: Target, pro: true },
   { href: '/app/whatsapp', label: 'WhatsApp', icon: MessageCircle, pro: true },
-  { href: '/app/settings/integrations', label: 'Integracoes', icon: Settings },
+  { href: '/app/settings/integrations', label: 'Integrações', icon: Settings },
 ]
 
 const mobileNavItems = [
@@ -182,7 +182,7 @@ export default function CompanyLayout({
                 <div
                   key={item.href}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 cursor-not-allowed opacity-60"
-                  title={isTrialLocked ? 'Periodo de teste encerrado - ative seu plano' : 'Disponivel no plano Pro'}
+                  title={isTrialLocked ? 'Período de teste encerrado - ative seu plano' : 'Disponivel no plano Pro'}
                 >
                   <Icon className="w-4.5 h-4.5 flex-shrink-0" />
                   <span className="flex-1">{item.label}</span>
@@ -268,7 +268,7 @@ export default function CompanyLayout({
                   </div>
                   <DropdownMenuItem onClick={() => router.push('/app/settings/integrations')}>
                     <Settings className="mr-2 h-4 w-4" />
-                    Configuracoes
+                    Configurações
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-400 focus:text-red-300">
@@ -301,7 +301,7 @@ export default function CompanyLayout({
               return (
                 <div
                   key={item.href}
-                  title="Periodo de teste encerrado"
+                  title="Período de teste encerrado"
                   className="flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-lg min-w-0 text-gray-700 opacity-60"
                 >
                   <Icon className="w-5 h-5" />

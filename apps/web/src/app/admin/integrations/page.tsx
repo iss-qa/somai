@@ -430,7 +430,7 @@ function CompanyIntegrationPanel({
               <div className="relative">
                 <Input
                   type={showAppSecret ? 'text' : 'password'}
-                  placeholder={metaAppSecret.startsWith('••') ? 'Ja configurado' : 'Cole o App Secret'}
+                  placeholder={metaAppSecret.startsWith('••') ? 'Já configurado' : 'Cole o App Secret'}
                   value={metaAppSecret}
                   onChange={(e) => setMetaAppSecret(e.target.value)}
                   className="pr-10"

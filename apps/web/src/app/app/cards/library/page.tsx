@@ -374,7 +374,7 @@ export default function CardLibraryPage() {
                 disabled={page >= pagination.totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Proxima
+                Próxima
               </Button>
             </div>
           )}

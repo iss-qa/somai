@@ -114,7 +114,7 @@ function WhatsAppContent() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-300">Resposta automatica</p>
+                    <p className="text-sm text-gray-300">Resposta automática</p>
                     <p className="text-xs text-gray-500">
                       Responder automaticamente fora do horario
                     </p>
@@ -195,7 +195,7 @@ function WhatsAppContent() {
 
 export default function WhatsAppPage() {
   return (
-    <FeatureGate feature="Integracao WhatsApp">
+    <FeatureGate feature="Integração WhatsApp">
       <WhatsAppContent />
     </FeatureGate>
   )

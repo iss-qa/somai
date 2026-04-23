@@ -59,7 +59,7 @@ const statusMap: Record<string, { label: string; variant: string; color: string 
 }
 
 const templateLabels: Record<string, string> = {
-  dica_rapida: 'Dica Rapida',
+  dica_rapida: 'Dica Rápida',
   passo_a_passo: 'Passo a Passo',
   beneficio_destaque: 'Beneficio',
   depoimento: 'Depoimento',
@@ -105,7 +105,7 @@ function VideosContent() {
     try {
       await api.delete(`/api/videos/${id}`)
       setVideos((prev) => prev.filter((v) => v._id !== id))
-      toast.success('Video removido')
+      toast.success('Vídeo removido')
     } catch {
       toast.error('Erro ao remover video')
     }
@@ -126,7 +126,7 @@ function VideosContent() {
         <div>
           <h2 className="text-xl font-semibold text-white flex items-center gap-2">
             <Film className="w-5 h-5 text-primary-400" />
-            Videos
+            Vídeos
           </h2>
           <p className="text-sm text-gray-400 mt-1">
             Crie e gerencie videos com inteligencia artificial
@@ -137,7 +137,7 @@ function VideosContent() {
           onClick={() => router.push('/app/videos/generate')}
         >
           <Plus className="w-4 h-4" />
-          Novo Video
+          Novo Vídeo
         </Button>
       </div>
 
@@ -252,7 +252,7 @@ function VideosContent() {
                         {video.status === 'ready' && (
                           <DropdownMenuItem>
                             <Calendar className="mr-2 h-3.5 w-3.5" />
-                            Agendar publicacao
+                            Agendar publicação
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
@@ -344,7 +344,7 @@ function VideosContent() {
 
 export default function VideosPage() {
   return (
-    <FeatureGate feature="Videos com IA">
+    <FeatureGate feature="Vídeos com IA">
       <VideosContent />
     </FeatureGate>
   )
