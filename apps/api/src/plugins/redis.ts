@@ -1,15 +1,33 @@
-import IORedis from 'ioredis'
+import IORedis, { type RedisOptions } from 'ioredis'
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6380'
+// Prioriza REDIS_URL se definida; caso contrario monta conexao a partir das
+// vars separadas (mais legivel quando a senha tem caracteres especiais).
+const REDIS_URL = process.env.REDIS_URL
 
 let _redis: IORedis | null = null
 
+function buildRedis(): IORedis {
+  const commonOpts: RedisOptions = {
+    maxRetriesPerRequest: null,
+    lazyConnect: true,
+  }
+
+  if (REDIS_URL) {
+    return new IORedis(REDIS_URL, commonOpts)
+  }
+
+  return new IORedis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: Number(process.env.REDIS_PORT) || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
+    db: Number(process.env.REDIS_DB) || 0,
+    ...commonOpts,
+  })
+}
+
 export function getRedis(): IORedis {
   if (!_redis) {
-    _redis = new IORedis(REDIS_URL, {
-      maxRetriesPerRequest: null,
-      lazyConnect: true,
-    })
+    _redis = buildRedis()
 
     _redis.on('error', (err) => {
       console.error('Redis connection error:', err.message)
