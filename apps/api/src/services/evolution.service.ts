@@ -1,10 +1,6 @@
 const EVOLUTION_API_URL = (process.env.EVOLUTION_API_URL || '').replace(/\/$/, '')
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || ''
 
-if (process.env.EVOLUTION_ALLOW_SELF_SIGNED === 'true') {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-}
-
 async function evoFetch(path: string, method: string, body?: unknown) {
   const url = `${EVOLUTION_API_URL}${path}`
   const headers: Record<string, string> = {

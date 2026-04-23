@@ -1,0 +1,30 @@
+name: Deploy EasyPanel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-easypanel
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar deploy do somaiapi
+        if: ${{ env.WEBHOOK_API != '' }}
+        env:
+          WEBHOOK_API: ${{ secrets.EASYPANEL_WEBHOOK_API }}
+        run: |
+          echo "→ Chamando webhook do somaiapi"
+          curl -sS -o /dev/null -w "HTTP %{http_code}\n" -X POST "$WEBHOOK_API" || true
+
+      - name: Disparar deploy do somaiweb
+        if: ${{ env.WEBHOOK_WEB != '' }}
+        env:
+          WEBHOOK_WEB: ${{ secrets.EASYPANEL_WEBHOOK_WEB }}
+        run: |
+          echo "→ Chamando webhook do somaiweb"
+          curl -sS -o /dev/null -w "HTTP %{http_code}\n" -X POST "$WEBHOOK_WEB" || true
