@@ -151,9 +151,15 @@ export default function PostsPage() {
           card_id: q.card_id && typeof q.card_id === 'object' ? q.card_id : undefined,
           post_type: q.post_type,
         }))
-        const merged = [...queuedItems, ...loadedPosts]
-        // Mais recente no topo — ordena pelo timestamp relevante (scheduled/published/created)
-        merged.sort((a, b) => getPostTimestamp(b) - getPostTimestamp(a))
+        // Agendados (queued/processing) no topo, ordenados pelo mais proximo de executar.
+        // Demais posts (publicados/falhou/cancelado) abaixo, mais recente primeiro.
+        const isPending = (p: Post) => p.status === 'queued' || p.status === 'processing'
+        const pending = [...queuedItems, ...loadedPosts.filter(isPending)]
+          .sort((a, b) => getPostTimestamp(a) - getPostTimestamp(b))
+        const rest = loadedPosts
+          .filter((p) => !isPending(p))
+          .sort((a, b) => getPostTimestamp(b) - getPostTimestamp(a))
+        const merged = [...pending, ...rest]
         setPosts(merged)
         setMetrics({
           total: merged.length,
