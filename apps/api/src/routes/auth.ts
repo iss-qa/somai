@@ -305,7 +305,7 @@ export default async function authRoutes(app: FastifyInstance) {
       console.log('[partner-signup] Plano:', plan?.slug || 'nenhum encontrado')
 
       // Calculate trial period
-      const trialDays = requestedTrialDays || 3
+      const trialDays = requestedTrialDays || 7
       const trialExpiresAt = new Date()
       trialExpiresAt.setDate(trialExpiresAt.getDate() + trialDays)
 

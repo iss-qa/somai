@@ -114,7 +114,7 @@ const CompanySchema = new Schema<ICompany>(
     setup_paid: { type: Boolean, default: false },
     setup_paid_at: { type: Date, default: null },
     setup_amount: { type: Number, default: 0 },
-    trial_days: { type: Number, default: 3 },
+    trial_days: { type: Number, default: 7 },
     trial_expires_at: { type: Date, default: null },
     billing: {
       monthly_amount: { type: Number, default: 0 },

@@ -262,7 +262,7 @@ export default function LoginPage() {
         city,
         state: signupState,
         plan: selectedPlan,
-        trial_days: 3,
+        trial_days: 7,
       })
       setUser(data.user)
       if (data.token) {
