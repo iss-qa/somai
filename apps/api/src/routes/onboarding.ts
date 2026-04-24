@@ -10,11 +10,14 @@ import {
 } from '../services/brand-extraction.service'
 import { LLMService } from '../services/llm.service'
 
-// Traduz erros do SDK do Gemini (quota / 429 / auth) em { status, message }
-// curtos. Sem isso, o JSON bruto com `quotas[]` vaza pro front.
+// Traduz erros do LLM (Gemini/OpenAI) em { status, message } curtos.
+// Sem isso, JSON bruto com quotas[] / tokens expirados vazam pro front.
 function mapGeminiError(err: any): { status: number; message: string } {
   const raw = String(err?.message || '')
   const lower = raw.toLowerCase()
+  const ambos = lower.startsWith('ambos providers falharam')
+
+  // Quota
   if (
     err?.status === 429 ||
     lower.includes('quota') ||
@@ -25,18 +28,35 @@ function mapGeminiError(err: any): { status: number; message: string } {
     const seconds = retry ? Math.ceil(Number(retry[1])) : null
     return {
       status: 429,
-      message: seconds
-        ? `Limite da IA atingido. Tente novamente em ~${seconds}s.`
-        : 'Limite da IA atingido. Aguarde alguns segundos e tente novamente.',
+      message: ambos
+        ? 'Limite da IA atingido nos dois providers. Verifique suas chaves ou aguarde.'
+        : seconds
+          ? `Limite da IA atingido. Tente novamente em ~${seconds}s.`
+          : 'Limite da IA atingido. Aguarde alguns segundos e tente novamente.',
     }
   }
-  if (lower.includes('api key') || lower.includes('api_key') || err?.status === 401 || err?.status === 403) {
+  // Auth
+  if (
+    lower.includes('api key') ||
+    lower.includes('api_key') ||
+    lower.includes('incorrect api') ||
+    lower.includes('invalid_api_key') ||
+    err?.status === 401 ||
+    err?.status === 403
+  ) {
     return {
       status: 502,
-      message: 'Chave da IA invalida ou sem permissao. Verifique GEMINI_API_KEY.',
+      message: ambos
+        ? 'Chaves de IA invalidas. Verifique GEMINI_API_KEY e OPENAI_API_KEY.'
+        : 'Chave da IA invalida ou sem permissao. Verifique GEMINI_API_KEY.',
     }
   }
-  return { status: 500, message: 'Falha ao consultar a IA. Tente novamente em instantes.' }
+  return {
+    status: 500,
+    message: ambos
+      ? 'Nenhum provider de IA respondeu. Tente novamente em instantes.'
+      : 'Falha ao consultar a IA. Tente novamente em instantes.',
+  }
 }
 
 export default async function onboardingRoutes(app: FastifyInstance) {

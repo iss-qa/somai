@@ -3,18 +3,43 @@
  *
  * Ordem: Gemini (2.0 Flash) -> OpenAI (gpt-4o-mini).
  *
- * Sobe pra OpenAI quando o Gemini retorna erro de quota/rate-limit/auth
- * ou quando a chave do Gemini nao existe. Se tambem nao houver chave
- * OpenAI, relanca o erro original pra rota tratar com mensagem amigavel.
+ * Sobe pra OpenAI quando o Gemini retorna quota/rate-limit/auth ou quando
+ * a chave nao existe. Se tambem nao houver chave OpenAI, relanca o erro
+ * original pra rota tratar com mensagem amigavel.
  *
- * Todos os metodos retornam texto puro ou JSON estruturado — nao cabe
- * ao chamador saber qual provider respondeu.
+ * Todos os metodos logam:
+ *   [llm] start text (gemini|openai) len=N
+ *   [llm] ok text gemini in 800ms
+ *   [llm] Gemini falhou (msg): fallback -> OpenAI
+ *   [llm] ok text openai(fb) in 1200ms
+ *   [llm] ambos providers falharam
  */
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import OpenAI from 'openai'
 
 const GEMINI_TEXT_MODEL = 'gemini-2.0-flash'
 const OPENAI_TEXT_MODEL = 'gpt-4o-mini'
+
+function hasGemini() {
+  return !!process.env.GEMINI_API_KEY
+}
+function hasOpenAI() {
+  return !!process.env.OPENAI_API_KEY
+}
+
+// Log 1x na inicializacao pra deixar claro quais providers estao ativos
+;(function logProviders() {
+  const g = hasGemini()
+  const o = hasOpenAI()
+  console.log(
+    `[llm] boot — gemini=${g ? 'on' : 'OFF'} openai(fallback)=${o ? 'on' : 'OFF'}`,
+  )
+  if (!g && !o) {
+    console.warn(
+      '[llm] ATENCAO: nenhum provider de LLM configurado. Onboarding/IA vai falhar.',
+    )
+  }
+})()
 
 function isFallbackableError(err: any): boolean {
   const raw = String(err?.message || '')
@@ -23,13 +48,23 @@ function isFallbackableError(err: any): boolean {
     err?.status === 429 ||
     err?.status === 401 ||
     err?.status === 403 ||
+    err?.status === 500 ||
+    err?.status === 502 ||
+    err?.status === 503 ||
     lower.includes('quota') ||
     lower.includes('rate limit') ||
     lower.includes('too many requests') ||
     lower.includes('api key') ||
     lower.includes('api_key') ||
-    lower.includes('permission')
+    lower.includes('permission') ||
+    lower.includes('exceeded') ||
+    lower.includes('overloaded') ||
+    lower.includes('unavailable')
   )
+}
+
+function shortErr(err: any): string {
+  return String(err?.message || err || 'unknown').slice(0, 200)
 }
 
 function getGemini(): GoogleGenerativeAI | null {
@@ -107,27 +142,64 @@ function stripJsonFences(s: string): string {
     .trim()
 }
 
-export const LLMService = {
-  /**
-   * Gera texto puro. Gemini -> OpenAI.
-   */
-  async generateText(prompt: string): Promise<string> {
-    try {
-      return await geminiText(prompt)
-    } catch (err) {
-      if (!isFallbackableError(err) || !process.env.OPENAI_API_KEY) throw err
-      console.warn(
-        '[llm] Gemini falhou (',
-        (err as any)?.message?.slice(0, 120),
-        '). Fallback -> OpenAI',
-      )
-      return await openaiText(prompt)
+// Wrapper generico com log + fallback
+async function withFallback<T>(
+  label: string,
+  primary: () => Promise<T>,
+  fallback: (() => Promise<T>) | null,
+): Promise<T> {
+  const started = Date.now()
+  console.log(`[llm] start ${label} provider=gemini`)
+  try {
+    const out = await primary()
+    console.log(`[llm] ok ${label} gemini in ${Date.now() - started}ms`)
+    return out
+  } catch (geminiErr: any) {
+    const fallbackable = isFallbackableError(geminiErr)
+    console.warn(
+      `[llm] gemini falhou em ${label} (fallbackable=${fallbackable}) status=${geminiErr?.status} msg="${shortErr(geminiErr)}"`,
+    )
+    if (!fallback || !fallbackable) {
+      throw geminiErr
     }
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn(
+        `[llm] sem OPENAI_API_KEY configurada — nao ha fallback, relancando erro original`,
+      )
+      throw geminiErr
+    }
+    const fbStart = Date.now()
+    console.log(`[llm] fallback ${label} provider=openai(gpt-4o-mini)`)
+    try {
+      const out = await fallback()
+      console.log(
+        `[llm] ok ${label} openai(fb) in ${Date.now() - fbStart}ms (total ${Date.now() - started}ms)`,
+      )
+      return out
+    } catch (openaiErr: any) {
+      console.error(
+        `[llm] FALHA TOTAL em ${label}. gemini="${shortErr(geminiErr)}" | openai="${shortErr(openaiErr)}" status=${openaiErr?.status}`,
+      )
+      // Propaga o erro do OpenAI anotado com o do Gemini pra ficar claro no log
+      const merged: any = new Error(
+        `Ambos providers falharam. gemini=${shortErr(geminiErr)} | openai=${shortErr(openaiErr)}`,
+      )
+      merged.status = openaiErr?.status || geminiErr?.status || 500
+      merged.cause = openaiErr
+      throw merged
+    }
+  }
+}
+
+export const LLMService = {
+  async generateText(prompt: string): Promise<string> {
+    return withFallback(
+      `text(${prompt.length}ch)`,
+      () => geminiText(prompt),
+      hasOpenAI() ? () => openaiText(prompt) : null,
+    )
   },
 
-  /**
-   * Gera JSON (texto apenas). Gemini -> OpenAI. Parse feito pelo chamador.
-   */
   async generateJson<T = any>(
     prompt: string,
     fallbackValue: T,
@@ -141,24 +213,15 @@ export const LLMService = {
     }
   },
 
-  /**
-   * Visao com imagem inline. Gemini -> OpenAI.
-   */
   async analyzeImage(
     prompt: string,
     base64: string,
     mimeType: string,
   ): Promise<string> {
-    try {
-      return await geminiVision(prompt, base64, mimeType)
-    } catch (err) {
-      if (!isFallbackableError(err) || !process.env.OPENAI_API_KEY) throw err
-      console.warn(
-        '[llm] Gemini Vision falhou (',
-        (err as any)?.message?.slice(0, 120),
-        '). Fallback -> OpenAI',
-      )
-      return await openaiVision(prompt, base64, mimeType)
-    }
+    return withFallback(
+      `vision(${mimeType}, ${Math.round(base64.length / 1024)}kb)`,
+      () => geminiVision(prompt, base64, mimeType),
+      hasOpenAI() ? () => openaiVision(prompt, base64, mimeType) : null,
+    )
   },
 }
