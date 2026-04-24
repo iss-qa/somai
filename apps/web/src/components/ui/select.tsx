@@ -16,7 +16,8 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-10 w-full items-center justify-between rounded-lg border border-gray-800 bg-brand-surface px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 transition-colors',
+      'flex h-10 w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 transition-colors',
+      'dark:border-gray-800 dark:bg-brand-surface dark:text-gray-100 dark:placeholder:text-gray-500',
       'focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500',
       'disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
       className
@@ -67,7 +68,8 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-lg border border-brand-border bg-brand-card text-gray-100 shadow-xl animate-fadeIn',
+        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-lg border border-gray-200 bg-white text-gray-900 shadow-xl animate-fadeIn',
+        'dark:border-brand-border dark:bg-brand-card dark:text-gray-100',
         position === 'popper' &&
           'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
         className
@@ -110,8 +112,9 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none',
-      'focus:bg-primary-500/10 focus:text-primary-300 data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      'relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm text-gray-900 outline-none',
+      'dark:text-gray-100',
+      'focus:bg-primary-500/10 focus:text-primary-700 dark:focus:text-primary-300 data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
     {...props}
