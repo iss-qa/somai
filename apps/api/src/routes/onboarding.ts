@@ -8,6 +8,7 @@ import {
   BrandExtractionService,
   type BrandExtractionResult,
 } from '../services/brand-extraction.service'
+import { LLMService } from '../services/llm.service'
 
 // Traduz erros do SDK do Gemini (quota / 429 / auth) em { status, message }
 // curtos. Sem isso, o JSON bruto com `quotas[]` vaza pro front.
@@ -284,13 +285,6 @@ export default async function onboardingRoutes(app: FastifyInstance) {
       }
       try {
         const body = request.body || {}
-        const { GoogleGenerativeAI } = await import('@google/generative-ai')
-        const key = process.env.GEMINI_API_KEY
-        if (!key) {
-          return reply.status(500).send({
-            error: 'GEMINI_API_KEY nao configurada no servidor',
-          })
-        }
 
         const resumoMarca = [
           body.marcaNome ? `Nome: ${body.marcaNome}` : '',
@@ -321,12 +315,7 @@ ${resumoMarca || '(dados minimos)'}
 
 Se houver "Descricao atual", polua e refine mantendo a essencia. Caso contrario, crie do zero.`
 
-        const genAI = new GoogleGenerativeAI(key)
-        const model = genAI.getGenerativeModel({
-          model: 'gemini-2.0-flash',
-        })
-        const result = await model.generateContent(prompt)
-        const descricao = result.response.text().trim()
+        const descricao = await LLMService.generateText(prompt)
 
         await Company.findByIdAndUpdate(companyId, {
           'estiloVisual.descricao': descricao,

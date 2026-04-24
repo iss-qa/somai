@@ -11,7 +11,6 @@
  *
  * Retorna campos pré-preenchidos que o usuário pode editar no wizard.
  */
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import type {
   InstagramSnapshot,
   InstagramMediaItem,
@@ -21,6 +20,7 @@ import type {
   EstiloVisualV2,
   TomDeVozV2,
 } from '@soma-ai/db'
+import { LLMService } from './llm.service'
 
 const TONS_VALIDOS: TomDeVozV2[] = [
   'descontraido',
@@ -72,16 +72,6 @@ export interface BrandExtractionResult {
     fontes: string
     descricao: string
   }
-}
-
-function getGemini(): GoogleGenerativeAI {
-  const key = process.env.GEMINI_API_KEY
-  if (!key) {
-    throw new Error(
-      'GEMINI_API_KEY nao configurada no servidor (necessaria para o onboarding v2)',
-    )
-  }
-  return new GoogleGenerativeAI(key)
 }
 
 function safeParseJson<T>(text: string, fallback: T): T {
@@ -273,9 +263,6 @@ export class BrandExtractionService {
     personalidade: string
     estiloDescricao: string
   }> {
-    const gemini = getGemini()
-    const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' })
-
     const prompt = `Voce e um estrategista de marketing. Analise a marca abaixo e retorne SOMENTE um JSON com o formato:
 
 {
@@ -304,8 +291,7 @@ ${input.conteudoExtra.slice(0, 6000) || '(vazio)'}
 
 Responda APENAS com o JSON.`
 
-    const result = await model.generateContent(prompt)
-    const text = result.response.text()
+    const text = await LLMService.generateText(prompt)
     const parsed = safeParseJson<any>(text, {})
 
     return {
@@ -344,9 +330,6 @@ Responda APENAS com o JSON.`
     mimeType: string,
   ): Promise<{ cores: string[]; estilo: EstiloVisualV2 | null }> {
     try {
-      const gemini = getGemini()
-      const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' })
-
       const prompt = `Analise esta imagem de marca (logo ou site). Retorne SOMENTE JSON com:
 {
   "cores": ["#RRGGBB", "#RRGGBB", "#RRGGBB"],
@@ -357,11 +340,7 @@ Responda APENAS com o JSON.`
 - estilo: escolha UMA palavra da lista
 Responda apenas com o JSON.`
 
-      const result = await model.generateContent([
-        prompt,
-        { inlineData: { mimeType, data: base64 } },
-      ])
-      const text = result.response.text()
+      const text = await LLMService.analyzeImage(prompt, base64, mimeType)
       const parsed = safeParseJson<any>(text, {})
 
       const cores = Array.isArray(parsed.cores)
