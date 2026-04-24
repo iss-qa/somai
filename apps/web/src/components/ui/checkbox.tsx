@@ -1,6 +1,5 @@
 'use client'
 
-import { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 
 interface CheckboxProps {
@@ -10,14 +9,16 @@ interface CheckboxProps {
   disabled?: boolean
 }
 
-const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ checked, onCheckedChange, className, disabled }, ref) => {
-    return (
+function Checkbox({ checked, onCheckedChange, className, disabled }: CheckboxProps) {
+  return (
       <div
         role="checkbox"
         aria-checked={checked}
         tabIndex={0}
-        onClick={() => !disabled && onCheckedChange?.(!checked)}
+        onClick={(e) => {
+          e.stopPropagation()
+          if (!disabled) onCheckedChange?.(!checked)
+        }}
         onKeyDown={(e) => {
           if ((e.key === ' ' || e.key === 'Enter') && !disabled) {
             e.preventDefault()
@@ -38,19 +39,8 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             <path d="M1.5 5L4 7.5L8.5 2.5" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
-        <input
-          ref={ref}
-          type="checkbox"
-          className="sr-only"
-          checked={checked}
-          onChange={(e) => !disabled && onCheckedChange?.(e.target.checked)}
-          disabled={disabled}
-          tabIndex={-1}
-        />
       </div>
-    )
-  }
-)
-Checkbox.displayName = 'Checkbox'
+  )
+}
 
 export { Checkbox }

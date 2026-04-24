@@ -194,6 +194,15 @@ function IntegrationsContent() {
           setIgProfileUrl(meta.instagram_profile_url || '')
           setFbPageUrl(meta.facebook_page_url || '')
           setConnectedAt(meta.connected_at || '')
+
+          // Se já tem integração conectada, não exibir o modal
+          if (meta.connected) {
+            setShowSetupModal(false)
+            // Sincroniza a flag no backend se ainda não estava marcada
+            if (user && !user.integracaoConfigurada) {
+              api.post('/api/setup/self-setup', {}).catch(() => {})
+            }
+          }
         }
       } catch {
         // No integration yet
