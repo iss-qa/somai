@@ -24,6 +24,8 @@ import adminLogsRoutes from './routes/admin/logs'
 import adminAppLogsRoutes from './routes/admin/applogs'
 import adminIntegrationsRoutes from './routes/admin/integrations'
 import adminComunicacaoRoutes from './routes/admin/comunicacao'
+import adminSetupsRoutes from './routes/admin/setups'
+import setupRoutes from './routes/setup'
 import billingRoutes from './routes/billing'
 import cronRoutes from './routes/cron'
 
@@ -72,6 +74,8 @@ export async function getApp() {
   await app.register(adminAppLogsRoutes, { prefix: '/api/admin/applogs' })
   await app.register(adminIntegrationsRoutes, { prefix: '/api/admin/integrations' })
   await app.register(adminComunicacaoRoutes, { prefix: '/api/admin/comunicacao' })
+  await app.register(adminSetupsRoutes, { prefix: '/api/admin/setups' })
+  await app.register(setupRoutes, { prefix: '/api/setup' })
 
   try {
     const { default: notificationRoutes } = await import('./routes/notifications')

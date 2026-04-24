@@ -13,6 +13,12 @@ export enum TipoMensagem {
   ACESSO_BLOQUEADO = 'acesso_bloqueado',
   ERRO_POSTAGEM = 'erro_postagem',
   MANUAL = 'manual',
+  PRE_CONDICOES_SETUP = 'pre_condicoes_setup',
+  LEMBRETE_SETUP = 'lembrete_setup',
+  SETUP_INICIADO = 'setup_iniciado',
+  SETUP_CONCLUIDO = 'setup_concluido',
+  CONFIRMACAO_AGENDAMENTO = 'confirmacao_agendamento',
+  CONFIRMACAO_CREDENCIAIS = 'confirmacao_credenciais',
 }
 
 export enum StatusMensagem {

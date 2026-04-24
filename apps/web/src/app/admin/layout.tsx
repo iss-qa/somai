@@ -35,11 +35,13 @@ import {
   Plug,
   ScrollText,
   MessageSquare,
+  Wrench,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/companies', label: 'Parceiros', icon: Building2 },
+  { href: '/admin/setups', label: 'Setups', icon: Wrench },
   { href: '/admin/financial', label: 'Financeiro', icon: DollarSign },
   { href: '/admin/health', label: 'Saúde do Sistema', icon: Activity },
   { href: '/admin/comunicacao', label: 'Comunicação', icon: MessageSquare },
@@ -49,7 +51,9 @@ const navItems = [
 ]
 
 function getPageTitle(pathname: string): string {
-  const item = navItems.find((i) => pathname.startsWith(i.href))
+  // Use longer match first to avoid /admin/setups matching /admin/settings
+  const sorted = [...navItems].sort((a, b) => b.href.length - a.href.length)
+  const item = sorted.find((i) => pathname.startsWith(i.href))
   return item?.label || 'Admin'
 }
 

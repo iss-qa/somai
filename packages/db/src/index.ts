@@ -58,3 +58,12 @@ export {
   TipoMensagem,
   StatusMensagem,
 } from './models/MessageHistory'
+export {
+  SetupAgendamento,
+  type ISetupAgendamento,
+} from './models/SetupAgendamento'
+export {
+  SetupCredencial,
+  type ISetupCredencial,
+  type ISetupCredencialAcesso,
+} from './models/SetupCredencial'

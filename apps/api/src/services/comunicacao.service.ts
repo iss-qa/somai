@@ -224,6 +224,80 @@ Verifique suas integracoes no painel e tente republicar. Se o problema persistir
 _Mensagem automatica - Soma.ai_`
 }
 
+function templatePreCondicoesSetup(primeiroNome: string): string {
+  return `Ola ${primeiroNome}! 😊
+
+Para a gente comecar a publicar nas suas redes sociais, voce precisa de 3 coisas prontas:
+
+1️⃣ *Pagina no Facebook* — nao pode ser perfil pessoal, precisa ser uma Pagina
+2️⃣ *Instagram Profissional* — conta Comercial ou Criador de Conteudo
+3️⃣ *Instagram vinculado a sua Pagina do Facebook*
+
+Nao sabe como fazer? Preparamos um guia passo a passo pra voce 👇
+🔗 somai.issqa.com.br/guia-setup
+
+Depois de preparar tudo, voce tem duas opcoes:
+✅ Fazer a integracao voce mesmo direto no painel
+✅ Agendar com nosso time pra fazer junto
+
+Qualquer duvida e so responder aqui! 🚀
+— Time Soma.ai`
+}
+
+function templateLembreteSetup(primeiroNome: string, nomeEmpresa: string): string {
+  return `Oi ${primeiroNome}! Tudo bem?
+
+Notamos que sua conta *${nomeEmpresa}* ainda nao conectou as redes sociais. 😊
+
+Quer que nosso time faca o setup pra voce?
+👉 somai.issqa.com.br/agendar-setup
+
+Estamos aqui pra ajudar!`
+}
+
+function templateConfirmacaoAgendamento(primeiroNome: string): string {
+  return `✅ *Agendamento recebido!*
+
+Ola ${primeiroNome}!
+
+Recebemos sua solicitacao de agendamento de setup. Nossa equipe vai entrar em contato para confirmar o horario.
+
+Qualquer duvida, e so responder aqui! 😊
+— Time Soma.ai`
+}
+
+function templateConfirmacaoCredenciais(primeiroNome: string): string {
+  return `✅ Recebemos seus dados! O time Soma.ai iniciara o setup em ate 24 horas uteis.
+
+Voce recebera uma mensagem assim que comecarmos.
+
+— Time Soma.ai`
+}
+
+function templateSetupIniciado(primeiroNome: string, nomeEmpresa: string): string {
+  return `Ola ${primeiroNome}! 🚀
+
+O time da *Soma.ai* deu inicio ao setup da sua conta *${nomeEmpresa}*.
+
+⏱ Prazo estimado: ate *48 horas uteis*
+
+Voce recebera uma nova mensagem assim que tudo estiver pronto.
+Qualquer duvida, e so responder aqui!
+
+— Time Soma.ai`
+}
+
+function templateSetupConcluido(primeiroNome: string, nomeEmpresa: string): string {
+  return `✅ ${primeiroNome}, o setup da *${nomeEmpresa}* foi concluido!
+
+Suas redes ja estao conectadas e a Soma.ai ja pode publicar por voce.
+
+👉 Acesse o painel e veja tudo pronto: somai.issqa.com.br/dashboard
+
+Boas publicacoes! 🎉
+— Time Soma.ai`
+}
+
 // ── Service ──────────────────────────────────────────
 
 export class ComunicacaoService {
@@ -528,6 +602,107 @@ export class ComunicacaoService {
       conteudo,
       metadata: { card_name: cardName, platform, motivo },
       priority: 2,
+    })
+  }
+
+  static async enviarPreCondicoesSetup(companyId: string) {
+    const company = await Company.findById(companyId)
+    if (!company) return
+
+    const primeiroNome = company.responsible_name.split(' ')[0]
+    const conteudo = templatePreCondicoesSetup(primeiroNome)
+    return this.enviarMensagem({
+      company_id: companyId,
+      company_name: company.name,
+      destinatario_nome: company.responsible_name,
+      destinatario_telefone: company.whatsapp,
+      tipo: TipoMensagem.PRE_CONDICOES_SETUP,
+      conteudo,
+      delay: 5 * 60 * 1000,
+    })
+  }
+
+  static async enviarLembreteSetup(companyId: string) {
+    const company = await Company.findById(companyId)
+    if (!company) return
+
+    if (company.integracao_configurada) return
+
+    const primeiroNome = company.responsible_name.split(' ')[0]
+    const conteudo = templateLembreteSetup(primeiroNome, company.name)
+    return this.enviarMensagem({
+      company_id: companyId,
+      company_name: company.name,
+      destinatario_nome: company.responsible_name,
+      destinatario_telefone: company.whatsapp,
+      tipo: TipoMensagem.LEMBRETE_SETUP,
+      conteudo,
+      delay: 24 * 60 * 60 * 1000,
+    })
+  }
+
+  static async enviarConfirmacaoAgendamento(companyId: string) {
+    const company = await Company.findById(companyId)
+    if (!company) return
+
+    const primeiroNome = company.responsible_name.split(' ')[0]
+    const conteudo = templateConfirmacaoAgendamento(primeiroNome)
+    return this.enviarMensagem({
+      company_id: companyId,
+      company_name: company.name,
+      destinatario_nome: company.responsible_name,
+      destinatario_telefone: company.whatsapp,
+      tipo: TipoMensagem.CONFIRMACAO_AGENDAMENTO,
+      conteudo,
+    })
+  }
+
+  static async enviarConfirmacaoCredenciais(companyId: string) {
+    const company = await Company.findById(companyId)
+    if (!company) return
+
+    const primeiroNome = company.responsible_name.split(' ')[0]
+    const conteudo = templateConfirmacaoCredenciais(primeiroNome)
+    return this.enviarMensagem({
+      company_id: companyId,
+      company_name: company.name,
+      destinatario_nome: company.responsible_name,
+      destinatario_telefone: company.whatsapp,
+      tipo: TipoMensagem.CONFIRMACAO_CREDENCIAIS,
+      conteudo,
+    })
+  }
+
+  static async enviarSetupIniciado(companyId: string) {
+    const company = await Company.findById(companyId)
+    if (!company) return
+
+    const primeiroNome = company.responsible_name.split(' ')[0]
+    const conteudo = templateSetupIniciado(primeiroNome, company.name)
+    return this.enviarMensagem({
+      company_id: companyId,
+      company_name: company.name,
+      destinatario_nome: company.responsible_name,
+      destinatario_telefone: company.whatsapp,
+      tipo: TipoMensagem.SETUP_INICIADO,
+      conteudo,
+    })
+  }
+
+  static async enviarSetupConcluido(companyId: string) {
+    const company = await Company.findById(companyId)
+    if (!company) return
+
+    const primeiroNome = company.responsible_name.split(' ')[0]
+    const conteudo = templateSetupConcluido(primeiroNome, company.name)
+    return this.enviarMensagem({
+      company_id: companyId,
+      company_name: company.name,
+      destinatario_nome: company.responsible_name,
+      destinatario_telefone: company.whatsapp,
+      tipo: TipoMensagem.SETUP_CONCLUIDO,
+      conteudo,
+      priority: 1,
     })
   }
 

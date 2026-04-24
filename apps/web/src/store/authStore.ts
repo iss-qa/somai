@@ -15,6 +15,7 @@ export interface User {
   accessEnabled?: boolean
   trialExpiresAt?: string | null
   logo_url?: string
+  integracaoConfigurada?: boolean
 }
 
 interface AuthState {

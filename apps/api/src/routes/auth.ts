@@ -76,6 +76,7 @@ export default async function authRoutes(app: FastifyInstance) {
       let accessEnabled = true
       let trialExpiresAt: string | null = null
       let logoUrl: string | null = null
+      let integracaoConfigurada = false
 
       if (!isAdmin && foundUser.company_id) {
         const company: any = await Company.findById(foundUser.company_id)
@@ -90,6 +91,7 @@ export default async function authRoutes(app: FastifyInstance) {
             ? new Date(company.trial_expires_at).toISOString()
             : null
           logoUrl = company.logo_url || null
+          integracaoConfigurada = company.integracao_configurada ?? false
         }
       }
 
@@ -122,6 +124,7 @@ export default async function authRoutes(app: FastifyInstance) {
             accessEnabled,
             trialExpiresAt,
             logo_url: logoUrl,
+            integracaoConfigurada,
           },
         })
     },
@@ -376,10 +379,15 @@ export default async function authRoutes(app: FastifyInstance) {
         expiresIn: process.env.JWT_EXPIRES_IN || '7d',
       })
 
-      // Send welcome message (fire-and-forget — don't block signup response)
+      // Fire-and-forget: boas-vindas imediata + pré-condições (5min) + lembrete (24h)
       import('../services/comunicacao.service')
-        .then(({ ComunicacaoService }) => ComunicacaoService.enviarBoasVindas(String(company._id)))
-        .catch((err) => console.warn('[auth] WhatsApp welcome failed:', err))
+        .then(({ ComunicacaoService }) => {
+          const cid = String(company._id)
+          ComunicacaoService.enviarBoasVindas(cid).catch(() => {})
+          ComunicacaoService.enviarPreCondicoesSetup(cid).catch(() => {})
+          ComunicacaoService.enviarLembreteSetup(cid).catch(() => {})
+        })
+        .catch((err) => console.warn('[auth] WhatsApp post-signup failed:', err))
 
       reply
         .setCookie('soma-token', token, {
@@ -404,6 +412,7 @@ export default async function authRoutes(app: FastifyInstance) {
             accessEnabled: false,
             trialExpiresAt: trialExpiresAt.toISOString(),
             logo_url: null,
+            integracaoConfigurada: false,
           },
         })
       } catch (err: any) {
@@ -574,6 +583,7 @@ export default async function authRoutes(app: FastifyInstance) {
       let accessEnabled = true
       let trialExpiresAt: string | null = null
       let logoUrl: string | null = null
+      let integracaoConfiguradaMe = false
 
       if (!isAdmin && foundUser.company_id) {
         const company: any = await Company.findById(foundUser.company_id)
@@ -588,6 +598,7 @@ export default async function authRoutes(app: FastifyInstance) {
             ? new Date(company.trial_expires_at).toISOString()
             : null
           logoUrl = company.logo_url || null
+          integracaoConfiguradaMe = company.integracao_configurada ?? false
         }
       }
 
@@ -604,6 +615,7 @@ export default async function authRoutes(app: FastifyInstance) {
           accessEnabled,
           trialExpiresAt,
           logo_url: logoUrl,
+          integracaoConfigurada: integracaoConfiguradaMe,
         },
       })
     },

@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { api } from '@/lib/api'
 import toast from 'react-hot-toast'
 import IntegrationChecklist from '@/components/integrations/IntegrationChecklist'
+import SetupModal from '@/components/setup/SetupModal'
+import { useAuthStore } from '@/store/authStore'
 import {
   Facebook,
   Save,
@@ -66,6 +68,23 @@ export default function IntegrationsPage() {
 
 function IntegrationsContent() {
   const searchParams = useSearchParams()
+  const user = useAuthStore((s) => s.user)
+  const isAdmin = useAuthStore((s) => s.isAdmin)
+
+  // Setup modal — mostrar se integracao ainda não configurada (incluindo empresas retroativas)
+  const needsSetup = !isAdmin() && user?.integracaoConfigurada === false
+  const agendar = searchParams.get('agendar') === 'true'
+  const [showSetupModal, setShowSetupModal] = useState(false)
+  const [setupInitialStep, setSetupInitialStep] = useState<'checklist' | 'method' | 'schedule' | 'credentials'>('checklist')
+
+  useEffect(() => {
+    if (needsSetup) {
+      if (agendar) {
+        setSetupInitialStep('schedule')
+      }
+      setShowSetupModal(true)
+    }
+  }, [needsSetup, agendar])
 
   // Connection state
   const [connected, setConnected] = useState(false)
@@ -263,17 +282,31 @@ function IntegrationsContent() {
 
   if (loading || connectingOAuth) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-        {connectingOAuth && (
-          <p className="text-sm text-gray-400">Conectando com Facebook/Instagram...</p>
-        )}
-      </div>
+      <>
+        <SetupModal
+          open={showSetupModal}
+          onClose={() => setShowSetupModal(false)}
+          onSelfSetup={() => setShowSetupModal(false)}
+          initialStep={setupInitialStep}
+        />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+          <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+          {connectingOAuth && (
+            <p className="text-sm text-gray-400">Conectando com Facebook/Instagram...</p>
+          )}
+        </div>
+      </>
     )
   }
 
   return (
     <div className="space-y-6 max-w-3xl animate-fadeIn">
+      <SetupModal
+        open={showSetupModal}
+        onClose={() => setShowSetupModal(false)}
+        onSelfSetup={() => setShowSetupModal(false)}
+        initialStep={setupInitialStep}
+      />
       <div>
         <h2 className="text-xl font-semibold text-white">Integrações</h2>
         <p className="text-sm text-gray-400 mt-1">

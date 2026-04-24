@@ -34,6 +34,7 @@ export interface ICompany extends Document {
   setup_amount: number
   trial_days: number
   trial_expires_at: Date | null
+  integracao_configurada: boolean
   billing: ICompanyBilling
   notes: string
   createdAt: Date
@@ -130,6 +131,7 @@ const CompanySchema = new Schema<ICompany>(
       setup_charge_id: { type: String, default: '' },
       subscription_id: { type: String, default: '' },
     },
+    integracao_configurada: { type: Boolean, default: false },
     notes: { type: String, default: '' },
   },
   { timestamps: true },
