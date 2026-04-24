@@ -225,7 +225,13 @@ export default function LoginPage() {
       }
       toast.success('Bem-vindo de volta!')
       const isAdmin = data.user.role === 'superadmin' || data.user.role === 'support'
-      router.push(isAdmin ? '/admin/dashboard' : '/app/dashboard')
+      if (isAdmin) {
+        router.push('/admin/dashboard')
+      } else if (data.user.onboardingCompleto === false) {
+        router.push('/onboarding')
+      } else {
+        router.push('/app/dashboard')
+      }
     } catch (err: any) {
       toast.error(err.message || 'Credenciais inválidas')
     } finally {

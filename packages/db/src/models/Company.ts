@@ -12,7 +12,78 @@ export interface ICompanyBilling {
 export interface ICompanyBrandColors {
   primary: string
   secondary: string
+  accent?: string
 }
+
+// ── v2.0: blocos do onboarding/wizard ─────────────────
+export type ObjetivoV2 =
+  | 'vender'
+  | 'autoridade'
+  | 'engajamento'
+  | 'leads'
+
+export interface ICompanyMarcaV2 {
+  nome?: string
+  descricao?: string
+  tag?: string
+  instagram?: string
+  site?: string
+  localizacao?: string
+  diferencial?: string
+  produtosServicos?: string
+}
+
+export interface ICompanyPublicoV2 {
+  clienteIdeal?: string
+  dores?: string
+  desejos?: string
+}
+
+export type TomDeVozV2 =
+  | 'descontraido'
+  | 'profissional'
+  | 'inspirador'
+  | 'educativo'
+  | 'divertido'
+  | 'acolhedor'
+  | 'direto'
+  | 'sofisticado'
+  | 'amigavel'
+  | 'motivacional'
+
+export interface ICompanyIdentidadeV2 {
+  tomDeVoz?: TomDeVozV2[]
+  personalidade?: string
+}
+
+export type EstiloVisualV2 =
+  | 'minimalista'
+  | 'colorido'
+  | 'elegante'
+  | 'moderno'
+  | 'rustico'
+  | 'feminino'
+  | 'corporativo'
+
+export interface ICompanyEstiloVisualV2 {
+  cores?: string[]
+  logoUrl?: string
+  estilo?: EstiloVisualV2
+  fontes?: string
+  paleta?: string
+  descricao?: string
+  referenciaUrl?: string
+}
+
+export type OnboardingStepV2 =
+  | 'inicio'
+  | 'analise'
+  | 'objetivo'
+  | 'marca'
+  | 'publico'
+  | 'identidade'
+  | 'estilo'
+  | 'completo'
 
 export interface ICompany extends Document {
   name: string
@@ -37,6 +108,18 @@ export interface ICompany extends Document {
   integracao_configurada: boolean
   billing: ICompanyBilling
   notes: string
+  // v2.0
+  objetivo?: ObjetivoV2
+  marca?: ICompanyMarcaV2
+  publico?: ICompanyPublicoV2
+  identidade?: ICompanyIdentidadeV2
+  estiloVisual?: ICompanyEstiloVisualV2
+  onboardingCompleto?: boolean
+  onboardingStep?: OnboardingStepV2
+  onboardingFonte?: 'instagram' | 'site' | 'manual'
+  instagramConectado?: boolean
+  instagramHandle?: string
+  owner_user_id?: Types.ObjectId
   createdAt: Date
   updatedAt: Date
 }
@@ -97,6 +180,7 @@ const CompanySchema = new Schema<ICompany>(
     brand_colors: {
       primary: { type: String, default: '#000000' },
       secondary: { type: String, default: '#FFFFFF' },
+      accent: { type: String, default: '' },
     },
     plan_id: { type: Schema.Types.ObjectId, ref: 'Plan', default: null },
     status: {
@@ -133,6 +217,96 @@ const CompanySchema = new Schema<ICompany>(
     },
     integracao_configurada: { type: Boolean, default: false },
     notes: { type: String, default: '' },
+
+    // ── v2.0 ────────────────────────────────────
+    objetivo: {
+      type: String,
+      enum: ['vender', 'autoridade', 'engajamento', 'leads'],
+      default: null,
+    },
+    marca: {
+      nome: { type: String, default: '' },
+      descricao: { type: String, default: '' },
+      tag: { type: String, default: '' },
+      instagram: { type: String, default: '' },
+      site: { type: String, default: '' },
+      localizacao: { type: String, default: '' },
+      diferencial: { type: String, default: '' },
+      produtosServicos: { type: String, default: '' },
+    },
+    publico: {
+      clienteIdeal: { type: String, default: '' },
+      dores: { type: String, default: '' },
+      desejos: { type: String, default: '' },
+    },
+    identidade: {
+      tomDeVoz: [
+        {
+          type: String,
+          enum: [
+            'descontraido',
+            'profissional',
+            'inspirador',
+            'educativo',
+            'divertido',
+            'acolhedor',
+            'direto',
+            'sofisticado',
+            'amigavel',
+            'motivacional',
+          ],
+        },
+      ],
+      personalidade: { type: String, default: '' },
+    },
+    estiloVisual: {
+      cores: [{ type: String }],
+      logoUrl: { type: String, default: '' },
+      estilo: {
+        type: String,
+        enum: [
+          'minimalista',
+          'colorido',
+          'elegante',
+          'moderno',
+          'rustico',
+          'feminino',
+          'corporativo',
+        ],
+        default: null,
+      },
+      fontes: { type: String, default: '' },
+      paleta: { type: String, default: '' },
+      descricao: { type: String, default: '' },
+      referenciaUrl: { type: String, default: '' },
+    },
+    onboardingCompleto: { type: Boolean, default: false },
+    onboardingStep: {
+      type: String,
+      enum: [
+        'inicio',
+        'analise',
+        'objetivo',
+        'marca',
+        'publico',
+        'identidade',
+        'estilo',
+        'completo',
+      ],
+      default: 'inicio',
+    },
+    onboardingFonte: {
+      type: String,
+      enum: ['instagram', 'site', 'manual'],
+      default: null,
+    },
+    instagramConectado: { type: Boolean, default: false },
+    instagramHandle: { type: String, default: '' },
+    owner_user_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
   },
   { timestamps: true },
 )
@@ -141,6 +315,8 @@ CompanySchema.index({ status: 1 })
 CompanySchema.index({ 'billing.status': 1 })
 CompanySchema.index({ niche: 1 })
 CompanySchema.index({ document: 1 }, { sparse: true })
+CompanySchema.index({ onboardingCompleto: 1 })
+CompanySchema.index({ owner_user_id: 1 })
 
 export const Company =
   mongoose.models.Company ||
