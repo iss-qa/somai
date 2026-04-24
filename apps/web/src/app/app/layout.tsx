@@ -245,7 +245,7 @@ export default function CompanyLayout({
                     type="button"
                     disabled={checkingIntegration}
                     onClick={handleAgendarCard}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-gray-400 hover:bg-brand-surface hover:text-gray-200 disabled:opacity-50 mt-1"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left text-gray-400 hover:bg-brand-surface hover:text-gray-200 disabled:opacity-50 mt-1"
                   >
                     <CalendarPlus className="w-4.5 h-4.5 flex-shrink-0" />
                     <span className="flex-1">Agendar Card</span>
