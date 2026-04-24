@@ -307,8 +307,24 @@ Se houver "Descricao atual", polua e refine mantendo a essencia. Caso contrario,
         return reply.send({ descricao })
       } catch (err: any) {
         request.log.error(err, '[onboarding] falha em refine-style')
+        const raw = String(err?.message || '')
+        const lower = raw.toLowerCase()
+        const isQuota =
+          err?.status === 429 ||
+          lower.includes('quota') ||
+          lower.includes('rate limit') ||
+          lower.includes('too many requests')
+        if (isQuota) {
+          const retryMatch = raw.match(/retry in ([\d.]+)s/i)
+          const seconds = retryMatch ? Math.ceil(Number(retryMatch[1])) : null
+          return reply.status(429).send({
+            error: seconds
+              ? `Limite da IA atingido. Tente novamente em ~${seconds}s.`
+              : 'Limite da IA atingido. Aguarde alguns segundos e tente novamente.',
+          })
+        }
         return reply.status(500).send({
-          error: err?.message || 'Erro ao refinar descricao',
+          error: 'Nao foi possivel refinar agora. Tente novamente em instantes.',
         })
       }
     },
