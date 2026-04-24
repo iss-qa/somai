@@ -26,6 +26,7 @@ interface Props {
   open: boolean
   onClose: () => void
   onSelfSetup: () => void
+  onSetupDelegated?: () => void
   initialStep?: 'checklist' | 'method' | 'schedule' | 'credentials'
 }
 
@@ -53,7 +54,15 @@ function formatDateISO(d: Date) {
   return d.toISOString().split('T')[0]
 }
 
-export default function SetupModal({ open, onClose, onSelfSetup, initialStep = 'checklist' }: Props) {
+function maskPhone(value: string): string {
+  const nums = value.replace(/\D/g, '').slice(0, 11)
+  if (nums.length <= 2) return nums
+  if (nums.length <= 7) return `(${nums.slice(0, 2)}) ${nums.slice(2)}`
+  if (nums.length <= 10) return `(${nums.slice(0, 2)}) ${nums.slice(2, 6)}-${nums.slice(6)}`
+  return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`
+}
+
+export default function SetupModal({ open, onClose, onSelfSetup, onSetupDelegated, initialStep = 'checklist' }: Props) {
   const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
 
@@ -298,8 +307,9 @@ export default function SetupModal({ open, onClose, onSelfSetup, initialStep = '
                 <Label className="text-xs text-gray-400">WhatsApp *</Label>
                 <Input
                   value={schedWpp}
-                  onChange={(e) => setSchedWpp(e.target.value)}
+                  onChange={(e) => setSchedWpp(maskPhone(e.target.value))}
                   placeholder="(11) 99999-9999"
+                  inputMode="tel"
                 />
               </div>
 
@@ -381,10 +391,11 @@ export default function SetupModal({ open, onClose, onSelfSetup, initialStep = '
               <h2 className="text-lg font-bold text-white">Agendamento solicitado!</h2>
               <p className="text-gray-400 text-sm mt-1">
                 Nossa equipe entrará em contato pelo WhatsApp para confirmar o horário.
+                Você receberá uma mensagem assim que o setup for iniciado.
               </p>
             </div>
-            <Button className="w-full bg-violet-600 hover:bg-violet-700" onClick={onClose}>
-              Fechar
+            <Button className="w-full bg-violet-600 hover:bg-violet-700" onClick={() => { onSetupDelegated?.(); onClose() }}>
+              Entendido
             </Button>
           </div>
         )}
@@ -521,8 +532,8 @@ export default function SetupModal({ open, onClose, onSelfSetup, initialStep = '
                 O time Soma.ai iniciará o setup em até 24 horas úteis. Você receberá uma mensagem quando começarmos.
               </p>
             </div>
-            <Button className="w-full bg-violet-600 hover:bg-violet-700" onClick={onClose}>
-              Fechar
+            <Button className="w-full bg-violet-600 hover:bg-violet-700" onClick={() => { onSetupDelegated?.(); onClose() }}>
+              Entendido
             </Button>
           </div>
         )}

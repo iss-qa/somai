@@ -13,6 +13,7 @@ import IntegrationChecklist from '@/components/integrations/IntegrationChecklist
 import SetupModal from '@/components/setup/SetupModal'
 import { useAuthStore } from '@/store/authStore'
 import {
+  Calendar,
   Facebook,
   Save,
   Loader2,
@@ -76,6 +77,18 @@ function IntegrationsContent() {
   const agendar = searchParams.get('agendar') === 'true'
   const [showSetupModal, setShowSetupModal] = useState(false)
   const [setupInitialStep, setSetupInitialStep] = useState<'checklist' | 'method' | 'schedule' | 'credentials'>('checklist')
+
+  // Estado "aguardando setup" — persiste em localStorage por empresa
+  const setupPendingKey = user?.companyId ? `soma-setup-pending-${user.companyId}` : null
+  const [setupPending, setSetupPending] = useState(() => {
+    if (typeof window === 'undefined' || !setupPendingKey) return false
+    return localStorage.getItem(setupPendingKey) === 'true'
+  })
+
+  function handleSetupDelegated() {
+    if (setupPendingKey) localStorage.setItem(setupPendingKey, 'true')
+    setSetupPending(true)
+  }
 
   useEffect(() => {
     if (needsSetup) {
@@ -296,6 +309,7 @@ function IntegrationsContent() {
           open={showSetupModal}
           onClose={() => setShowSetupModal(false)}
           onSelfSetup={() => setShowSetupModal(false)}
+          onSetupDelegated={handleSetupDelegated}
           initialStep={setupInitialStep}
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
@@ -308,12 +322,61 @@ function IntegrationsContent() {
     )
   }
 
+  if (setupPending && !connected) {
+    return (
+      <div className="max-w-lg animate-fadeIn">
+        <SetupModal
+          open={showSetupModal}
+          onClose={() => setShowSetupModal(false)}
+          onSelfSetup={() => setShowSetupModal(false)}
+          onSetupDelegated={handleSetupDelegated}
+          initialStep={setupInitialStep}
+        />
+        <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-8 text-center space-y-5">
+          <div className="w-14 h-14 rounded-full bg-violet-500/15 flex items-center justify-center mx-auto">
+            <Calendar className="w-7 h-7 text-violet-400" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-white">Setup agendado com o time Soma.ai</h2>
+            <p className="text-gray-400 text-sm mt-2 leading-relaxed">
+              Nossa equipe entrará em contato pelo WhatsApp para confirmar o horário e realizar a configuração das suas redes sociais.
+              <br />
+              Você receberá uma mensagem quando o setup for iniciado.
+            </p>
+          </div>
+          <div className="rounded-lg bg-white/[0.04] border border-white/10 p-4 text-left space-y-2">
+            <p className="text-xs text-gray-500 uppercase tracking-wider">O que acontece a seguir</p>
+            <div className="space-y-1.5">
+              {[
+                '📱 Confirmação do horário via WhatsApp',
+                '🔧 Reunião de setup com nosso time',
+                '✅ Suas redes conectadas e prontas para publicar',
+              ].map((item) => (
+                <p key={item} className="text-sm text-gray-300">{item}</p>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (setupPendingKey) localStorage.removeItem(setupPendingKey)
+              setSetupPending(false)
+            }}
+            className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+          >
+            Prefiro configurar eu mesmo →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 max-w-3xl animate-fadeIn">
       <SetupModal
         open={showSetupModal}
         onClose={() => setShowSetupModal(false)}
         onSelfSetup={() => setShowSetupModal(false)}
+        onSetupDelegated={handleSetupDelegated}
         initialStep={setupInitialStep}
       />
       <div>
