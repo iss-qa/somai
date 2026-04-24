@@ -9,6 +9,35 @@ import {
   type BrandExtractionResult,
 } from '../services/brand-extraction.service'
 
+// Traduz erros do SDK do Gemini (quota / 429 / auth) em { status, message }
+// curtos. Sem isso, o JSON bruto com `quotas[]` vaza pro front.
+function mapGeminiError(err: any): { status: number; message: string } {
+  const raw = String(err?.message || '')
+  const lower = raw.toLowerCase()
+  if (
+    err?.status === 429 ||
+    lower.includes('quota') ||
+    lower.includes('rate limit') ||
+    lower.includes('too many requests')
+  ) {
+    const retry = raw.match(/retry in ([\d.]+)s/i)
+    const seconds = retry ? Math.ceil(Number(retry[1])) : null
+    return {
+      status: 429,
+      message: seconds
+        ? `Limite da IA atingido. Tente novamente em ~${seconds}s.`
+        : 'Limite da IA atingido. Aguarde alguns segundos e tente novamente.',
+    }
+  }
+  if (lower.includes('api key') || lower.includes('api_key') || err?.status === 401 || err?.status === 403) {
+    return {
+      status: 502,
+      message: 'Chave da IA invalida ou sem permissao. Verifique GEMINI_API_KEY.',
+    }
+  }
+  return { status: 500, message: 'Falha ao consultar a IA. Tente novamente em instantes.' }
+}
+
 export default async function onboardingRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
 
@@ -123,9 +152,8 @@ export default async function onboardingRoutes(app: FastifyInstance) {
         })
       } catch (err: any) {
         request.log.error(err, '[onboarding] falha em analyze/instagram')
-        return reply.status(500).send({
-          error: err?.message || 'Erro ao analisar Instagram',
-        })
+        const mapped = mapGeminiError(err)
+        return reply.status(mapped.status).send({ error: mapped.message })
       }
     },
   )
@@ -159,9 +187,8 @@ export default async function onboardingRoutes(app: FastifyInstance) {
         })
       } catch (err: any) {
         request.log.error(err, '[onboarding] falha em analyze/website')
-        return reply.status(500).send({
-          error: err?.message || 'Erro ao analisar site',
-        })
+        const mapped = mapGeminiError(err)
+        return reply.status(mapped.status).send({ error: mapped.message })
       }
     },
   )
@@ -307,25 +334,8 @@ Se houver "Descricao atual", polua e refine mantendo a essencia. Caso contrario,
         return reply.send({ descricao })
       } catch (err: any) {
         request.log.error(err, '[onboarding] falha em refine-style')
-        const raw = String(err?.message || '')
-        const lower = raw.toLowerCase()
-        const isQuota =
-          err?.status === 429 ||
-          lower.includes('quota') ||
-          lower.includes('rate limit') ||
-          lower.includes('too many requests')
-        if (isQuota) {
-          const retryMatch = raw.match(/retry in ([\d.]+)s/i)
-          const seconds = retryMatch ? Math.ceil(Number(retryMatch[1])) : null
-          return reply.status(429).send({
-            error: seconds
-              ? `Limite da IA atingido. Tente novamente em ~${seconds}s.`
-              : 'Limite da IA atingido. Aguarde alguns segundos e tente novamente.',
-          })
-        }
-        return reply.status(500).send({
-          error: 'Nao foi possivel refinar agora. Tente novamente em instantes.',
-        })
+        const mapped = mapGeminiError(err)
+        return reply.status(mapped.status).send({ error: mapped.message })
       }
     },
   )
