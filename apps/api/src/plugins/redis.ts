@@ -1,10 +1,9 @@
+// Garante que dotenv rode ANTES deste módulo avaliar (side-effect import).
+import '../env'
 import IORedis, { type RedisOptions } from 'ioredis'
 
-// Prioriza REDIS_URL se definida; caso contrario monta conexao a partir das
-// vars separadas (mais legivel quando a senha tem caracteres especiais).
-const REDIS_URL = process.env.REDIS_URL
-
 let _redis: IORedis | null = null
+let _target = ''
 
 function buildRedis(): IORedis {
   const commonOpts: RedisOptions = {
@@ -12,13 +11,20 @@ function buildRedis(): IORedis {
     lazyConnect: true,
   }
 
-  if (REDIS_URL) {
-    return new IORedis(REDIS_URL, commonOpts)
+  const url = process.env.REDIS_URL
+  if (url) {
+    // Mascara credenciais para não vazar no log.
+    _target = url.replace(/\/\/[^@]+@/, '//***@')
+    return new IORedis(url, commonOpts)
   }
 
+  const host = process.env.REDIS_HOST || 'localhost'
+  const port = Number(process.env.REDIS_PORT) || 6379
+  _target = `${host}:${port} (fallback)`
+
   return new IORedis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: Number(process.env.REDIS_PORT) || 6379,
+    host,
+    port,
     password: process.env.REDIS_PASSWORD || undefined,
     db: Number(process.env.REDIS_DB) || 0,
     ...commonOpts,
@@ -30,11 +36,11 @@ export function getRedis(): IORedis {
     _redis = buildRedis()
 
     _redis.on('error', (err) => {
-      console.error('Redis connection error:', err.message)
+      console.error(`Redis connection error (${_target}):`, err.message)
     })
 
     _redis.on('connect', () => {
-      console.log('Redis conectado')
+      console.log(`Redis conectado → ${_target}`)
     })
 
     _redis.connect().catch(() => {

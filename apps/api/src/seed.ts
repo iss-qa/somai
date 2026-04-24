@@ -1,7 +1,5 @@
-import path from 'node:path'
-import dotenv from 'dotenv'
-
-dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env') })
+// Primeiro import: carrega .env antes de qualquer outro módulo.
+import './env'
 
 import bcrypt from 'bcryptjs'
 import { connectDB, Plan, AdminUser, NicheConfig, Company, User } from '@soma-ai/db'

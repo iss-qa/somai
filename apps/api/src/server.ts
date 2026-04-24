@@ -1,7 +1,8 @@
-import path from 'node:path'
-import dotenv from 'dotenv'
-
-dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env') })
+// IMPORTANTE: ./env DEVE ser o primeiro import — carrega o .env antes que
+// qualquer outro módulo avalie código que leia process.env. Em ESM todos os
+// `import` são hoisted, então `dotenv.config()` chamado no topo do server.ts
+// roda TARDE demais (depois dos workers/queues já terem inicializado).
+import './env'
 
 import { getApp } from './app'
 import { publishDuePosts } from './jobs/publish-due.job'
