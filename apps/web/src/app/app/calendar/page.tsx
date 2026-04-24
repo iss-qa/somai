@@ -164,6 +164,7 @@ function CalendarPageInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const cardFromUrl = searchParams.get('card')
+  const newFromUrl = searchParams.get('new')
 
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
@@ -238,7 +239,6 @@ function CalendarPageInner() {
 
   useEffect(() => {
     if (cardFromUrl && !urlCardHandled) {
-      // Open modal IMMEDIATELY, don't wait for cards to load
       setFormCardId(cardFromUrl)
       setFormDate('')
       setFormTime('10:00')
@@ -248,10 +248,27 @@ function CalendarPageInner() {
       setFormRecurring(false)
       setShowScheduleModal(true)
       setUrlCardHandled(true)
-      // Load cards in the background
       fetchApprovedCards()
     }
   }, [cardFromUrl, urlCardHandled, fetchApprovedCards])
+
+  // ── Handle ?new=true query param ───────────
+  const [urlNewHandled, setUrlNewHandled] = useState(false)
+
+  useEffect(() => {
+    if (newFromUrl === 'true' && !urlNewHandled && !cardFromUrl) {
+      setFormCardId('')
+      setFormDate('')
+      setFormTime('10:00')
+      setFormPlatform('')
+      setFormCaption('')
+      setFormHashtags('')
+      setFormRecurring(false)
+      setShowScheduleModal(true)
+      setUrlNewHandled(true)
+      fetchApprovedCards()
+    }
+  }, [newFromUrl, urlNewHandled, cardFromUrl, fetchApprovedCards])
 
   // ── Calendar computation ───────────────────
   const calendarDays = useMemo(() => {

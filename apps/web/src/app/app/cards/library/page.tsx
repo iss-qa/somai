@@ -15,6 +15,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
+import { checkIntegrationStatus } from '@/lib/integration-check'
+import SetupRequiredModal from '@/components/setup/SetupRequiredModal'
 import {
   Image as ImageIcon,
   Calendar,
@@ -98,6 +100,23 @@ export default function CardLibraryPage() {
   const [pagination, setPagination] = useState<PaginationInfo | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
+  const [showSetupRequired, setShowSetupRequired] = useState(false)
+  const [checkingIntegration, setCheckingIntegration] = useState(false)
+
+  async function handleAgendar(cardId: string) {
+    if (checkingIntegration) return
+    setCheckingIntegration(true)
+    try {
+      const connected = await checkIntegrationStatus()
+      if (connected) {
+        router.push(`/app/calendar?card=${cardId}`)
+      } else {
+        setShowSetupRequired(true)
+      }
+    } finally {
+      setCheckingIntegration(false)
+    }
+  }
 
   const hasSelection = selectedIds.size > 0
 
@@ -313,9 +332,8 @@ export default function CardLibraryPage() {
                         size="sm"
                         variant="secondary"
                         className="gap-1 text-xs h-7 px-2"
-                        onClick={() =>
-                          router.push(`/app/calendar?card=${card._id}`)
-                        }
+                        disabled={checkingIntegration}
+                        onClick={() => handleAgendar(card._id)}
                       >
                         <Calendar className="w-3 h-3" />
                         Agendar
@@ -421,6 +439,8 @@ export default function CardLibraryPage() {
           </Button>
         </div>
       )}
+
+      <SetupRequiredModal open={showSetupRequired} onClose={() => setShowSetupRequired(false)} />
     </div>
   )
 }

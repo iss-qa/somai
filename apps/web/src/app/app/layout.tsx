@@ -23,6 +23,7 @@ import {
   Sparkles,
   Image,
   Calendar,
+  CalendarPlus,
   Send,
   Video,
   FileText,
@@ -37,6 +38,8 @@ import {
   ChevronLeft,
   FolderOpen,
 } from 'lucide-react'
+import SetupRequiredModal from '@/components/setup/SetupRequiredModal'
+import { checkIntegrationStatus } from '@/lib/integration-check'
 
 // Itens liberados mesmo com trial encerrado (alem de admin)
 const TRIAL_FREE_HREFS = new Set(['/app/dashboard', '/app/settings/integrations'])
@@ -82,6 +85,24 @@ export default function CompanyLayout({
   const isAdmin = useAuthStore((s) => s.isAdmin)
   const trialExpired = isTrialExpired() && !isAdmin()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showSetupRequired, setShowSetupRequired] = useState(false)
+  const [checkingIntegration, setCheckingIntegration] = useState(false)
+
+  async function handleAgendarCard() {
+    if (checkingIntegration) return
+    setCheckingIntegration(true)
+    try {
+      const connected = await checkIntegrationStatus()
+      if (connected) {
+        setSidebarOpen(false)
+        router.push('/app/calendar?new=true')
+      } else {
+        setShowSetupRequired(true)
+      }
+    } finally {
+      setCheckingIntegration(false)
+    }
+  }
 
   // Rehidrata dados do usuario no mount — garante que liberacoes do admin
   // reflitam imediatamente sem precisar de logout/login.
@@ -200,25 +221,37 @@ export default function CompanyLayout({
             }
 
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                  isActive
-                    ? 'bg-primary-500/15 text-primary-300'
-                    : 'text-gray-400 hover:bg-brand-surface hover:text-gray-200'
+              <div key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+                    isActive
+                      ? 'bg-primary-500/15 text-primary-300'
+                      : 'text-gray-400 hover:bg-brand-surface hover:text-gray-200'
+                  )}
+                >
+                  <Icon className="w-4.5 h-4.5 flex-shrink-0" />
+                  <span className="flex-1">{item.label}</span>
+                  {item.pro && (
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                      Pro
+                    </Badge>
+                  )}
+                </Link>
+                {item.href === '/app/cards/generate' && (
+                  <button
+                    type="button"
+                    disabled={checkingIntegration}
+                    onClick={handleAgendarCard}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-gray-400 hover:bg-brand-surface hover:text-gray-200 disabled:opacity-50 mt-1"
+                  >
+                    <CalendarPlus className="w-4.5 h-4.5 flex-shrink-0" />
+                    <span className="flex-1">Agendar Card</span>
+                  </button>
                 )}
-              >
-                <Icon className="w-4.5 h-4.5 flex-shrink-0" />
-                <span className="flex-1">{item.label}</span>
-                {item.pro && (
-                  <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                    Pro
-                  </Badge>
-                )}
-              </Link>
+              </div>
             )
           })}
         </nav>
@@ -288,6 +321,8 @@ export default function CompanyLayout({
           </AccessGate>
         </main>
       </div>
+
+      <SetupRequiredModal open={showSetupRequired} onClose={() => setShowSetupRequired(false)} />
 
       {/* Mobile bottom navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-brand-card/95 backdrop-blur-xl border-t border-brand-border">
