@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   BookOpen,
@@ -14,6 +13,8 @@ import {
   Layers,
   Video,
   Loader2,
+  Pencil,
+  X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
@@ -46,25 +47,35 @@ const TABS: { key: Tab; label: string; status?: string }[] = [
 export default function BibliotecaV2Page() {
   const router = useRouter()
   const [cards, setCards] = useState<CardItem[]>([])
+  const [allCards, setAllCards] = useState<CardItem[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('todos')
   const [query, setQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [formato, setFormato] = useState<string>('')
+  const [preview, setPreview] = useState<CardItem | null>(null)
 
   const load = () => {
     setLoading(true)
     const params = new URLSearchParams()
     params.set('limit', '60')
     const tabCfg = TABS.find((t) => t.key === tab)
-    // ia/personalizado are client-side filters — don't send status param
     if (tabCfg?.status) params.set('status', tabCfg.status)
     if (formato) params.set('format', formato)
 
-    api
-      .get<{ cards: CardItem[] }>(`/api/cards?${params.toString()}`)
-      .then((d) => setCards(d.cards || []))
-      .catch(() => setCards([]))
+    Promise.all([
+      api.get<{ cards: CardItem[] }>(`/api/cards?${params.toString()}`),
+      // Carrega catálogo completo (sem filtros) só para alimentar os contadores corretos
+      api.get<{ cards: CardItem[] }>(`/api/cards?limit=200`),
+    ])
+      .then(([d, dAll]) => {
+        setCards(d.cards || [])
+        setAllCards(dAll.cards || [])
+      })
+      .catch(() => {
+        setCards([])
+        setAllCards([])
+      })
       .finally(() => setLoading(false))
   }
 
@@ -87,21 +98,22 @@ export default function BibliotecaV2Page() {
   }, [cards, tab, query])
 
   const counts = useMemo(() => {
+    const base = allCards.length > 0 ? allCards : cards
     const map: Record<string, number> = {
-      todos: cards.length,
+      todos: base.length,
       draft: 0,
       scheduled: 0,
       posted: 0,
       ia: 0,
       personalizado: 0,
     }
-    for (const c of cards) {
+    for (const c of base) {
       if (c.status in map) map[c.status] = (map[c.status] || 0) + 1
       if (c.generated_image_url) map.ia = (map.ia || 0) + 1
       else map.personalizado = (map.personalizado || 0) + 1
     }
     return map
-  }, [cards])
+  }, [cards, allCards])
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -145,10 +157,7 @@ export default function BibliotecaV2Page() {
       <div className="flex gap-2 overflow-x-auto">
         {TABS.map((t) => {
           const active = tab === t.key
-          const count =
-            t.key === 'todos'
-              ? counts.todos
-              : counts[t.status as string] || 0
+          const count = counts[t.key] ?? 0
           return (
             <button
               key={t.key}
@@ -238,15 +247,91 @@ export default function BibliotecaV2Page() {
       ) : (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
           {filtered.map((c) => (
-            <PostCard key={c._id} card={c} />
+            <PostCard key={c._id} card={c} onClick={() => setPreview(c)} />
           ))}
         </div>
+      )}
+
+      {preview && (
+        <PreviewModal
+          card={preview}
+          onClose={() => setPreview(null)}
+          onEdit={() => router.push(`/app/editor/${preview._id}`)}
+        />
       )}
     </div>
   )
 }
 
-function PostCard({ card }: { card: CardItem }) {
+function PreviewModal({
+  card,
+  onClose,
+  onEdit,
+}: {
+  card: CardItem
+  onClose: () => void
+  onEdit: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-900"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow hover:bg-white"
+          aria-label="Fechar"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="flex flex-1 items-center justify-center overflow-auto bg-gray-50 p-4 dark:bg-gray-950">
+          {card.generated_image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={card.generated_image_url}
+              alt={card.headline || 'Card'}
+              className="max-h-[70vh] max-w-full rounded-lg object-contain shadow"
+            />
+          ) : card.media_type === 'video' && card.generated_video_url ? (
+            <video
+              src={card.generated_video_url}
+              className="max-h-[70vh] max-w-full rounded-lg"
+              controls
+            />
+          ) : (
+            <div className="flex h-64 w-full items-center justify-center text-gray-400">
+              <ImageIcon className="h-16 w-16" />
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+              {card.headline || 'Sem titulo'}
+            </div>
+            <div className="text-xs text-gray-500">
+              {card.format || card.post_type} · {card.status}
+            </div>
+          </div>
+          <Button
+            onClick={onEdit}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            Abrir editor
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PostCard({ card, onClick }: { card: CardItem; onClick: () => void }) {
   const platformIcon =
     card.post_type?.toLowerCase().includes('facebook') ||
     card.format?.toLowerCase().includes('facebook') ? (
@@ -279,9 +364,10 @@ function PostCard({ card }: { card: CardItem }) {
   const ago = timeAgo(new Date(card.createdAt))
 
   return (
-    <Link
-      href={`/app/cards/library`}
-      className="group overflow-hidden rounded-2xl border border-gray-200 bg-white transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
+    <button
+      type="button"
+      onClick={onClick}
+      className="group overflow-hidden rounded-2xl border border-gray-200 bg-white text-left transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
     >
       <div className="relative aspect-[4/5] bg-gray-100 dark:bg-gray-800">
         {card.generated_image_url ? (
@@ -324,7 +410,7 @@ function PostCard({ card }: { card: CardItem }) {
           <span>{ago}</span>
         </div>
       </div>
-    </Link>
+    </button>
   )
 }
 

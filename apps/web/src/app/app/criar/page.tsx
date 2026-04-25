@@ -9,6 +9,7 @@ import { StepBriefing } from './components/StepBriefing'
 import { StepCriar } from './components/StepCriar'
 import { IdeiaDialog } from './components/IdeiaDialog'
 import { InspiracaoModal } from './components/InspiracaoModal'
+import { GeracaoLoading } from './components/GeracaoLoading'
 import { useCriarWizard } from './hooks/useCriarWizard'
 
 export default function CriarV2Page() {
@@ -31,6 +32,8 @@ export default function CriarV2Page() {
         open={w.showUpgrade}
         onClose={() => w.setShowUpgrade(false)}
       />
+
+      <GeracaoLoading visible={w.gerandoImagem} />
     </div>
   )
 }

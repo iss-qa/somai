@@ -3154,7 +3154,7 @@ function GenerateCardPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-gray-100">Cards recentes</h2>
                   <button
-                    onClick={() => router.push('/app/cards/library')}
+                    onClick={() => router.push('/app/biblioteca')}
                     className="flex items-center gap-1.5 text-sm text-primary-400 hover:text-primary-300 transition-colors"
                   >
                     Ver todos

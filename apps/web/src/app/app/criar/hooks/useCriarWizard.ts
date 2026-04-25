@@ -123,7 +123,7 @@ export function useCriarWizard() {
       })
       setCreditos(res.creditosRestantes)
       toast.success('Imagem gerada!')
-      router.push(`/app/biblioteca?card=${res.cardId}`)
+      router.push(`/app/editor/${res.cardId}`)
     } catch (err: any) {
       const raw = err?.message || err?.error || ''
       if (

@@ -1,6 +1,7 @@
 # ---------- Dockerfile: apps/web ----------
 # Build context: RAIZ do repositorio (monorepo pnpm)
 # Rodar: docker build -f apps/web/Dockerfile -t somaiweb .
+# syntax=docker/dockerfile:1
 
 # -------- Stage 1: deps --------
 FROM node:20-alpine AS deps
@@ -13,7 +14,8 @@ COPY apps/api/package.json ./apps/api/
 COPY packages/db/package.json ./packages/db/
 COPY packages/shared/package.json ./packages/shared/
 
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-store-web,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
 # -------- Stage 2: builder --------
 FROM node:20-alpine AS builder

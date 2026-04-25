@@ -212,20 +212,30 @@ Regras:
       // Ideogram v2 nao aceita 4:5 — usamos 3:4 (mais proximo pra post_portrait)
       const aspectRatio: '9:16' | '3:4' = size.aspect === '9:16' ? '9:16' : '3:4'
 
-      const company: any = await Company.findById(companyId)
-        .select('name')
-        .lean()
+      const company: any = await Company.findById(companyId).lean()
+
+      // Parseia briefing markdown em campos estruturados (Headline / Bullets / CTA / Visual)
+      const briefing = parseBriefing(prompt)
+
+      // Constroi prompt visual otimizado pro Ideogram (ingles, foco em design publicitario)
+      const visualPrompt = buildVisualPrompt({
+        briefing,
+        company,
+        objetivo,
+        abordagem,
+      })
 
       try {
         ensureFalConfigured()
 
         const result: any = await fal.subscribe(FAL_MODEL, {
           input: {
-            prompt,
+            prompt: visualPrompt,
             aspect_ratio: aspectRatio,
             expand_prompt: true,
             style: 'auto',
-            negative_prompt: 'low quality, blurry, watermark, text errors, distorted text',
+            negative_prompt:
+              'low quality, blurry, watermark, text errors, distorted text, gibberish text, misspelled words, illegible typography, bad composition, cluttered',
             ...(referenceImageUrl ? { image_url: referenceImageUrl } : {}),
           },
           logs: false,
@@ -251,14 +261,15 @@ Regras:
         const dataUrl = `data:${contentType};base64,${buf.toString('base64')}`
         const publicUrl = await StorageService.uploadBase64Media(dataUrl, 'cards')
 
-        // Cria Card
+        // Cria Card (headline / subtext / cta vem do briefing parseado)
+        const headlineLimpa = sanitizeShort(briefing.headline) || derivarHeadline(ideia)
         const card = await Card.create({
           company_id: companyId,
           format: `${size.width}x${size.height}`,
           post_type: formato,
-          headline: '',
-          subtext: '',
-          cta: '',
+          headline: headlineLimpa,
+          subtext: briefing.bullets[0] || '',
+          cta: briefing.cta || '',
           caption: ideia || '',
           hashtags: [],
           status: CardStatus.Draft,
@@ -316,6 +327,102 @@ Regras:
       }
     },
   )
+}
+
+type Briefing = {
+  objetivo: string
+  headline: string
+  bullets: string[]
+  visual: string[]
+  cta: string
+}
+
+/**
+ * Parseia o briefing markdown gerado pelo /refinar-prompt em secoes estruturadas.
+ * O LLM produz um formato consistente com **Headline:**, **Corpo do Texto:** etc.
+ */
+function parseBriefing(md: string): Briefing {
+  const get = (label: string) => {
+    const re = new RegExp(`\\*\\*${label}:\\*\\*([\\s\\S]*?)(?=\\n\\s*\\*\\*[A-Z]|$)`, 'i')
+    const m = md.match(re)
+    return m ? m[1].trim() : ''
+  }
+  const bulletsOf = (block: string) =>
+    block
+      .split('\n')
+      .map((l) => l.replace(/^[\s\*\-•]+/, '').trim())
+      .filter((l) => l && !/^\(.*\)$/.test(l))
+
+  const headlineBlock = get('Headline')
+  const headline = bulletsOf(headlineBlock)[0] || headlineBlock.trim()
+
+  return {
+    objetivo: get('Objetivo do Post').replace(/\n+/g, ' ').trim(),
+    headline,
+    bullets: bulletsOf(get('Corpo do Texto')),
+    visual: bulletsOf(get('Elementos Visuais')),
+    cta: bulletsOf(get('Call-to-Action \\(CTA\\)'))[0] || '',
+  }
+}
+
+function sanitizeShort(s: string, max = 80): string {
+  if (!s) return ''
+  return s.replace(/[*_`#]/g, '').replace(/\s+/g, ' ').trim().slice(0, max)
+}
+
+function derivarHeadline(ideia?: string): string {
+  if (!ideia) return 'Novo post'
+  const limpa = ideia.replace(/\s+/g, ' ').trim()
+  if (limpa.length <= 60) return limpa
+  return limpa.slice(0, 60).replace(/[\s,.;:]+\S*$/, '') + '…'
+}
+
+/**
+ * Constroi um prompt visual otimizado pro Ideogram a partir do briefing parseado.
+ * Foco em: design publicitario, tipografia legivel, marca, paleta. Em portugues
+ * (Ideogram tem suporte multilingue mas portugues funciona bem para texto-em-imagem
+ * com nomes de marca em PT-BR).
+ */
+function buildVisualPrompt({
+  briefing,
+  company,
+  objetivo,
+  abordagem,
+}: {
+  briefing: Briefing
+  company: any
+  objetivo?: string
+  abordagem?: string
+}): string {
+  const marca = company?.name || ''
+  const handle = company?.instagramHandle
+    ? `@${String(company.instagramHandle).replace(/^@/, '')}`
+    : ''
+  const paleta = (company?.estiloVisual?.paleta || []).filter(Boolean).join(', ')
+  const estilo = company?.estiloVisual?.estilo || 'moderno e profissional'
+
+  const headline = sanitizeShort(briefing.headline, 70)
+  const bullets = briefing.bullets.slice(0, 3).map((b) => sanitizeShort(b, 80))
+  const cta = sanitizeShort(briefing.cta, 60)
+  const visual = briefing.visual.slice(0, 3).map((v) => sanitizeShort(v, 100))
+
+  return [
+    `Design de post publicitário para Instagram, alta qualidade, estilo ${estilo}.`,
+    marca ? `Marca: ${marca}.` : '',
+    objetivo ? `Objetivo: ${objetivo}.` : '',
+    abordagem ? `Abordagem: ${abordagem}.` : '',
+    paleta ? `Paleta de cores: ${paleta}.` : '',
+    visual.length ? `Composição visual: ${visual.join('; ')}.` : '',
+    headline ? `Texto principal centralizado, em destaque, tipografia ousada e legível: "${headline}".` : '',
+    bullets.length
+      ? `Tópicos secundários, lista com ícones, cada um curto e direto: ${bullets.map((b) => `"${b}"`).join(' | ')}.`
+      : '',
+    cta ? `Botão de chamada para ação no rodapé com texto: "${cta}".` : '',
+    handle ? `Inclua o handle "${handle}" discreto no canto inferior.` : '',
+    'Layout limpo, hierarquia clara, contraste forte entre texto e fundo, sem texto distorcido, sem palavras inventadas, sem watermark, qualidade profissional de agência.',
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 /**
