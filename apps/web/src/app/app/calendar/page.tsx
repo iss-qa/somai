@@ -21,6 +21,7 @@ import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import { GerarPautaIA } from '@/components/v2/GerarPautaIA'
+import { AgendarCardModal } from '@/components/v2/AgendarCardModal'
 
 // ── Types ─────────────────────────────────────
 interface PopulatedCard {
@@ -67,6 +68,7 @@ export default function CalendarioV2Page() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const [showDayModal, setShowDayModal] = useState(false)
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null)
+  const [scheduleModal, setScheduleModal] = useState<{ date: Date } | null>(null)
 
   const month = currentDate.getMonth()
   const year = currentDate.getFullYear()
@@ -388,10 +390,21 @@ export default function CalendarioV2Page() {
           }}
           onAdd={() => {
             setShowDayModal(false)
-            router.push('/app/criar')
+            setScheduleModal({ date: new Date(year, month, selectedDay) })
           }}
         />
       )}
+
+      {/* Modal agendar card aprovado */}
+      <AgendarCardModal
+        open={!!scheduleModal}
+        initialDate={scheduleModal?.date}
+        onClose={() => setScheduleModal(null)}
+        onScheduled={() => {
+          setScheduleModal(null)
+          fetchPosts()
+        }}
+      />
 
       {/* Modal post detalhe */}
       {selectedPost && (

@@ -94,6 +94,7 @@ import {
   getActivePalette,
   getFontStack,
   hexToRgba,
+  resolveReadableTextColor,
 } from './utils/colors'
 import {
   getCarouselDimensions,
@@ -109,6 +110,7 @@ import {
 } from './utils/card'
 import { getSmartDefaults } from './utils/smart-defaults'
 import { buildAiPrompt, getNicheLabel } from './utils/prompt'
+import { AgendarCardModal } from '@/components/v2/AgendarCardModal'
 
 // ---------------------------------------------------------------------------
 // Section Component (Collapsible Accordion)
@@ -443,6 +445,9 @@ function CardPreview({
   const pal = getActivePalette(config)
   const fontStack = getFontStack(config.fontFamily)
   const posStyles = getTextPositionStyles(config.textPosition)
+  // Em fundos claros, texto branco (default) perde legibilidade — trocamos por tons escuros.
+  const titleColor = resolveReadableTextColor(config.titleColor, pal.bg, '#0f172a')
+  const textColor = resolveReadableTextColor(config.textColor, pal.bg, '#1f2937')
   const initials = companyName
     ? companyName
         .split(' ')
@@ -761,7 +766,7 @@ function CardPreview({
             style={{
               fontSize: config.fontSizes.subtitle * 0.75,
               fontWeight: 600,
-              color: hexToRgba(config.titleColor, 0.7),
+              color: hexToRgba(titleColor, 0.7),
               textTransform: 'uppercase',
               letterSpacing: 2,
               fontFamily: fontStack,
@@ -775,7 +780,7 @@ function CardPreview({
           style={{
             fontSize: config.fontSizes.title,
             fontWeight: 900,
-            color: config.titleColor,
+            color: titleColor,
             lineHeight: 1.1,
             fontFamily: fontStack,
           }}
@@ -787,7 +792,7 @@ function CardPreview({
           <div
             style={{
               fontSize: config.fontSizes.subtitle,
-              color: config.textColor,
+              color: textColor,
               opacity: 0.85,
               lineHeight: 1.4,
               fontFamily: fontStack,
@@ -804,7 +809,7 @@ function CardPreview({
               <span
                 style={{
                   fontSize: config.fontSizes.price * 0.5,
-                  color: config.textColor,
+                  color: textColor,
                   opacity: 0.5,
                   textDecoration: 'line-through',
                   fontFamily: fontStack,
@@ -933,17 +938,17 @@ function CardPreview({
         >
           {renderTypeBadge()}
           {config.headline && (
-            <div style={{ fontSize: config.fontSizes.subtitle * 0.75, fontWeight: 600, color: hexToRgba(config.titleColor, 0.7), textTransform: 'uppercase', letterSpacing: 2, fontFamily: fontStack, marginBottom: 4 }}>
+            <div style={{ fontSize: config.fontSizes.subtitle * 0.75, fontWeight: 600, color: hexToRgba(titleColor, 0.7), textTransform: 'uppercase', letterSpacing: 2, fontFamily: fontStack, marginBottom: 4 }}>
               {config.headline}
             </div>
           )}
-          <div style={{ fontSize: config.fontSizes.title * 1.1, fontWeight: 900, color: config.titleColor, lineHeight: 1.05, fontFamily: fontStack }}>
+          <div style={{ fontSize: config.fontSizes.title * 1.1, fontWeight: 900, color: titleColor, lineHeight: 1.05, fontFamily: fontStack }}>
             {config.productName}
           </div>
           {config.postType === 'promocao' && config.display.showPrice && config.promoPrice && (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
               {config.display.showOriginalPrice && config.originalPrice && (
-                <span style={{ fontSize: config.fontSizes.price * 0.45, color: config.textColor, opacity: 0.5, textDecoration: 'line-through', fontFamily: fontStack }}>R$ {config.originalPrice}</span>
+                <span style={{ fontSize: config.fontSizes.price * 0.45, color: textColor, opacity: 0.5, textDecoration: 'line-through', fontFamily: fontStack }}>R$ {config.originalPrice}</span>
               )}
               <span style={{ fontSize: config.fontSizes.price * 0.9, fontWeight: 900, color: pal.secondary, fontFamily: fontStack }}>R$ {config.promoPrice}</span>
             </div>
@@ -1003,15 +1008,15 @@ function CardPreview({
         <div style={{ zIndex: 5, textAlign: 'center', marginTop: config.display.showLogo ? 40 : 8 }}>
           {renderTypeBadge()}
           {config.headline && (
-            <div style={{ fontSize: config.fontSizes.subtitle * 0.75, fontWeight: 600, color: hexToRgba(config.titleColor, 0.7), textTransform: 'uppercase', letterSpacing: 2, fontFamily: fontStack, marginBottom: 4 }}>
+            <div style={{ fontSize: config.fontSizes.subtitle * 0.75, fontWeight: 600, color: hexToRgba(titleColor, 0.7), textTransform: 'uppercase', letterSpacing: 2, fontFamily: fontStack, marginBottom: 4 }}>
               {config.headline}
             </div>
           )}
-          <div style={{ fontSize: config.fontSizes.title, fontWeight: 900, color: config.titleColor, lineHeight: 1.1, fontFamily: fontStack }}>
+          <div style={{ fontSize: config.fontSizes.title, fontWeight: 900, color: titleColor, lineHeight: 1.1, fontFamily: fontStack }}>
             {config.productName}
           </div>
           {config.extraText && (
-            <div style={{ fontSize: config.fontSizes.subtitle * 0.85, color: config.textColor, opacity: 0.8, marginTop: 4, fontFamily: fontStack }}>{config.extraText}</div>
+            <div style={{ fontSize: config.fontSizes.subtitle * 0.85, color: textColor, opacity: 0.8, marginTop: 4, fontFamily: fontStack }}>{config.extraText}</div>
           )}
         </div>
         {/* Circle image */}
@@ -1034,7 +1039,7 @@ function CardPreview({
           {config.postType === 'promocao' && config.display.showPrice && config.promoPrice && (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
               {config.display.showOriginalPrice && config.originalPrice && (
-                <span style={{ fontSize: config.fontSizes.price * 0.45, color: config.textColor, opacity: 0.5, textDecoration: 'line-through', fontFamily: fontStack }}>R$ {config.originalPrice}</span>
+                <span style={{ fontSize: config.fontSizes.price * 0.45, color: textColor, opacity: 0.5, textDecoration: 'line-through', fontFamily: fontStack }}>R$ {config.originalPrice}</span>
               )}
               <span style={{ fontSize: config.fontSizes.price, fontWeight: 900, color: pal.secondary, fontFamily: fontStack }}>R$ {config.promoPrice}</span>
             </div>
@@ -1167,16 +1172,16 @@ function CardPreview({
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: posStyles.justifyContent, alignItems: posStyles.alignItems, textAlign: posStyles.textAlign as any, padding: '12px 16px 16px', zIndex: 5 }}>
           {renderTypeBadge()}
           {config.headline && (
-            <div style={{ fontSize: config.fontSizes.subtitle * 0.75, fontWeight: 600, color: hexToRgba(config.titleColor, 0.7), textTransform: 'uppercase', letterSpacing: 2, fontFamily: fontStack, marginBottom: 2 }}>{config.headline}</div>
+            <div style={{ fontSize: config.fontSizes.subtitle * 0.75, fontWeight: 600, color: hexToRgba(titleColor, 0.7), textTransform: 'uppercase', letterSpacing: 2, fontFamily: fontStack, marginBottom: 2 }}>{config.headline}</div>
           )}
-          <div style={{ fontSize: config.fontSizes.title * 0.9, fontWeight: 900, color: config.titleColor, lineHeight: 1.1, fontFamily: fontStack }}>{config.productName}</div>
+          <div style={{ fontSize: config.fontSizes.title * 0.9, fontWeight: 900, color: titleColor, lineHeight: 1.1, fontFamily: fontStack }}>{config.productName}</div>
           {config.extraText && (
-            <div style={{ fontSize: config.fontSizes.subtitle * 0.85, color: config.textColor, opacity: 0.8, marginTop: 4, fontFamily: fontStack, lineHeight: 1.3 }}>{config.extraText}</div>
+            <div style={{ fontSize: config.fontSizes.subtitle * 0.85, color: textColor, opacity: 0.8, marginTop: 4, fontFamily: fontStack, lineHeight: 1.3 }}>{config.extraText}</div>
           )}
           {config.postType === 'promocao' && config.display.showPrice && config.promoPrice && (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6, flexWrap: 'wrap', justifyContent: posStyles.textAlign === 'center' ? 'center' : posStyles.textAlign === 'right' ? 'flex-end' : 'flex-start' }}>
               {config.display.showOriginalPrice && config.originalPrice && (
-                <span style={{ fontSize: config.fontSizes.price * 0.45, color: config.textColor, opacity: 0.5, textDecoration: 'line-through', fontFamily: fontStack }}>R$ {config.originalPrice}</span>
+                <span style={{ fontSize: config.fontSizes.price * 0.45, color: textColor, opacity: 0.5, textDecoration: 'line-through', fontFamily: fontStack }}>R$ {config.originalPrice}</span>
               )}
               <span style={{ fontSize: config.fontSizes.price * 0.8, fontWeight: 900, color: pal.secondary, fontFamily: fontStack }}>R$ {config.promoPrice}</span>
             </div>
@@ -1209,14 +1214,14 @@ function CardPreview({
         {/* Text below images */}
         <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', justifyContent: posStyles.justifyContent, alignItems: posStyles.alignItems, textAlign: posStyles.textAlign as any, flex: 1, zIndex: 5 }}>
           {renderTypeBadge()}
-          <div style={{ fontSize: config.fontSizes.title * 0.85, fontWeight: 900, color: config.titleColor, lineHeight: 1.1, fontFamily: fontStack }}>{config.productName}</div>
+          <div style={{ fontSize: config.fontSizes.title * 0.85, fontWeight: 900, color: titleColor, lineHeight: 1.1, fontFamily: fontStack }}>{config.productName}</div>
           {config.extraText && (
-            <div style={{ fontSize: config.fontSizes.subtitle * 0.85, color: config.textColor, opacity: 0.8, marginTop: 6, fontFamily: fontStack, lineHeight: 1.3 }}>{config.extraText}</div>
+            <div style={{ fontSize: config.fontSizes.subtitle * 0.85, color: textColor, opacity: 0.8, marginTop: 6, fontFamily: fontStack, lineHeight: 1.3 }}>{config.extraText}</div>
           )}
           {config.postType === 'promocao' && config.display.showPrice && config.promoPrice && (
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6, flexWrap: 'wrap', justifyContent: posStyles.textAlign === 'center' ? 'center' : 'flex-start' }}>
               {config.display.showOriginalPrice && config.originalPrice && (
-                <span style={{ fontSize: config.fontSizes.price * 0.45, color: config.textColor, opacity: 0.5, textDecoration: 'line-through', fontFamily: fontStack }}>R$ {config.originalPrice}</span>
+                <span style={{ fontSize: config.fontSizes.price * 0.45, color: textColor, opacity: 0.5, textDecoration: 'line-through', fontFamily: fontStack }}>R$ {config.originalPrice}</span>
               )}
               <span style={{ fontSize: config.fontSizes.price * 0.75, fontWeight: 900, color: pal.secondary, fontFamily: fontStack }}>R$ {config.promoPrice}</span>
             </div>
@@ -1382,6 +1387,7 @@ function GenerateCardPage() {
   const [galleryCards, setGalleryCards] = useState<GalleryCard[]>([])
   const [loadingGallery, setLoadingGallery] = useState(true)
   const [showApproveModal, setShowApproveModal] = useState(false)
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [approveCardName, setApproveCardName] = useState('')
   const [showAiModal, setShowAiModal] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
@@ -2005,12 +2011,16 @@ function GenerateCardPage() {
 
   // ---------- Schedule ----------
   const handleSchedule = useCallback(() => {
-    if (savedCardId) {
-      router.push(`/app/calendar?card=${savedCardId}`)
-    } else {
+    if (!savedCardId) {
       toast.error('Gere o card primeiro para poder agendar')
+      return
     }
-  }, [savedCardId, router])
+    if (!approved) {
+      toast.error('Aprove o card antes de agenda-lo')
+      return
+    }
+    setShowScheduleModal(true)
+  }, [savedCardId, approved])
 
   // ---------- Load gallery card into editor ----------
   const loadGalleryCard = useCallback((card: GalleryCard) => {
@@ -3409,6 +3419,17 @@ function GenerateCardPage() {
           </div>
         </div>
       )}
+
+      {/* Schedule Modal */}
+      <AgendarCardModal
+        open={showScheduleModal}
+        initialCardId={savedCardId}
+        onClose={() => setShowScheduleModal(false)}
+        onScheduled={() => {
+          setShowScheduleModal(false)
+          router.push('/app/calendar')
+        }}
+      />
 
       {/* Media Picker Dialog */}
       {showMediaPicker && (
