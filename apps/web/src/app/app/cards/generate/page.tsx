@@ -110,6 +110,7 @@ import {
 } from './utils/card'
 import { getSmartDefaults } from './utils/smart-defaults'
 import { buildAiPrompt, getNicheLabel } from './utils/prompt'
+import { AgendarCardModal } from '@/components/v2/AgendarCardModal'
 
 // ---------------------------------------------------------------------------
 // Section Component (Collapsible Accordion)
@@ -1386,6 +1387,7 @@ function GenerateCardPage() {
   const [galleryCards, setGalleryCards] = useState<GalleryCard[]>([])
   const [loadingGallery, setLoadingGallery] = useState(true)
   const [showApproveModal, setShowApproveModal] = useState(false)
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [approveCardName, setApproveCardName] = useState('')
   const [showAiModal, setShowAiModal] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
@@ -2009,12 +2011,16 @@ function GenerateCardPage() {
 
   // ---------- Schedule ----------
   const handleSchedule = useCallback(() => {
-    if (savedCardId) {
-      router.push(`/app/calendar?card=${savedCardId}`)
-    } else {
+    if (!savedCardId) {
       toast.error('Gere o card primeiro para poder agendar')
+      return
     }
-  }, [savedCardId, router])
+    if (!approved) {
+      toast.error('Aprove o card antes de agenda-lo')
+      return
+    }
+    setShowScheduleModal(true)
+  }, [savedCardId, approved])
 
   // ---------- Load gallery card into editor ----------
   const loadGalleryCard = useCallback((card: GalleryCard) => {
@@ -3413,6 +3419,17 @@ function GenerateCardPage() {
           </div>
         </div>
       )}
+
+      {/* Schedule Modal */}
+      <AgendarCardModal
+        open={showScheduleModal}
+        initialCardId={savedCardId}
+        onClose={() => setShowScheduleModal(false)}
+        onScheduled={() => {
+          setShowScheduleModal(false)
+          router.push('/app/calendar')
+        }}
+      />
 
       {/* Media Picker Dialog */}
       {showMediaPicker && (
