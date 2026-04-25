@@ -191,9 +191,8 @@ export const EditorCanvas = forwardRef<HTMLDivElement, Props>(function EditorCan
         <img
           src={imageUrl}
           alt=""
-          crossOrigin="anonymous"
           draggable={false}
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          className="pointer-events-none absolute inset-0 h-full w-full object-contain"
         />
       )}
 
@@ -274,7 +273,6 @@ export const EditorCanvas = forwardRef<HTMLDivElement, Props>(function EditorCan
               <img
                 src={ov.imageUrl}
                 alt=""
-                crossOrigin="anonymous"
                 draggable={false}
                 style={{
                   width: '100%',
