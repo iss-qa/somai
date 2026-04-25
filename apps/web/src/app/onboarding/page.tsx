@@ -39,7 +39,7 @@ export default function OnboardingInicioPage() {
       'business_management',
       'instagram_basic',
       'instagram_content_publish',
-      'instagram_manage_insights',
+      'instagram_manage_comments',
     ].join(',')
     const state = Math.random().toString(36).slice(2)
     sessionStorage.setItem('soma_onb_meta_state', state)
