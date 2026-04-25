@@ -156,10 +156,7 @@ export function StepBriefing({ w }: { w: CriarWizardApi }) {
               ativo={w.fonte === 'zero'}
               onClick={() => {
                 w.setFonte('zero')
-                w.setIdeiaTemp(
-                  w.ideia ||
-                    'Quero divulgar uma promocao de Dipirona 500mg com 30% de desconto esta semana. Queremos destacar que alivia dor de cabeca rapido, gerar confianca e engajamento com uma pergunta ao final.',
-                )
+                w.setIdeiaTemp(w.ideia || '')
                 w.setShowIdeiaDialog(true)
               }}
               titulo="Criar do Zero"
