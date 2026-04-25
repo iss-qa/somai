@@ -211,7 +211,6 @@ export function StepBriefing({ w }: { w: CriarWizardApi }) {
         onContinuar={() => {
           if (!w.objetivo) return toast.error('Escolha um objetivo')
           if (!w.ideia.trim()) return toast.error('Descreva sua ideia')
-          w.setPromptRefinado('')
           w.setStep('criar')
         }}
         continuarDisabled={!w.objetivo || !w.ideia.trim()}

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { api } from '@/lib/api'
+import { useCreditsStore } from '@/store/creditsStore'
 import {
   ABORDAGENS,
   CUSTO_SLIDE,
@@ -45,8 +46,9 @@ export function useCriarWizard() {
   const [gerandoImagem, setGerandoImagem] = useState(false)
   const [promptExpandido, setPromptExpandido] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
-  const [creditos, setCreditos] = useState<number | null>(null)
   const [referenceImage, setReferenceImage] = useState<string | null>(null)
+
+  const { creditos, setCreditos, fetch: fetchCredits } = useCreditsStore()
 
   const abordagemSelecionada = useMemo(
     () => ABORDAGENS.find((a) => a.key === abordagem) || null,
@@ -58,12 +60,9 @@ export function useCriarWizard() {
     [formato],
   )
 
-  // Saldo de creditos ao entrar no app
+  // Saldo de creditos ao entrar no wizard (usa store compartilhada com o header)
   useEffect(() => {
-    api
-      .get<{ creditos: number }>('/api/gamificacao/state')
-      .then((d) => setCreditos(d.creditos || 0))
-      .catch(() => setCreditos(0))
+    if (creditos === null) fetchCredits()
   }, [])
 
   const refinar = async () => {

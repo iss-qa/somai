@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   Sparkles,
   ArrowRight,
@@ -16,13 +17,54 @@ import {
   ImagePlus,
   Coins,
   PenLine,
+  Eye,
+  FileText,
 } from 'lucide-react'
 import { Footer, Header, ResumoCardRich } from './WizardChrome'
 import { CUSTO_SLIDE } from '../types'
 import type { CriarWizardApi } from '../hooks/useCriarWizard'
 
+function PromptPreview({ text }: { text: string }) {
+  const lines = text.split('\n')
+  return (
+    <div className="space-y-1 text-sm leading-relaxed">
+      {lines.map((line, i) => {
+        // **Header:** → purple bold
+        const headerMatch = line.match(/^\*\*(.+?)\*\*(.*)$/)
+        if (headerMatch) {
+          return (
+            <p key={i}>
+              <span className="font-semibold text-purple-700 dark:text-purple-400">
+                {headerMatch[1]}
+              </span>
+              <span className="text-gray-800 dark:text-gray-200">{headerMatch[2]}</span>
+            </p>
+          )
+        }
+        // * bullet
+        if (line.startsWith('* ') || line.startsWith('- ')) {
+          return (
+            <div key={i} className="flex gap-2">
+              <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-500" />
+              <span className="text-gray-700 dark:text-gray-300">{line.slice(2)}</span>
+            </div>
+          )
+        }
+        // empty line
+        if (!line.trim()) return <div key={i} className="h-2" />
+        return (
+          <p key={i} className="text-gray-800 dark:text-gray-200">
+            {line}
+          </p>
+        )
+      })}
+    </div>
+  )
+}
+
 export function StepCriar({ w }: { w: CriarWizardApi }) {
   const { formatoAtual, modo, fonte, objetivo } = w
+  const [promptView, setPromptView] = useState<'preview' | 'edit'>('preview')
 
   return (
     <div className="mt-6 md:mt-10">
@@ -155,6 +197,33 @@ export function StepCriar({ w }: { w: CriarWizardApi }) {
             Prompt adaptado para sua marca
           </div>
           <div className="flex items-center gap-2">
+            {/* preview / edit toggle */}
+            <div className="flex rounded-full border border-gray-200 bg-gray-50 p-0.5 dark:border-gray-700 dark:bg-gray-800">
+              <button
+                type="button"
+                onClick={() => setPromptView('preview')}
+                className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs transition ${
+                  promptView === 'preview'
+                    ? 'bg-white font-medium text-purple-700 shadow-sm dark:bg-gray-900 dark:text-purple-300'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                }`}
+              >
+                <Eye className="h-3 w-3" />
+                Ver
+              </button>
+              <button
+                type="button"
+                onClick={() => setPromptView('edit')}
+                className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs transition ${
+                  promptView === 'edit'
+                    ? 'bg-white font-medium text-purple-700 shadow-sm dark:bg-gray-900 dark:text-purple-300'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                }`}
+              >
+                <FileText className="h-3 w-3" />
+                Editar
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => w.setPromptExpandido((v) => !v)}
@@ -186,13 +255,27 @@ export function StepCriar({ w }: { w: CriarWizardApi }) {
           </div>
         ) : (
           <>
-            <textarea
-              value={w.promptRefinado}
-              onChange={(e) => w.setPromptRefinado(e.target.value)}
-              rows={w.promptExpandido ? 24 : 12}
-              className="w-full resize-y rounded-xl border border-gray-200 bg-white p-3 font-mono text-xs leading-relaxed text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              placeholder="Aguardando geracao do prompt..."
-            />
+            {promptView === 'preview' ? (
+              <div
+                className={`w-full overflow-y-auto rounded-xl border border-purple-100 bg-purple-50/30 p-3 dark:border-purple-900/30 dark:bg-purple-950/20 ${
+                  w.promptExpandido ? 'max-h-[600px]' : 'max-h-72'
+                }`}
+              >
+                {w.promptRefinado ? (
+                  <PromptPreview text={w.promptRefinado} />
+                ) : (
+                  <p className="text-sm italic text-gray-400">Aguardando geracao do prompt...</p>
+                )}
+              </div>
+            ) : (
+              <textarea
+                value={w.promptRefinado}
+                onChange={(e) => w.setPromptRefinado(e.target.value)}
+                rows={w.promptExpandido ? 24 : 12}
+                className="w-full resize-y rounded-xl border border-gray-200 bg-white p-3 font-mono text-xs leading-relaxed text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                placeholder="Aguardando geracao do prompt..."
+              />
+            )}
 
             <div className="mt-2 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">

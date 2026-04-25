@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Coins, Plus } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
+import { useCreditsStore } from '@/store/creditsStore'
 import { cn } from '@/lib/utils'
 
 interface GamState {
@@ -22,13 +23,17 @@ interface Props {
 
 export function CreditBalance({ variant = 'compact', className }: Props) {
   const companyId = useAuthStore((s) => s.user?.companyId)
+  const { creditos: creditosStore, setCreditos } = useCreditsStore()
   const [state, setState] = useState<GamState | null>(null)
 
   useEffect(() => {
     if (!companyId) return
     api
       .get<GamState>('/api/gamificacao/state')
-      .then(setState)
+      .then((s) => {
+        setState(s)
+        setCreditos(s.creditos)
+      })
       .catch(() => {})
   }, [companyId])
 
@@ -43,7 +48,7 @@ export function CreditBalance({ variant = 'compact', className }: Props) {
         title="Ver créditos e plano"
       >
         <Coins className="h-4 w-4" />
-        <span className="font-medium">{state?.creditos ?? '—'}</span>
+        <span className="font-medium">{creditosStore ?? state?.creditos ?? '—'}</span>
       </Link>
     )
   }
