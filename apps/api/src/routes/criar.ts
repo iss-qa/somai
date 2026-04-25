@@ -235,7 +235,7 @@ Regras:
             expand_prompt: true,
             style: 'auto',
             negative_prompt:
-              'low quality, blurry, watermark, text errors, distorted text, gibberish text, misspelled words, illegible typography, bad composition, cluttered',
+              'low quality, blurry, watermark, signature, text errors, distorted text, gibberish text, random letters, misspelled words, fake brand names, fake logos, fake handles, @username, url, illegible typography, bad composition, cluttered, busy top area, multiple logos',
             ...(referenceImageUrl ? { image_url: referenceImageUrl } : {}),
           },
           logs: false,
@@ -273,6 +273,7 @@ Regras:
           caption: ideia || '',
           hashtags: [],
           status: CardStatus.Draft,
+          source: 'ai',
           ai_prompt_used: prompt,
           generated_image_url: publicUrl,
         })
@@ -379,9 +380,12 @@ function derivarHeadline(ideia?: string): string {
 
 /**
  * Constroi um prompt visual otimizado pro Ideogram a partir do briefing parseado.
- * Foco em: design publicitario, tipografia legivel, marca, paleta. Em portugues
- * (Ideogram tem suporte multilingue mas portugues funciona bem para texto-em-imagem
- * com nomes de marca em PT-BR).
+ *
+ * Estrategia: o backgroundn precisa ser uma cena/composicao limpa, com headline
+ * em destaque para legibilidade, mas sem nome de marca, handle ou logos
+ * desenhados pelo modelo (a logo da empresa e overlay no canvas no frontend, o
+ * que evita "JORE MASE", "VAGASE" e logos deformadas). Reservamos area superior
+ * livre para a logo ser sobreposta.
  */
 function buildVisualPrompt({
   briefing,
@@ -394,10 +398,6 @@ function buildVisualPrompt({
   objetivo?: string
   abordagem?: string
 }): string {
-  const marca = company?.name || ''
-  const handle = company?.instagramHandle
-    ? `@${String(company.instagramHandle).replace(/^@/, '')}`
-    : ''
   const paleta = (company?.estiloVisual?.paleta || []).filter(Boolean).join(', ')
   const estilo = company?.estiloVisual?.estilo || 'moderno e profissional'
 
@@ -408,7 +408,6 @@ function buildVisualPrompt({
 
   return [
     `Design de post publicitário para Instagram, alta qualidade, estilo ${estilo}.`,
-    marca ? `Marca: ${marca}.` : '',
     objetivo ? `Objetivo: ${objetivo}.` : '',
     abordagem ? `Abordagem: ${abordagem}.` : '',
     paleta ? `Paleta de cores: ${paleta}.` : '',
@@ -418,8 +417,10 @@ function buildVisualPrompt({
       ? `Tópicos secundários, lista com ícones, cada um curto e direto: ${bullets.map((b) => `"${b}"`).join(' | ')}.`
       : '',
     cta ? `Botão de chamada para ação no rodapé com texto: "${cta}".` : '',
-    handle ? `Inclua o handle "${handle}" discreto no canto inferior.` : '',
-    'Layout limpo, hierarquia clara, contraste forte entre texto e fundo, sem texto distorcido, sem palavras inventadas, sem watermark, qualidade profissional de agência.',
+    'Reserve a área superior (topo da imagem) limpa, sem texto e sem elementos gráficos, para sobreposição posterior da logomarca.',
+    'Não desenhe nomes de marca, handles, @, URLs, watermarks, selos ou logotipos — esses elementos são adicionados depois.',
+    'Apenas o texto explicitamente listado acima deve aparecer; nenhum outro texto, palavra ou letra solta.',
+    'Layout limpo, hierarquia clara, contraste forte entre texto e fundo, tipografia perfeita sem distorção, qualidade profissional de agência.',
   ]
     .filter(Boolean)
     .join(' ')

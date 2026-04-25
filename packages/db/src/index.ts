@@ -41,7 +41,7 @@ export {
   type ITemplate,
   type ITemplateConfig,
 } from './models/Template'
-export { Card, type ICard } from './models/Card'
+export { Card, type ICard, type ICardOverlay } from './models/Card'
 export { Video, type IVideo } from './models/Video'
 export { Script, type IScript } from './models/Script'
 export { Campaign, type ICampaign } from './models/Campaign'

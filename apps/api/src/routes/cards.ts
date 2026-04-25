@@ -5,6 +5,7 @@ import { authenticate } from '../plugins/auth'
 import { EncryptionService } from '../services/encryption.service'
 import { LogService } from '../services/log.service'
 import { LLMService } from '../services/llm.service'
+import { StorageService } from '../services/storage.service'
 
 export default async function cardsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -52,8 +53,21 @@ export default async function cardsRoutes(app: FastifyInstance) {
         Card.countDocuments(query),
       ])
 
+      // Backfill `source` para cards antigos: se o ai_prompt_used segue o
+      // formato do briefing do fluxo /criar (**Objetivo do Post:**), eh AI.
+      // Caso contrario, custom. Isso evita migration manual no banco.
+      const enriched = cards.map((c: any) => ({
+        ...c,
+        source:
+          c.source ||
+          (typeof c.ai_prompt_used === 'string' &&
+          /\*\*Objetivo do Post:\*\*/i.test(c.ai_prompt_used)
+            ? 'ai'
+            : 'custom'),
+      }))
+
       return reply.send({
-        cards,
+        cards: enriched,
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -87,7 +101,25 @@ export default async function cardsRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: 'Sem permissao' })
       }
 
-      return reply.send(card)
+      // Anexa info de marca usada pelo editor (logo + paleta) num bloco enxuto
+      const { Company } = await import('@soma-ai/db')
+      const company: any = await Company.findById(card.company_id)
+        .select('name logo_url estiloVisual instagramHandle')
+        .lean()
+      const brand = company
+        ? {
+            name: company.name || '',
+            handle: company.instagramHandle
+              ? `@${String(company.instagramHandle).replace(/^@/, '')}`
+              : '',
+            logoUrl:
+              company.estiloVisual?.logoUrl || company.logo_url || '',
+            paleta: (company.estiloVisual?.paleta || []).filter(Boolean),
+            estilo: company.estiloVisual?.estilo || '',
+          }
+        : null
+
+      return reply.send({ ...card, brand })
     },
   )
 
@@ -307,6 +339,49 @@ export default async function cardsRoutes(app: FastifyInstance) {
       await card.deleteOne()
 
       return reply.send({ message: 'Card excluido', _id: id })
+    },
+  )
+
+  // ── POST /:id/upload ─ upload de imagem overlay ou composite final ──
+  app.post(
+    '/:id/upload',
+    async (
+      request: FastifyRequest<{
+        Params: { id: string }
+        Body: { dataUrl: string; kind?: 'overlay' | 'composite' }
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { id } = request.params
+      const { companyId, role } = request.user!
+
+      const card: any = await Card.findById(id).lean()
+      if (!card) {
+        return reply.status(404).send({ error: 'Card nao encontrado' })
+      }
+      if (
+        role !== 'superadmin' &&
+        role !== 'support' &&
+        String(card.company_id) !== companyId
+      ) {
+        return reply.status(403).send({ error: 'Sem permissao' })
+      }
+
+      const { dataUrl, kind = 'overlay' } = request.body || {}
+      if (!dataUrl?.startsWith('data:image/')) {
+        return reply.status(400).send({ error: 'dataUrl invalido' })
+      }
+
+      try {
+        const folder = kind === 'composite' ? 'composites' : 'overlays'
+        const url = await StorageService.uploadBase64Media(dataUrl, folder)
+        return reply.send({ url })
+      } catch (err: any) {
+        request.log.error(err, '[cards] upload falhou')
+        return reply
+          .status(500)
+          .send({ error: err?.message || 'Erro ao enviar imagem' })
+      }
     },
   )
 

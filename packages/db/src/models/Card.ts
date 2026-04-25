@@ -1,5 +1,34 @@
 import mongoose, { Schema, Document, Types } from 'mongoose'
 
+export interface ICardOverlay {
+  id: string
+  type: 'text' | 'shape' | 'image'
+  // Coords e tamanho em fração do canvas (0-1) para ser independente do tamanho real
+  x: number
+  y: number
+  w: number
+  h: number
+  rotation?: number
+  z?: number
+  // Texto
+  text?: string
+  fontFamily?: string
+  fontSize?: number // px @ 1080 de largura — escalado proporcionalmente
+  fontWeight?: number | string
+  fontStyle?: 'normal' | 'italic'
+  textAlign?: 'left' | 'center' | 'right'
+  color?: string
+  preset?: string
+  // Forma / imagem
+  shape?: 'rect' | 'circle' | 'line'
+  fill?: string
+  stroke?: string
+  strokeWidth?: number
+  borderRadius?: number
+  imageUrl?: string
+  opacity?: number
+}
+
 export interface ICard extends Document {
   company_id: Types.ObjectId
   template_id: Types.ObjectId
@@ -19,9 +48,12 @@ export interface ICard extends Document {
   caption: string
   hashtags: string[]
   status: 'draft' | 'approved' | 'scheduled' | 'posted' | 'archived'
+  source: 'ai' | 'custom'
   approved_at: Date | null
   campaign_id: Types.ObjectId | null
   post_id: Types.ObjectId | null
+  editor_overlays: ICardOverlay[]
+  composite_image_url: string
   createdAt: Date
   updatedAt: Date
 }
@@ -58,6 +90,11 @@ const CardSchema = new Schema<ICard>(
       enum: ['draft', 'approved', 'scheduled', 'posted', 'archived'],
       default: 'draft',
     },
+    source: {
+      type: String,
+      enum: ['ai', 'custom'],
+      default: 'custom',
+    },
     approved_at: { type: Date, default: null },
     campaign_id: {
       type: Schema.Types.ObjectId,
@@ -65,6 +102,8 @@ const CardSchema = new Schema<ICard>(
       default: null,
     },
     post_id: { type: Schema.Types.ObjectId, ref: 'Post', default: null },
+    editor_overlays: { type: Schema.Types.Mixed, default: [] },
+    composite_image_url: { type: String, default: '' },
   },
   { timestamps: true }
 )

@@ -18,12 +18,31 @@ import {
   Sparkles,
   Type as TypeIcon,
   Undo2,
+  Upload,
   Wand2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import { useCreditsStore } from '@/store/creditsStore'
+import { PostCriadoSucesso } from './PostCriadoSucesso'
+import { EditorCanvas, type Overlay } from './EditorCanvas'
+import { FloatingToolbar } from './FloatingToolbar'
+import {
+  GOOGLE_FONTS_HREF,
+  SHAPE_PRESETS,
+  TEXT_PRESETS,
+  buildPreset,
+  makeOverlayId,
+} from './editorTools'
+
+interface CardBrand {
+  name?: string
+  handle?: string
+  logoUrl?: string
+  paleta?: string[]
+  estilo?: string
+}
 
 interface CardData {
   _id: string
@@ -34,8 +53,11 @@ interface CardData {
   caption: string
   status: string
   generated_image_url?: string
+  composite_image_url?: string
+  editor_overlays?: Overlay[]
   ai_prompt_used?: string
   createdAt: string
+  brand?: CardBrand
 }
 
 interface ChatMsg {
@@ -70,10 +92,28 @@ export default function EditorPage() {
   const [chatInput, setChatInput] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [finalizando, setFinalizando] = useState(false)
+  const [finalizado, setFinalizado] = useState(false)
   const [zoomOpen, setZoomOpen] = useState(false)
   const [chat, setChat] = useState<ChatMsg[]>([])
+  const [overlays, setOverlays] = useState<Overlay[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [openTextMenu, setOpenTextMenu] = useState(false)
+  const [openShapeMenu, setOpenShapeMenu] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
   const { creditos } = useCreditsStore()
+
+  // Carrega Google Fonts uma vez (pra renderizar fontes do editor + composite).
+  useEffect(() => {
+    const id = 'soma-editor-fonts'
+    if (document.getElementById(id)) return
+    const link = document.createElement('link')
+    link.id = id
+    link.rel = 'stylesheet'
+    link.href = GOOGLE_FONTS_HREF
+    document.head.appendChild(link)
+  }, [])
 
   useEffect(() => {
     if (!cardId) return
@@ -82,30 +122,36 @@ export default function EditorPage() {
       .get<CardData>(`/api/cards/${cardId}`)
       .then((c) => {
         setCard(c)
+        // Restaura overlays salvos ou inicia com a logo da marca (se houver).
+        const saved = Array.isArray(c.editor_overlays) ? c.editor_overlays : []
+        if (saved.length > 0) {
+          setOverlays(saved)
+        } else if (c.brand?.logoUrl) {
+          setOverlays([
+            {
+              id: makeOverlayId(),
+              type: 'image',
+              imageUrl: c.brand.logoUrl,
+              x: 0.04,
+              y: 0.04,
+              w: 0.18,
+              h: 0.1,
+              z: Date.now(),
+            },
+          ])
+        }
         setChat([
           {
             id: '1',
             autor: 'ia',
-            texto: '🚀 Soma 2.0: Gerando imagens com IA de última geração…',
+            texto: '🚀 Soma 2.0: imagem gerada e pronta pra editar.',
             hora: horaAgora(),
           },
           {
             id: '2',
             autor: 'ia',
-            texto: '🚀 Geração iniciada! Criando 1 slide…',
-            hora: horaAgora(),
-          },
-          {
-            id: '3',
-            autor: 'ia',
-            texto: '🖼️ Slide 1 gerado!',
-            hora: horaAgora(),
-          },
-          {
-            id: '4',
-            autor: 'ia',
             texto:
-              '🚀 Pronto! Criei sua imagem. Posso regenerar com ajustes. O que você gostaria de modificar?',
+              '✨ Use a barra à esquerda para adicionar Texto, Elementos ou Imagens. Clique no item pra editar.',
             hora: horaAgora(),
           },
         ])
@@ -120,6 +166,24 @@ export default function EditorPage() {
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' })
   }, [chat])
+
+  // Atalhos: Delete/Backspace remove overlay selecionado, Escape deseleciona.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!selectedId) return
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault()
+        deletarSelecionado()
+      } else if (e.key === 'Escape') {
+        setSelectedId(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId])
 
   const enviarMensagem = async () => {
     const texto = chatInput.trim()
@@ -137,7 +201,7 @@ export default function EditorPage() {
           id: String(Date.now() + 1),
           autor: 'ia',
           texto:
-            '✨ Em breve poderei aplicar ajustes diretamente na imagem. Por enquanto, anote sua intenção e use "Corrigir / Refazer" para regenerar.',
+            '✨ Em breve poderei aplicar ajustes diretamente na imagem. Por enquanto, edite manualmente ou use "Corrigir / Refazer" para regenerar.',
           hora: horaAgora(),
         },
       ])
@@ -146,20 +210,144 @@ export default function EditorPage() {
   }
 
   const acaoRapida = (key: string) => {
-    if (key === 'refazer') {
-      toast('Refazer com IA: em breve', { icon: '🚧' })
+    toast(`${key}: em breve`, { icon: '🚧' })
+  }
+
+  // ── Adicionar overlays ──────────────────────────────────────────────
+  const adicionarTexto = (presetKey: string) => {
+    const preset = TEXT_PRESETS.find((p) => p.key === presetKey)
+    if (!preset) return
+    const ov = buildPreset(preset.build(), 0.11, 0.4)
+    setOverlays((curr) => [...curr, ov])
+    setSelectedId(ov.id)
+    setOpenTextMenu(false)
+  }
+
+  const adicionarForma = (key: string) => {
+    const preset = SHAPE_PRESETS.find((p) => p.key === key)
+    if (!preset) return
+    const ov = buildPreset(preset.build(), 0.35, 0.4)
+    setOverlays((curr) => [...curr, ov])
+    setSelectedId(ov.id)
+    setOpenShapeMenu(false)
+  }
+
+  const onPickImage = () => fileInputRef.current?.click()
+
+  const adicionarImagem = async (file: File) => {
+    if (!card) return
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Imagem muito grande (máx 8MB)')
       return
     }
-    toast(`${key}: em breve`, { icon: '🚧' })
+    const dataUrl = await new Promise<string>((res, rej) => {
+      const r = new FileReader()
+      r.onload = () => res(r.result as string)
+      r.onerror = rej
+      r.readAsDataURL(file)
+    })
+    try {
+      const { url } = await api.post<{ url: string }>(
+        `/api/cards/${card._id}/upload`,
+        { dataUrl, kind: 'overlay' },
+      )
+      const ov = buildPreset(
+        { type: 'image', imageUrl: url, w: 0.3, h: 0.3 } as Partial<Overlay>,
+        0.35,
+        0.35,
+      )
+      setOverlays((curr) => [...curr, ov])
+      setSelectedId(ov.id)
+    } catch (err: any) {
+      toast.error(err?.message || 'Falha ao subir imagem')
+    }
+  }
+
+  // ── Edição do overlay selecionado ───────────────────────────────────
+  const selectedOverlay = overlays.find((o) => o.id === selectedId) || null
+
+  const updateSelected = (patch: Partial<Overlay>) => {
+    if (!selectedId) return
+    setOverlays((curr) => curr.map((o) => (o.id === selectedId ? { ...o, ...patch } : o)))
+  }
+
+  const deletarSelecionado = () => {
+    if (!selectedId) return
+    setOverlays((curr) => curr.filter((o) => o.id !== selectedId))
+    setSelectedId(null)
+  }
+
+  const layerSelecionado = (dir: 'up' | 'down') => {
+    if (!selectedId) return
+    setOverlays((curr) => {
+      const sorted = [...curr].sort((a, b) => (a.z ?? 0) - (b.z ?? 0))
+      const idx = sorted.findIndex((o) => o.id === selectedId)
+      if (idx < 0) return curr
+      const swap = dir === 'up' ? idx + 1 : idx - 1
+      if (swap < 0 || swap >= sorted.length) return curr
+      const za = sorted[idx].z ?? 0
+      const zb = sorted[swap].z ?? 0
+      return curr.map((o) => {
+        if (o.id === sorted[idx].id) return { ...o, z: zb }
+        if (o.id === sorted[swap].id) return { ...o, z: za }
+        return o
+      })
+    })
+  }
+
+  // ── Composite + persistência ─────────────────────────────────────────
+  const renderComposite = async (): Promise<string | null> => {
+    const node = canvasRef.current
+    if (!node) return null
+    // Desseleciona pra esconder handles da exportação
+    setSelectedId(null)
+    await new Promise((r) => requestAnimationFrame(() => r(null)))
+    try {
+      const { toPng } = await import('html-to-image')
+      const [w, h] = (card?.format || '1080x1350').split('x').map(Number)
+      const pixelRatio = w ? Math.max(1, Math.min(2, w / node.clientWidth)) : 2
+      return await toPng(node, {
+        cacheBust: true,
+        pixelRatio,
+        canvasWidth: w || undefined,
+        canvasHeight: h || undefined,
+        backgroundColor: '#ffffff',
+      })
+    } catch (err: any) {
+      console.error('[editor] composite falhou', err)
+      return null
+    }
+  }
+
+  const persistirComposite = async (): Promise<string | null> => {
+    if (!card) return null
+    const dataUrl = await renderComposite()
+    if (!dataUrl) return null
+    try {
+      const { url } = await api.post<{ url: string }>(
+        `/api/cards/${card._id}/upload`,
+        { dataUrl, kind: 'composite' },
+      )
+      return url
+    } catch {
+      return null
+    }
   }
 
   const finalizar = async () => {
     if (!card) return
     setFinalizando(true)
     try {
-      await api.patch(`/api/cards/${card._id}`, { status: 'approved' })
-      toast.success('Peça finalizada!')
-      router.push('/app/biblioteca')
+      const composite = overlays.length > 0 ? await persistirComposite() : null
+      await api.patch(`/api/cards/${card._id}`, {
+        status: 'approved',
+        editor_overlays: overlays,
+        ...(composite ? { composite_image_url: composite } : {}),
+      })
+      if (composite) {
+        setCard((c) => (c ? { ...c, composite_image_url: composite } : c))
+      }
+      setFinalizado(true)
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao finalizar')
     } finally {
@@ -168,19 +356,31 @@ export default function EditorPage() {
   }
 
   const baixar = async () => {
-    if (!card?.generated_image_url) return
-    try {
-      const res = await fetch(card.generated_image_url)
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `soma-${card._id}.png`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch {
-      toast.error('Não foi possível baixar')
+    if (!card) return
+    let downloadUrl: string | null = null
+    if (overlays.length > 0) {
+      const dataUrl = await renderComposite()
+      if (!dataUrl) {
+        toast.error('Não foi possível gerar a imagem composta')
+        return
+      }
+      downloadUrl = dataUrl
+    } else if (card.generated_image_url) {
+      try {
+        const res = await fetch(card.generated_image_url)
+        const blob = await res.blob()
+        downloadUrl = URL.createObjectURL(blob)
+      } catch {
+        toast.error('Não foi possível baixar')
+        return
+      }
     }
+    if (!downloadUrl) return
+    const a = document.createElement('a')
+    a.href = downloadUrl
+    a.download = `soma-${card._id}.png`
+    a.click()
+    if (downloadUrl.startsWith('blob:')) URL.revokeObjectURL(downloadUrl)
   }
 
   const aspect = useMemo(() => {
@@ -195,6 +395,11 @@ export default function EditorPage() {
     const [w, h] = card.format.split('x').map(Number)
     if (!w || !h) return undefined
     return { aspectRatio: `${w}/${h}` } as React.CSSProperties
+  }, [card?.format])
+
+  const refSize = useMemo(() => {
+    const [w, h] = (card?.format || '1080x1350').split('x').map(Number)
+    return { w: w || 1080, h: h || 1350 }
   }, [card?.format])
 
   if (loading) {
@@ -253,22 +458,24 @@ export default function EditorPage() {
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar — Ferramentas */}
-        <aside className="hidden w-56 flex-shrink-0 flex-col gap-4 border-r border-gray-200 bg-white p-4 lg:flex dark:border-gray-800 dark:bg-gray-900">
+        <aside className="hidden w-60 flex-shrink-0 flex-col gap-4 border-r border-gray-200 bg-white p-4 lg:flex dark:border-gray-800 dark:bg-gray-900">
           <div className="text-sm font-semibold text-gray-900 dark:text-white">
             Ferramentas
           </div>
           <div className="flex gap-2">
             <button
               type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700"
-              title="Desfazer"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-400 dark:border-gray-700"
+              title="Desfazer (em breve)"
+              disabled
             >
               <Undo2 className="h-4 w-4" />
             </button>
             <button
               type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700"
-              title="Refazer"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-400 dark:border-gray-700"
+              title="Refazer (em breve)"
+              disabled
             >
               <Redo2 className="h-4 w-4" />
             </button>
@@ -278,10 +485,103 @@ export default function EditorPage() {
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Adicionar ao canvas
             </div>
-            <div className="flex flex-col gap-1.5">
-              <ToolButton icon={TypeIcon} label="Texto" onClick={() => acaoRapida('texto')} />
-              <ToolButton icon={Shapes} label="Elementos" onClick={() => acaoRapida('elementos')} />
-              <ToolButton icon={ImageIcon} label="Imagens" onClick={() => acaoRapida('imagens')} />
+            <div className="relative flex flex-col gap-1.5">
+              <ToolButton
+                icon={TypeIcon}
+                label="Texto"
+                onClick={() => {
+                  setOpenTextMenu((v) => !v)
+                  setOpenShapeMenu(false)
+                }}
+              />
+              {openTextMenu && (
+                <div className="absolute left-full top-0 z-20 ml-2 w-64 rounded-xl border border-gray-200 bg-white p-2 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+                  <div className="mb-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                    Estilos de texto
+                  </div>
+                  {TEXT_PRESETS.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => adicionarTexto(p.key)}
+                      className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition hover:bg-purple-50 dark:hover:bg-gray-700"
+                    >
+                      <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xs font-semibold text-gray-600 dark:bg-gray-900">
+                        {p.key === 'titulo_grande'
+                          ? 'H1'
+                          : p.key === 'subtitulo'
+                            ? 'H2'
+                            : p.key === 'corpo'
+                              ? '¶'
+                              : p.key === 'citacao'
+                                ? '"'
+                                : p.key === 'destaque'
+                                  ? '✦'
+                                  : 'T'}
+                      </span>
+                      <span className="flex-1">
+                        <span className="block text-sm font-medium text-gray-900 dark:text-white">
+                          {p.label}
+                        </span>
+                        <span className="block text-xs text-gray-500">{p.sub}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <ToolButton
+                icon={Shapes}
+                label="Elementos"
+                onClick={() => {
+                  setOpenShapeMenu((v) => !v)
+                  setOpenTextMenu(false)
+                }}
+              />
+              {openShapeMenu && (
+                <div className="absolute left-full top-10 z-20 ml-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+                  <div className="mb-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                    Formas
+                  </div>
+                  {SHAPE_PRESETS.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => adicionarForma(p.key)}
+                      className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition hover:bg-purple-50 dark:hover:bg-gray-700"
+                    >
+                      <span
+                        className="h-6 w-6 flex-shrink-0"
+                        style={{
+                          background: '#8b5cf6',
+                          borderRadius:
+                            p.key === 'circle'
+                              ? '50%'
+                              : p.key === 'rect_round'
+                                ? 999
+                                : 6,
+                        }}
+                      />
+                      <span className="text-sm text-gray-900 dark:text-white">
+                        {p.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <ToolButton icon={Upload} label="Imagens" onClick={onPickImage} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) adicionarImagem(f)
+                  e.target.value = ''
+                }}
+              />
             </div>
           </div>
 
@@ -303,33 +603,40 @@ export default function EditorPage() {
         <main className="relative flex-1 overflow-auto bg-[radial-gradient(circle_at_50%_30%,rgba(168,85,247,0.07),transparent_60%)] p-4 md:p-8">
           <div className="mx-auto flex h-full items-center justify-center">
             <div
-              className={`relative max-h-full overflow-hidden rounded-lg border border-purple-300/60 bg-white shadow-xl ring-1 ring-purple-200/50 dark:bg-gray-900 ${aspect}`}
+              className={`relative max-h-full overflow-visible rounded-lg border border-purple-300/60 bg-white shadow-xl ring-1 ring-purple-200/50 dark:bg-gray-900 ${aspect}`}
               style={{
                 ...(aspectStyle || {}),
                 maxWidth: 'min(100%, 540px)',
+                width: '100%',
               }}
             >
-              {card.generated_image_url ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={card.generated_image_url}
-                    alt={card.headline || 'Card gerado'}
-                    className="h-full w-full object-contain"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setZoomOpen(true)}
-                    className="absolute right-3 top-3 rounded-full bg-black/50 p-2 text-white backdrop-blur transition hover:bg-black/70"
-                    title="Ampliar"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </button>
-                </>
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-gray-400">
-                  <ImageIcon className="h-16 w-16" />
-                </div>
+              <EditorCanvas
+                ref={canvasRef}
+                imageUrl={card.generated_image_url}
+                refWidth={refSize.w}
+                refHeight={refSize.h}
+                overlays={overlays}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                onChange={setOverlays}
+              />
+              {card.generated_image_url && !selectedOverlay && (
+                <button
+                  type="button"
+                  onClick={() => setZoomOpen(true)}
+                  className="absolute right-3 top-3 rounded-full bg-black/50 p-2 text-white backdrop-blur transition hover:bg-black/70"
+                  title="Ampliar"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </button>
+              )}
+              {selectedOverlay && (
+                <FloatingToolbar
+                  overlay={selectedOverlay}
+                  onChange={updateSelected}
+                  onDelete={deletarSelecionado}
+                  onLayer={layerSelecionado}
+                />
               )}
             </div>
           </div>
@@ -419,6 +726,21 @@ export default function EditorPage() {
         </aside>
       </div>
 
+      {/* Tela de sucesso pos-finalizar */}
+      {finalizado && (
+        <PostCriadoSucesso
+          card={{
+            _id: card._id,
+            headline: card.headline,
+            caption: card.caption,
+            format: card.format,
+            generated_image_url:
+              card.composite_image_url || card.generated_image_url,
+          }}
+          onCaptionChange={(c) => setCard((curr) => (curr ? { ...curr, caption: c } : curr))}
+        />
+      )}
+
       {/* Zoom modal */}
       {zoomOpen && card.generated_image_url && (
         <div
@@ -427,7 +749,7 @@ export default function EditorPage() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={card.generated_image_url}
+            src={card.composite_image_url || card.generated_image_url}
             alt={card.headline || 'Card gerado'}
             className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
