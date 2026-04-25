@@ -2,9 +2,16 @@ import mongoose from 'mongoose'
 
 let isConnected = false
 
-export async function connectDB(uri: string) {
+export async function connectDB(uri: string, dbName?: string) {
   if (isConnected) return
-  await mongoose.connect(uri)
+  // Se o usuario passou DB_MONGO (ou se a URI nao tem /<db> no path),
+  // forcamos o dbName aqui — sem isso, Atlas conecta no banco default `test`
+  // e nada e encontrado.
+  const opts = dbName ? { dbName } : undefined
+  await mongoose.connect(uri, opts)
   isConnected = true
-  console.log('MongoDB conectado')
+  const conn = mongoose.connection
+  console.log(
+    `MongoDB conectado — host=${conn.host} db=${conn.name || dbName || '(default)'}`,
+  )
 }

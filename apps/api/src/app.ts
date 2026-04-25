@@ -63,7 +63,10 @@ export async function getApp() {
     },
   })
 
-  await connectDB(process.env.MONGO_URI || 'mongodb://localhost:27017/soma_ai_dev')
+  await connectDB(
+    process.env.MONGO_URI || 'mongodb://localhost:27017/soma_ai_dev',
+    process.env.DB_MONGO,
+  )
 
   await app.register(dashboardRoutes, { prefix: '/api/dashboard' })
   await app.register(authRoutes, { prefix: '/api/auth' })
