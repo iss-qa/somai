@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   AlertCircle,
+  CalendarClock,
   CalendarPlus,
   Download,
   Heart,
@@ -14,10 +15,12 @@ import {
   Send,
   Share2,
   Sparkles,
+  Zap,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
+import { AgendarCardModal } from '@/components/v2/AgendarCardModal'
 
 interface SuccessCard {
   _id: string
@@ -45,6 +48,9 @@ export function PostCriadoSucesso({
   const [plataforma, setPlataforma] = useState<'instagram' | 'linkedin'>('instagram')
   const [refinando, setRefinando] = useState(false)
   const [salvando, setSalvando] = useState(false)
+  const [publishMenuOpen, setPublishMenuOpen] = useState(false)
+  const [publicando, setPublicando] = useState(false)
+  const [agendarOpen, setAgendarOpen] = useState(false)
 
   const hashtags = useMemo(
     () => (caption.match(/#[\wÀ-ÿ]+/g) || []).length,
@@ -127,11 +133,33 @@ export function PostCriadoSucesso({
     }
   }
 
-  const publicar = () => {
-    toast('Publicação direta em breve. Use Baixar e poste manualmente.', {
-      icon: '📅',
-      duration: 3500,
-    })
+  const publicarAgora = async () => {
+    if (publicando) return
+    if (!plataformaAtual.supported) {
+      toast.error(`${plataformaAtual.label} ainda não é suportado`)
+      return
+    }
+    setPublishMenuOpen(false)
+    setPublicando(true)
+    const loadingId = toast.loading('Publicando no Instagram…')
+    try {
+      await api.post('/api/post-queue/publish-now', {
+        card_id: card._id,
+        platforms: [plataforma],
+        caption,
+      })
+      toast.success('Post publicado com sucesso!', { id: loadingId })
+      router.push('/app/biblioteca?tab=posted')
+    } catch (err: any) {
+      toast.error(err?.message || 'Falha ao publicar', { id: loadingId })
+    } finally {
+      setPublicando(false)
+    }
+  }
+
+  const agendar = () => {
+    setPublishMenuOpen(false)
+    setAgendarOpen(true)
   }
 
   return (
@@ -274,14 +302,79 @@ export function PostCriadoSucesso({
             )}
 
             {/* Acoes */}
-            <Button
-              onClick={publicar}
-              className="mt-4 w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700"
-              size="lg"
-            >
-              <CalendarPlus className="mr-2 h-4 w-4" />
-              Publicar
-            </Button>
+            <div className="relative mt-4">
+              <Button
+                onClick={() => setPublishMenuOpen((v) => !v)}
+                disabled={publicando}
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700"
+                size="lg"
+              >
+                {publicando ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                )}
+                Publicar
+              </Button>
+              {publishMenuOpen && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setPublishMenuOpen(false)}
+                    className="fixed inset-0 z-40"
+                    aria-label="Fechar menu"
+                  />
+                  <div className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+                    <button
+                      type="button"
+                      onClick={publicarAgora}
+                      className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-purple-50 dark:hover:bg-gray-800"
+                    >
+                      <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-950/50 dark:text-purple-300">
+                        <Zap className="h-4 w-4" />
+                      </span>
+                      <span>
+                        <span className="block text-sm font-semibold text-gray-900 dark:text-white">
+                          Publicar Agora
+                        </span>
+                        <span className="block text-xs text-gray-500 dark:text-gray-400">
+                          Envia direto para o Instagram
+                        </span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={agendar}
+                      className="flex w-full items-start gap-3 border-t border-gray-100 px-4 py-3 text-left transition hover:bg-purple-50 dark:border-gray-800 dark:hover:bg-gray-800"
+                    >
+                      <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-300">
+                        <CalendarClock className="h-4 w-4" />
+                      </span>
+                      <span>
+                        <span className="block text-sm font-semibold text-gray-900 dark:text-white">
+                          Agendar
+                        </span>
+                        <span className="block text-xs text-gray-500 dark:text-gray-400">
+                          Escolha data e horário
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <AgendarCardModal
+              open={agendarOpen}
+              initialCardId={card._id}
+              onClose={() => setAgendarOpen(false)}
+              onScheduled={() => {
+                setAgendarOpen(false)
+                toast.success('Post agendado!')
+                router.push('/app/biblioteca?tab=scheduled')
+              }}
+            />
+
 
             <div className="mt-3 grid grid-cols-3 gap-2">
               <button

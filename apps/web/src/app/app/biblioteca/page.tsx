@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   BookOpen,
+  CalendarClock,
+  CalendarPlus,
   Plus,
   Image as ImageIcon,
   Search,
@@ -15,16 +17,19 @@ import {
   Loader2,
   Pencil,
   X,
+  Zap,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
+import { AgendarCardModal } from '@/components/v2/AgendarCardModal'
 
 interface CardItem {
   _id: string
   headline: string
   caption: string
   status: 'draft' | 'approved' | 'scheduled' | 'posted' | 'archived'
+  source?: 'ai' | 'custom'
   format: string
   post_type: string
   generated_image_url?: string
@@ -46,14 +51,19 @@ const TABS: { key: Tab; label: string; status?: string }[] = [
 
 export default function BibliotecaV2Page() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialTab = (searchParams.get('tab') || 'todos') as Tab
   const [cards, setCards] = useState<CardItem[]>([])
   const [allCards, setAllCards] = useState<CardItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<Tab>('todos')
+  const [tab, setTab] = useState<Tab>(
+    TABS.some((t) => t.key === initialTab) ? initialTab : 'todos',
+  )
   const [query, setQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [formato, setFormato] = useState<string>('')
   const [preview, setPreview] = useState<CardItem | null>(null)
+  const [agendar, setAgendar] = useState<CardItem | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -86,8 +96,8 @@ export default function BibliotecaV2Page() {
 
   const filtered = useMemo(() => {
     let result = cards
-    if (tab === 'ia') result = result.filter((c) => !!c.generated_image_url)
-    if (tab === 'personalizado') result = result.filter((c) => !c.generated_image_url)
+    if (tab === 'ia') result = result.filter((c) => c.source === 'ai')
+    if (tab === 'personalizado') result = result.filter((c) => c.source !== 'ai')
     if (!query.trim()) return result
     const q = query.toLowerCase()
     return result.filter(
@@ -109,7 +119,7 @@ export default function BibliotecaV2Page() {
     }
     for (const c of base) {
       if (c.status in map) map[c.status] = (map[c.status] || 0) + 1
-      if (c.generated_image_url) map.ia = (map.ia || 0) + 1
+      if (c.source === 'ai') map.ia = (map.ia || 0) + 1
       else map.personalizado = (map.personalizado || 0) + 1
     }
     return map
@@ -257,8 +267,28 @@ export default function BibliotecaV2Page() {
           card={preview}
           onClose={() => setPreview(null)}
           onEdit={() => router.push(`/app/editor/${preview._id}`)}
+          onPublished={() => {
+            setPreview(null)
+            setTab('posted')
+            load()
+          }}
+          onAgendar={() => {
+            setAgendar(preview)
+            setPreview(null)
+          }}
         />
       )}
+
+      <AgendarCardModal
+        open={!!agendar}
+        initialCardId={agendar?._id}
+        onClose={() => setAgendar(null)}
+        onScheduled={() => {
+          setAgendar(null)
+          setTab('scheduled')
+          load()
+        }}
+      />
     </div>
   )
 }
@@ -267,11 +297,40 @@ function PreviewModal({
   card,
   onClose,
   onEdit,
+  onPublished,
+  onAgendar,
 }: {
   card: CardItem
   onClose: () => void
   onEdit: () => void
+  onPublished: () => void
+  onAgendar: () => void
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [publicando, setPublicando] = useState(false)
+
+  const podePublicar =
+    card.status === 'draft' || card.status === 'approved'
+
+  const publicarAgora = async () => {
+    if (publicando) return
+    setMenuOpen(false)
+    setPublicando(true)
+    const loadingId = toast.loading('Publicando no Instagram…')
+    try {
+      await api.post('/api/post-queue/publish-now', {
+        card_id: card._id,
+        platforms: ['instagram'],
+      })
+      toast.success('Post publicado com sucesso!', { id: loadingId })
+      onPublished()
+    } catch (err: any) {
+      toast.error(err?.message || 'Falha ao publicar', { id: loadingId })
+    } finally {
+      setPublicando(false)
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
@@ -318,13 +377,80 @@ function PreviewModal({
               {card.format || card.post_type} · {card.status}
             </div>
           </div>
-          <Button
-            onClick={onEdit}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
-          >
-            <Pencil className="mr-2 h-4 w-4" />
-            Abrir editor
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={onEdit}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar
+            </Button>
+            {podePublicar && (
+              <div className="relative">
+                <Button
+                  onClick={() => setMenuOpen((v) => !v)}
+                  disabled={publicando}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
+                >
+                  {publicando ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                  )}
+                  Publicar
+                </Button>
+                {menuOpen && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setMenuOpen(false)}
+                      className="fixed inset-0 z-40"
+                      aria-label="Fechar menu"
+                    />
+                    <div className="absolute bottom-full right-0 z-50 mb-2 w-72 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+                      <button
+                        type="button"
+                        onClick={publicarAgora}
+                        className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-purple-50 dark:hover:bg-gray-800"
+                      >
+                        <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-950/50 dark:text-purple-300">
+                          <Zap className="h-4 w-4" />
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold text-gray-900 dark:text-white">
+                            Publicar Agora
+                          </span>
+                          <span className="block text-xs text-gray-500 dark:text-gray-400">
+                            Envia direto para o Instagram
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false)
+                          onAgendar()
+                        }}
+                        className="flex w-full items-start gap-3 border-t border-gray-100 px-4 py-3 text-left transition hover:bg-purple-50 dark:border-gray-800 dark:hover:bg-gray-800"
+                      >
+                        <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-300">
+                          <CalendarClock className="h-4 w-4" />
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold text-gray-900 dark:text-white">
+                            Agendar
+                          </span>
+                          <span className="block text-xs text-gray-500 dark:text-gray-400">
+                            Escolha data e horário
+                          </span>
+                        </span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

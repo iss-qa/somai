@@ -15,6 +15,7 @@ import { ComunicacaoService } from '../services/comunicacao.service'
 export async function publishDuePosts(
   limit = 10,
   companyId?: string,
+  queueId?: string,
 ): Promise<{
   processed: number
   results: Array<{ id: string; status: string; error?: string }>
@@ -26,6 +27,7 @@ export async function publishDuePosts(
     scheduled_at: { $lte: now },
   }
   if (companyId) filter.company_id = companyId
+  if (queueId) filter._id = queueId
 
   const duePosts = await PostQueue.find(filter)
     .populate('card_id')

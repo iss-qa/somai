@@ -234,6 +234,94 @@ export default async function postQueueRoutes(app: FastifyInstance) {
     },
   )
 
+  // ── POST /publish-now ─────────────────────────
+  // Cria um item de fila com scheduled_at = agora e processa síncrono,
+  // retornando o resultado real do disparo nas redes sociais.
+  app.post(
+    '/publish-now',
+    async (
+      request: FastifyRequest<{
+        Body: {
+          card_id: string
+          platforms: string[]
+          caption?: string
+          hashtags?: string[]
+        }
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { companyId } = request.user!
+      if (!companyId) {
+        return reply.status(400).send({ error: 'Empresa nao encontrada' })
+      }
+
+      const body = request.body
+      if (!body.card_id || !body.platforms?.length) {
+        return reply
+          .status(400)
+          .send({ error: 'Campos obrigatorios: card_id, platforms' })
+      }
+
+      const card: any = await Card.findById(body.card_id).lean()
+      if (!card) {
+        return reply.status(404).send({ error: 'Card nao encontrado' })
+      }
+      if (String(card.company_id) !== companyId) {
+        return reply.status(403).send({ error: 'Card nao pertence a esta empresa' })
+      }
+
+      // Persiste caption/hashtags no card antes de publicar (se vieram)
+      const captionPatch: Record<string, unknown> = {}
+      if (typeof body.caption === 'string') captionPatch.caption = body.caption
+      if (Array.isArray(body.hashtags)) captionPatch.hashtags = body.hashtags
+      if (Object.keys(captionPatch).length > 0) {
+        await Card.findByIdAndUpdate(body.card_id, captionPatch)
+      }
+
+      // Garante que o card esteja aprovado antes de publicar
+      if (card.status === 'draft') {
+        await Card.findByIdAndUpdate(body.card_id, {
+          status: 'approved',
+          approved_at: new Date(),
+        })
+      }
+
+      const queueItem = await PostQueue.create({
+        company_id: companyId,
+        card_id: body.card_id,
+        scheduled_at: new Date(),
+        platforms: body.platforms,
+        post_type: card.post_type || 'feed',
+        caption: body.caption ?? card.caption ?? '',
+        hashtags: body.hashtags ?? card.hashtags ?? [],
+        status: QueueStatus.Queued,
+      })
+
+      const result = await publishDuePosts(1, companyId, String(queueItem._id))
+      const first = result.results[0]
+
+      if (!first) {
+        return reply.status(500).send({
+          error: 'Item criado mas nao processou. Tente novamente em instantes.',
+          queueId: String(queueItem._id),
+        })
+      }
+
+      if (first.status === 'failed') {
+        return reply.status(502).send({
+          error: first.error || 'Falha ao publicar',
+          queueId: String(queueItem._id),
+        })
+      }
+
+      return reply.status(201).send({
+        ok: true,
+        status: first.status,
+        queueId: String(queueItem._id),
+      })
+    },
+  )
+
   // ── POST /process-due ─────────────────────────
   // Gatilho lazy para processar a fila da empresa atual quando o cron diario
   // ainda nao rodou. Seguro para chamar do cliente — filtra por company_id.
