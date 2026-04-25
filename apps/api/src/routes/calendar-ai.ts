@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { Company, DatesCalendar } from '@soma-ai/db'
 import { authenticate } from '../plugins/auth'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { LLMService } from '../services/llm.service'
 import { GamificacaoService } from '../services/gamificacao.service'
 
 interface PautaItem {
@@ -13,12 +13,6 @@ interface PautaItem {
   copy: string
   hashtags: string[]
   dataComemorativa?: string
-}
-
-function getGemini(): GoogleGenerativeAI {
-  const key = process.env.GEMINI_API_KEY
-  if (!key) throw new Error('GEMINI_API_KEY nao configurada no servidor')
-  return new GoogleGenerativeAI(key)
 }
 
 function safeParseJson<T>(text: string, fallback: T): T {
@@ -132,10 +126,7 @@ Responda SOMENTE com um JSON array, sem comentarios, sem markdown:
 ]`
 
       try {
-        const gemini = getGemini()
-        const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' })
-        const result = await model.generateContent(prompt)
-        const text = result.response.text()
+        const text = await LLMService.generateText(prompt)
         const pauta = safeParseJson<PautaItem[]>(text, [])
 
         if (!Array.isArray(pauta) || pauta.length === 0) {

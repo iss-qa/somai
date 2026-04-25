@@ -30,8 +30,8 @@ export function IdeiaDialog({ w }: { w: CriarWizardApi }) {
           value={w.ideiaTemp}
           onChange={(e) => w.setIdeiaTemp(e.target.value)}
           rows={5}
-          placeholder="Ex: Promover Dipirona 500mg com 30% de desconto esta semana, com gancho de alivio rapido e confianca..."
-          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+          placeholder="Ex: Quero divulgar uma promoção de Dipirona 500mg com 30% de desconto esta semana. O foco é transmitir alívio rápido e confiança, e engajar o público com uma pergunta no final."
+          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:italic placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
         />
         <div className="mt-3 rounded-lg bg-purple-50/60 p-3 text-xs text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
           <Sparkles className="mr-1 inline h-3 w-3" />

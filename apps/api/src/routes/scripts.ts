@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { Script, Integration } from '@soma-ai/db'
 import { authenticate } from '../plugins/auth'
 import { EncryptionService } from '../services/encryption.service'
-import { getAIConfig, callLLM } from '../services/ai.service'
+import { LLMService } from '../services/llm.service'
 
 export default async function scriptsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -127,13 +127,6 @@ export default async function scriptsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Texto do roteiro e obrigatorio' })
       }
 
-      let aiConfig
-      try {
-        aiConfig = await getAIConfig(companyId)
-      } catch (err: any) {
-        return reply.status(400).send({ error: err.message })
-      }
-
       const prompt = `Voce e um especialista em comunicacao e marketing para pequenos negocios no Brasil.
 Melhore o texto abaixo de um roteiro de comunicacao${category ? ` da categoria "${category}"` : ''}${niche ? ` para um negocio do tipo "${niche}"` : ''}.
 Mantenha o tom informal e amigavel, use emojis quando apropriado, e torne a mensagem mais persuasiva e engajante.
@@ -144,7 +137,7 @@ Texto original:
 ${text}`
 
       try {
-        const improved = await callLLM(aiConfig, prompt)
+        const improved = await LLMService.generateText(prompt)
         if (!improved) {
           return reply.status(502).send({ error: 'IA nao retornou texto' })
         }

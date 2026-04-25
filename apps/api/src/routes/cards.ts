@@ -4,7 +4,7 @@ import { CardStatus } from '@soma-ai/shared'
 import { authenticate } from '../plugins/auth'
 import { EncryptionService } from '../services/encryption.service'
 import { LogService } from '../services/log.service'
-import { getAIConfig, callLLM, callLLMJson } from '../services/ai.service'
+import { LLMService } from '../services/llm.service'
 
 export default async function cardsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -329,13 +329,6 @@ export default async function cardsRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Card nao encontrado' })
       }
 
-      let aiConfig
-      try {
-        aiConfig = await getAIConfig(companyId)
-      } catch (err: any) {
-        return reply.status(400).send({ error: err.message })
-      }
-
       const prompt = `Voce e um social media manager profissional para pequenos negocios no Brasil.
 Crie uma legenda engajante e hashtags para um post de Instagram.
 
@@ -352,7 +345,7 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem code blocks):
 {"caption": "legenda aqui com emojis", "hashtags": ["#tag1", "#tag2", "#tag3"]}`
 
       try {
-        const raw = await callLLM(aiConfig, prompt)
+        const raw = await LLMService.generateText(prompt)
         try {
           const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
           const parsed = JSON.parse(cleaned)
@@ -442,19 +435,22 @@ Regras:
 - NAO invente URLs ou numeros de telefone.`
 
       try {
-        const aiCfg = await getAIConfig(companyId)
-        const plan = await callLLMJson<{
+        const rawPlan = await LLMService.generateText(llmPrompt)
+        const cleaned = rawPlan.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+        let plan: {
           productName: string
           objective: string
           palette: string
           fontFamily: string
-          slides: Array<{
-            headline: string
-            subtext: string
-            cta: string
-            imagePrompt: string
-          }>
-        }>(aiCfg, llmPrompt)
+          slides: Array<{ headline: string; subtext: string; cta: string; imagePrompt: string }>
+        }
+        try {
+          plan = JSON.parse(cleaned)
+        } catch {
+          const m = cleaned.match(/[\[{][\s\S]*[\]}]/)
+          if (m) plan = JSON.parse(m[0])
+          else throw new Error('A IA retornou um formato inesperado. Tente novamente.')
+        }
 
         // Garante N slides mesmo se a IA retornar menos/mais
         const slides = Array.isArray(plan.slides) ? plan.slides.slice(0, totalSlides) : []
