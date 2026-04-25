@@ -53,8 +53,5 @@ const ReferralSchema = new Schema<IReferral>(
   { timestamps: true },
 )
 
-ReferralSchema.index({ code: 1 })
-ReferralSchema.index({ owner_user_id: 1 })
-
 export const Referral =
   mongoose.models.Referral || mongoose.model<IReferral>('Referral', ReferralSchema)
