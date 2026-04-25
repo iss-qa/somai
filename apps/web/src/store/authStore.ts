@@ -16,6 +16,8 @@ export interface User {
   trialExpiresAt?: string | null
   logo_url?: string
   integracaoConfigurada?: boolean
+  onboardingCompleto?: boolean
+  onboardingStep?: string | null
 }
 
 interface AuthState {

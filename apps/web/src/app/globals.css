@@ -4,28 +4,70 @@
 
 @layer base {
   :root {
+    --background: #ffffff;
+    --foreground: #0f0f14;
+    --card: #ffffff;
+    --card-foreground: #0f0f14;
+    --primary: #8B5CF6;
+    --primary-foreground: #ffffff;
+    --secondary: #f4f4f5;
+    --secondary-foreground: #0f0f14;
+    --muted: #f4f4f5;
+    --muted-foreground: #71717a;
+    --accent: #f4f4f5;
+    --accent-foreground: #0f0f14;
+    --destructive: #ef4444;
+    --destructive-foreground: #fafafa;
+    --border: #e5e7eb;
+    --input: #e5e7eb;
+    --ring: #8B5CF6;
+    --radius: 0.75rem;
+
+    /* Brand tokens theme-aware (usados por cards/generate e DropdownMenu) */
+    --brand-dark: #ffffff;
+    --brand-card: #ffffff;
+    --brand-border: #e5e7eb;
+    --brand-muted: #71717a;
+    --brand-surface: #f9fafb;
+  }
+
+  .dark {
     --background: #0a0a0f;
     --foreground: #fafafa;
     --card: #111119;
     --card-foreground: #fafafa;
-    --primary: #8B5CF6;
-    --primary-foreground: #ffffff;
     --secondary: #18181f;
     --secondary-foreground: #fafafa;
     --muted: #27272a;
     --muted-foreground: #a1a1aa;
     --accent: #18181f;
     --accent-foreground: #fafafa;
-    --destructive: #ef4444;
-    --destructive-foreground: #fafafa;
     --border: #27272a;
     --input: #27272a;
-    --ring: #8B5CF6;
-    --radius: 0.75rem;
+
+    --brand-dark: #07070c;
+    --brand-card: #111119;
+    --brand-border: #1e1e2e;
+    --brand-muted: #71717a;
+    --brand-surface: #18181f;
   }
 
   * {
     border-color: var(--border);
+  }
+
+  /* Em modo claro, tipografia com text-white dentro de containers brand-* fica escura
+     (para páginas legadas que usam text-white sem variante dark:) */
+  :root:not(.dark) [class*="bg-brand-"] :is(h1, h2, h3, h4, h5, h6, p, label, summary).text-white,
+  :root:not(.dark) [class*="bg-brand-"] span.text-white:not([class*="bg-"]) {
+    color: #0f0f14;
+  }
+  :root:not(.dark) [class*="bg-brand-"] .text-gray-200,
+  :root:not(.dark) [class*="bg-brand-"] .text-gray-300 {
+    color: #374151;
+  }
+  :root:not(.dark) [class*="bg-brand-"] .text-gray-400 {
+    color: #6b7280;
   }
 
   body {

@@ -3,12 +3,22 @@ export { connectDB } from './connection'
 
 // Models
 export { AdminUser, type IAdminUser } from './models/AdminUser'
+export { FalUsage, type IFalUsage } from './models/FalUsage'
+export { AppSettings, type IAppSettings } from './models/AppSettings'
 export { Plan, type IPlan, type IPlanFeatures } from './models/Plan'
 export {
   Company,
   type ICompany,
   type ICompanyBilling,
   type ICompanyBrandColors,
+  type ICompanyMarcaV2,
+  type ICompanyPublicoV2,
+  type ICompanyIdentidadeV2,
+  type ICompanyEstiloVisualV2,
+  type ObjetivoV2,
+  type TomDeVozV2,
+  type EstiloVisualV2,
+  type OnboardingStepV2,
 } from './models/Company'
 export { User, type IUser } from './models/User'
 export {
@@ -67,3 +77,53 @@ export {
   type ISetupCredencial,
   type ISetupCredencialAcesso,
 } from './models/SetupCredencial'
+
+// ── v2.0 ──────────────────────────────────────
+export {
+  Gamificacao,
+  type IGamificacao,
+  type NivelGamificacao,
+} from './models/Gamificacao'
+export {
+  Missao,
+  type IMissao,
+  type MissaoTipo,
+  type MissaoCondicao,
+} from './models/Missao'
+export {
+  MissaoProgresso,
+  type IMissaoProgresso,
+} from './models/MissaoProgresso'
+export {
+  Conquista,
+  type IConquista,
+} from './models/Conquista'
+export {
+  XpHistory,
+  type IXpHistory,
+  type XpAcao,
+} from './models/XpHistory'
+export {
+  Inspiracao,
+  type IInspiracao,
+  type InspiracaoFormato,
+} from './models/Inspiracao'
+export {
+  ComunidadePost,
+  type IComunidadePost,
+  type IComunidadeResposta,
+  type ComunidadeTag,
+} from './models/ComunidadePost'
+export {
+  Referral,
+  type IReferral,
+  type IReferralUse,
+} from './models/Referral'
+export {
+  SupportTicket,
+  type ISupportTicket,
+  type ITicketMessage,
+  type TicketStatus,
+  type TicketCategory,
+  type TicketPriority,
+} from './models/SupportTicket'

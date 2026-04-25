@@ -1,5 +1,17 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { publishDuePosts } from '../jobs/publish-due.job'
+import { GamificacaoService } from '../services/gamificacao.service'
+
+function authOk(request: FastifyRequest): boolean {
+  const secret = process.env.CRON_SECRET
+  if (!secret) return true
+  const xHeader = (request.headers['x-cron-secret'] as string) || ''
+  const authHeader = (request.headers['authorization'] as string) || ''
+  const bearerToken = authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : ''
+  return xHeader === secret || bearerToken === secret
+}
 
 export default async function cronRoutes(app: FastifyInstance) {
   /**
@@ -25,6 +37,22 @@ export default async function cronRoutes(app: FastifyInstance) {
       }
 
       const result = await publishDuePosts(10)
+      return reply.send(result)
+    },
+  )
+
+  /**
+   * GET /api/cron/missoes-reset
+   * Roda diariamente à 00h. Apaga progresso de missões diárias/semanais
+   * de períodos anteriores (mantém só do dia/semana correntes).
+   */
+  app.get(
+    '/missoes-reset',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      if (!authOk(request)) {
+        return reply.status(401).send({ error: 'Unauthorized' })
+      }
+      const result = await GamificacaoService.resetMissoesExpiradas()
       return reply.send(result)
     },
   )

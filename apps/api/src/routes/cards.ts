@@ -226,6 +226,20 @@ export default async function cardsRoutes(app: FastifyInstance) {
 
       await card.save()
 
+      // v2.0 gamificação: aprovar o card = "gerar post"
+      try {
+        const { GamificacaoService } = await import(
+          '../services/gamificacao.service'
+        )
+        void GamificacaoService.emitir(
+          String(card.company_id),
+          'gerar_post',
+          { refId: String(card._id) },
+        )
+      } catch {
+        /* não falha o approve */
+      }
+
       return reply.send(card)
     },
   )

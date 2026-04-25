@@ -1,7 +1,29 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { Card, Post, PostQueue, Video } from '@soma-ai/db'
+import {
+  Card,
+  Post,
+  PostQueue,
+  Video,
+  Company,
+  Inspiracao,
+  ComunidadePost,
+  DatesCalendar,
+} from '@soma-ai/db'
 import { CardStatus, QueueStatus, PostStatus } from '@soma-ai/shared'
 import { authenticate } from '../plugins/auth'
+import { GamificacaoService } from '../services/gamificacao.service'
+
+// Banco curto de dicas rotativas (alimentado pela IA no futuro)
+const DICAS = [
+  'Comece a legenda com um gancho forte.',
+  'Use no máximo 3 hashtags por post no Instagram.',
+  'Carrossel tem o dobro do alcance de foto única.',
+  'Publique entre 18h e 21h para maior engajamento.',
+  'Inclua uma pergunta para gerar comentários.',
+  'Reels com menos de 15s têm maior retenção.',
+  'Mostre bastidores — humaniza a marca.',
+  'Responda comentários nas 2 primeiras horas do post.',
+]
 
 export default async function dashboardRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -79,4 +101,212 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       upcomingPosts: posts,
     })
   })
+
+  // ── GET /v2 ── dashboard v2.0 (3 colunas) ─────
+  app.get('/v2', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { companyId } = request.user!
+    if (!companyId) {
+      return reply.status(400).send({ error: 'Empresa nao encontrada' })
+    }
+
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const monthStartPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const weekEnd = new Date(now)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+
+    const query: Record<string, unknown> = { company_id: companyId }
+
+    const [
+      company,
+      totalPosts,
+      postsEsteMes,
+      postsMesAnterior,
+      agendadosSemana,
+      ultimosCards,
+      gamificacaoState,
+      missoes,
+      inspiracoesComunidade,
+      duvidasComunidade,
+    ] = await Promise.all([
+      Company.findById(companyId).lean(),
+      Post.countDocuments({ ...query, status: PostStatus.Published }),
+      Post.countDocuments({
+        ...query,
+        status: PostStatus.Published,
+        published_at: { $gte: monthStart },
+      }),
+      Post.countDocuments({
+        ...query,
+        status: PostStatus.Published,
+        published_at: { $gte: monthStartPrev, $lt: monthStart },
+      }),
+      PostQueue.countDocuments({
+        ...query,
+        status: QueueStatus.Queued,
+        scheduled_at: { $gte: now, $lte: weekEnd },
+      }),
+      Card.find({ ...query })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .select('headline generated_image_url status createdAt')
+        .lean(),
+      GamificacaoService.getEstado(companyId),
+      GamificacaoService.missoesAtivas(companyId, 3),
+      Inspiracao.find({ ativo: true })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select('thumbUrl imageUrl segmento formato')
+        .lean(),
+      ComunidadePost.find({ ativo: true })
+        .sort({ createdAt: -1 })
+        .limit(1)
+        .select('titulo tags upvotes')
+        .lean(),
+    ])
+
+    const pautasPara30d = await PostQueue.countDocuments({
+      ...query,
+      status: QueueStatus.Queued,
+      scheduled_at: {
+        $gte: now,
+        $lte: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+      },
+    })
+
+    // Próximas datas comemorativas do segmento (próximos 30 dias)
+    const datasProximas = await buscarDatasProximas(
+      (company as any)?.niche || '',
+      30,
+    )
+
+    // Variação percentual vs mês anterior
+    let variacao = 0
+    if (postsMesAnterior > 0) {
+      variacao = Math.round(
+        ((postsEsteMes - postsMesAnterior) / postsMesAnterior) * 100,
+      )
+    } else if (postsEsteMes > 0) {
+      variacao = 100
+    }
+
+    // "Próximo passo" — 3 marcos
+    const c: any = company
+    const passos = [
+      {
+        key: 'primeiro-post',
+        label: 'Gere seu primeiro post',
+        feito: totalPosts > 0,
+      },
+      {
+        key: 'agendar',
+        label: 'Agende um post',
+        feito: agendadosSemana > 0 || pautasPara30d > 0,
+      },
+      {
+        key: 'publicar',
+        label: 'Publique no Instagram',
+        feito: totalPosts > 0 && !!c?.instagramConectado,
+      },
+    ]
+    const passosCompletos = passos.filter((p) => p.feito).length
+    const proximoPasso = passos.find((p) => !p.feito) || passos[0]
+
+    const dicaIdx =
+      Math.floor(Date.now() / (1000 * 60 * 60 * 3)) % DICAS.length
+
+    return reply.send({
+      empresa: {
+        id: String(c?._id || ''),
+        nome: c?.name || '',
+        logo: c?.logo_url || '',
+        niche: c?.niche || '',
+        instagramHandle: c?.instagramHandle || '',
+        onboardingCompleto: !!c?.onboardingCompleto,
+      },
+      metricas: {
+        totalPosts,
+        variacaoTotal: variacao,
+        pautasPara30d,
+        agendadosSemana,
+        creditos: gamificacaoState.creditos,
+        plano: c?.plan_id ? 'Pro' : 'Gratuito',
+      },
+      gamificacao: gamificacaoState,
+      missoes,
+      proximoPasso: {
+        ...proximoPasso,
+        completos: passosCompletos,
+        total: passos.length,
+      },
+      ultimasCriacoes: ultimosCards.map((card: any) => ({
+        id: String(card._id),
+        headline: card.headline || '',
+        imageUrl: card.generated_image_url || '',
+        status: card.status,
+        createdAt: card.createdAt,
+      })),
+      posts: {
+        comunidade: inspiracoesComunidade.map((i: any) => ({
+          id: String(i._id),
+          thumb: i.thumbUrl || i.imageUrl || '',
+          segmento: i.segmento,
+          formato: i.formato,
+        })),
+      },
+      comunidade: duvidasComunidade.map((p: any) => ({
+        id: String(p._id),
+        titulo: p.titulo,
+        tags: p.tags || [],
+        upvotes: p.upvotes || 0,
+      })),
+      datasProximas,
+      dicaRapida: DICAS[dicaIdx],
+    })
+  })
+}
+
+/**
+ * Busca datas comemorativas (DatesCalendar) relevantes pra um segmento,
+ * nos próximos N dias. O campo `date` é MM-DD (ou MM/DD); aceitamos ambos.
+ */
+async function buscarDatasProximas(niche: string, diasFrente = 30) {
+  const hoje = new Date()
+  const fim = new Date(hoje.getTime() + diasFrente * 24 * 60 * 60 * 1000)
+  const q: Record<string, any> = { active: true }
+  if (niche) q.niches = { $in: [niche, 'todos'] }
+
+  const todas: any[] = await DatesCalendar.find(q).lean()
+
+  const anoAtual = hoje.getFullYear()
+  const cached: Array<{
+    date: string
+    name: string
+    description: string
+    dateISO: string
+    suggested_headline: string
+  }> = []
+
+  for (const d of todas) {
+    const [mm, dd] = String(d.date).replace('/', '-').split('-')
+    if (!mm || !dd) continue
+    const candidata = new Date(anoAtual, Number(mm) - 1, Number(dd))
+    // se já passou este ano, tenta ano que vem
+    if (candidata < hoje) {
+      candidata.setFullYear(anoAtual + 1)
+    }
+    if (candidata <= fim) {
+      cached.push({
+        date: d.date,
+        name: d.name,
+        description: d.description || '',
+        dateISO: candidata.toISOString(),
+        suggested_headline: d.suggested_headline || '',
+      })
+    }
+  }
+  cached.sort(
+    (a, b) => new Date(a.dateISO).getTime() - new Date(b.dateISO).getTime(),
+  )
+  return cached.slice(0, 8)
 }

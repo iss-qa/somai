@@ -33,6 +33,8 @@ import {
   Loader2,
   Building2,
   MapPin,
+  Coins,
+  Sparkles,
 } from 'lucide-react'
 
 interface CompanyPlan {
@@ -47,6 +49,15 @@ interface CompanyBilling {
   due_day: number
   overdue_days: number
   status: 'paid' | 'pending' | 'overdue'
+}
+
+interface AiStats {
+  creditos: number
+  creditosMes: number
+  llm_provider: string | null
+  llm_model: string | null
+  total_tokens: number
+  total_requests: number
 }
 
 interface Company {
@@ -70,6 +81,19 @@ interface Company {
   notes: string
   createdAt: string
   updatedAt: string
+  ai_stats?: AiStats
+}
+
+function formatProviderLabel(p: string | null) {
+  if (!p) return null
+  const map: Record<string, string> = {
+    gemini: 'Gemini',
+    openai: 'OpenAI',
+    anthropic: 'Claude',
+    groq: 'Groq',
+    openrouter: 'OpenRouter',
+  }
+  return map[p] || p
 }
 
 const planColors: Record<string, 'secondary' | 'default' | 'info'> = {
@@ -175,6 +199,12 @@ export default function CompaniesPage() {
                     Status
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-4">
+                    Creditos
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-4">
+                    IA
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-4">
                     Cidade
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-4">
@@ -216,6 +246,52 @@ export default function CompaniesPage() {
                       </td>
                       <td className="p-4">
                         <StatusBadge status={company.status} />
+                      </td>
+                      <td className="p-4">
+                        {(() => {
+                          const cr = company.ai_stats?.creditos ?? 0
+                          const cor =
+                            cr <= 0
+                              ? 'text-red-400'
+                              : cr < 10
+                                ? 'text-amber-400'
+                                : 'text-gray-300'
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <Coins className={`w-3.5 h-3.5 ${cor}`} />
+                              <span className={`text-sm font-medium ${cor}`}>
+                                {cr}
+                              </span>
+                              {company.ai_stats?.creditosMes
+                                ? (
+                                    <span className="text-[10px] text-gray-500">
+                                      (+{company.ai_stats.creditosMes}/mes)
+                                    </span>
+                                  )
+                                : null}
+                            </div>
+                          )
+                        })()}
+                      </td>
+                      <td className="p-4">
+                        {company.ai_stats?.llm_provider ? (
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-purple-400" />
+                              <span className="text-xs font-medium text-gray-300">
+                                {formatProviderLabel(company.ai_stats.llm_provider)}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-gray-500">
+                              {company.ai_stats.total_requests ?? 0} reqs ·{' '}
+                              {company.ai_stats.total_tokens
+                                ? `${Math.round(company.ai_stats.total_tokens / 1000)}k tok`
+                                : '0 tok'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-600">—</span>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-1.5">
@@ -271,7 +347,7 @@ export default function CompaniesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center">
+                    <td colSpan={10} className="p-8 text-center">
                       <Building2 className="w-10 h-10 text-gray-700 mx-auto mb-3" />
                       <p className="text-sm text-gray-400">Nenhuma empresa encontrada</p>
                     </td>
@@ -313,6 +389,28 @@ export default function CompaniesPage() {
                     <MapPin className="w-3.5 h-3.5 text-gray-500" />
                     <span>{company.city ? `${company.city}/${company.state}` : '-'}</span>
                   </div>
+                </div>
+                <div className="mt-2 flex items-center gap-3 border-t border-brand-border pt-2 text-[11px] text-gray-400">
+                  <div className="flex items-center gap-1">
+                    <Coins
+                      className={`w-3 h-3 ${
+                        (company.ai_stats?.creditos ?? 0) <= 0
+                          ? 'text-red-400'
+                          : (company.ai_stats?.creditos ?? 0) < 10
+                            ? 'text-amber-400'
+                            : 'text-gray-400'
+                      }`}
+                    />
+                    <span>{company.ai_stats?.creditos ?? 0} creditos</span>
+                  </div>
+                  {company.ai_stats?.llm_provider && (
+                    <div className="flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-purple-400" />
+                      <span>
+                        {formatProviderLabel(company.ai_stats.llm_provider)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

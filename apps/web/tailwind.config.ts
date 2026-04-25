@@ -35,11 +35,11 @@ const config: Config = {
           lime: '#a3e635',
         },
         brand: {
-          dark: '#07070c',
-          card: '#111119',
-          border: '#1e1e2e',
-          muted: '#71717a',
-          surface: '#18181f',
+          dark: 'var(--brand-dark)',
+          card: 'var(--brand-card)',
+          border: 'var(--brand-border)',
+          muted: 'var(--brand-muted)',
+          surface: 'var(--brand-surface)',
         },
       },
       backgroundImage: {

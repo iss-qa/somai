@@ -36,6 +36,7 @@ import {
   ScrollText,
   MessageSquare,
   Wrench,
+  Image as ImageIcon,
 } from 'lucide-react'
 
 const navItems = [
@@ -46,6 +47,7 @@ const navItems = [
   { href: '/admin/health', label: 'Saúde do Sistema', icon: Activity },
   { href: '/admin/comunicacao', label: 'Comunicação', icon: MessageSquare },
   { href: '/admin/integrations', label: 'Integrações', icon: Plug },
+  { href: '/admin/fal', label: 'fal.ai (Imagens)', icon: ImageIcon },
   { href: '/admin/logs', label: 'Logs', icon: ScrollText },
   { href: '/admin/settings', label: 'Configurações', icon: Settings },
 ]

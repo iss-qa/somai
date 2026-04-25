@@ -125,6 +125,18 @@ export default async function postQueueRoutes(app: FastifyInstance) {
         status: QueueStatus.Queued,
       })
 
+      // v2.0 gamificação: agendou post
+      try {
+        const { GamificacaoService } = await import(
+          '../services/gamificacao.service'
+        )
+        void GamificacaoService.emitir(String(companyId), 'agendar_post', {
+          refId: String(queueItem._id),
+        })
+      } catch {
+        /* não falha o agendamento */
+      }
+
       // Schedule BullMQ job (best-effort with 5s timeout: cron handles publishing if Redis unavailable)
       let jobId: string | undefined
       try {

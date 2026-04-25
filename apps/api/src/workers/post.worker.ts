@@ -180,6 +180,18 @@ export const postWorker = new Worker<PostJobData>(
         status: QueueStatus.Done,
       })
 
+      // v2.0 gamificação: publicou post
+      try {
+        const { GamificacaoService } = await import(
+          '../services/gamificacao.service'
+        )
+        void GamificacaoService.emitir(String(companyId), 'publicar_post', {
+          refId: String(post._id),
+        })
+      } catch {
+        /* non-fatal */
+      }
+
       const durationMs = Date.now() - startedAt
       await LogService.info(
         'worker',

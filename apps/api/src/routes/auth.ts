@@ -77,6 +77,8 @@ export default async function authRoutes(app: FastifyInstance) {
       let trialExpiresAt: string | null = null
       let logoUrl: string | null = null
       let integracaoConfigurada = false
+      let onboardingCompleto = false
+      let onboardingStep: string | null = null
 
       if (!isAdmin && foundUser.company_id) {
         const company: any = await Company.findById(foundUser.company_id)
@@ -92,6 +94,8 @@ export default async function authRoutes(app: FastifyInstance) {
             : null
           logoUrl = company.logo_url || null
           integracaoConfigurada = company.integracao_configurada ?? false
+          onboardingCompleto = !!company.onboardingCompleto
+          onboardingStep = company.onboardingStep || null
         }
       }
 
@@ -125,6 +129,8 @@ export default async function authRoutes(app: FastifyInstance) {
             trialExpiresAt,
             logo_url: logoUrl,
             integracaoConfigurada,
+            onboardingCompleto,
+            onboardingStep,
           },
         })
     },
@@ -219,6 +225,7 @@ export default async function authRoutes(app: FastifyInstance) {
           state: string
           plan?: string
           trial_days?: number
+          referral_code?: string
         }
       }>,
       reply: FastifyReply,
@@ -235,6 +242,7 @@ export default async function authRoutes(app: FastifyInstance) {
         state,
         plan: selectedPlan,
         trial_days: requestedTrialDays,
+        referral_code: referralCode,
       } = request.body
 
       console.log('[partner-signup] Recebido:', {
@@ -307,10 +315,9 @@ export default async function authRoutes(app: FastifyInstance) {
       }
       console.log('[partner-signup] Plano:', plan?.slug || 'nenhum encontrado')
 
-      // Calculate trial period
-      const trialDays = requestedTrialDays || 7
-      const trialExpiresAt = new Date()
-      trialExpiresAt.setDate(trialExpiresAt.getDate() + trialDays)
+      // Modelo atual: acesso liberado por creditos (nao mais por dias de trial).
+      // Gamificacao.ensure() concede 25 creditos iniciais automaticamente.
+      const trialDays = requestedTrialDays || 0
 
       // Create slug from company name
       const slug = company_name
@@ -335,18 +342,16 @@ export default async function authRoutes(app: FastifyInstance) {
           logo_url: '',
           brand_colors: { primary: '#8B5CF6', secondary: '#facc15' },
           plan_id: plan?._id || null,
-          status: 'trial',
-          access_enabled: false,
+          status: 'active',
+          access_enabled: true,
           setup_paid: false,
           setup_amount: plan?.setup_price ?? 0,
-          trial_days: trialDays,
-          trial_expires_at: trialExpiresAt,
           billing: {
             monthly_amount: plan?.monthly_price || 39.9,
             due_day: 10,
             status: 'pending',
           },
-          notes: `Cadastro via formulario de parceria — Trial ${trialDays} dias`,
+          notes: 'Cadastro via formulario de parceria — 25 creditos iniciais',
         })
 
         console.log('[partner-signup] Company criada:', String(company._id))
@@ -367,6 +372,35 @@ export default async function authRoutes(app: FastifyInstance) {
         role: 'owner',
         company_id: company._id,
       })
+
+      // Concede 25 creditos iniciais (Gamificacao.ensure cria com default=25 se nao existir)
+      try {
+        const { GamificacaoService } = await import('../services/gamificacao.service')
+        await (GamificacaoService as any).ensure(company._id)
+      } catch (err) {
+        console.warn('[partner-signup] falha ao inicializar gamificacao:', err)
+      }
+
+      // Aplica código de indicação (credita inviter + invitee)
+      if (referralCode && referralCode.trim()) {
+        try {
+          const { creditarReferralSignup } = await import('./referrals')
+          const res = await creditarReferralSignup({
+            code: referralCode.trim(),
+            inviteeUserId: String(user._id),
+            inviteeCompanyId: String(company._id),
+            inviteeEmail: email,
+            inviteeName: responsible_name,
+          })
+          if (res) {
+            console.log('[partner-signup] referral aplicado:', referralCode)
+          } else {
+            console.log('[partner-signup] referral inválido/ignorado:', referralCode)
+          }
+        } catch (err) {
+          console.warn('[partner-signup] falha ao aplicar referral:', err)
+        }
+      }
 
       // Auto-login: generate token
       const payload = {
@@ -409,8 +443,8 @@ export default async function authRoutes(app: FastifyInstance) {
             companyName: company_name,
             plan: plan?.slug || 'starter',
             niche: niche || 'outro',
-            accessEnabled: false,
-            trialExpiresAt: trialExpiresAt.toISOString(),
+            accessEnabled: true,
+            trialExpiresAt: null,
             logo_url: null,
             integracaoConfigurada: false,
           },
@@ -584,6 +618,8 @@ export default async function authRoutes(app: FastifyInstance) {
       let trialExpiresAt: string | null = null
       let logoUrl: string | null = null
       let integracaoConfiguradaMe = false
+      let onboardingCompletoMe = false
+      let onboardingStepMe: string | null = null
 
       if (!isAdmin && foundUser.company_id) {
         const company: any = await Company.findById(foundUser.company_id)
@@ -599,6 +635,8 @@ export default async function authRoutes(app: FastifyInstance) {
             : null
           logoUrl = company.logo_url || null
           integracaoConfiguradaMe = company.integracao_configurada ?? false
+          onboardingCompletoMe = !!company.onboardingCompleto
+          onboardingStepMe = company.onboardingStep || null
         }
       }
 
@@ -616,6 +654,8 @@ export default async function authRoutes(app: FastifyInstance) {
           trialExpiresAt,
           logo_url: logoUrl,
           integracaoConfigurada: integracaoConfiguradaMe,
+          onboardingCompleto: onboardingCompletoMe,
+          onboardingStep: onboardingStepMe,
         },
       })
     },

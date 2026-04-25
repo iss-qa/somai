@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { Company, Post, Notification } from '@soma-ai/db'
+import { Company, Post, Notification, Gamificacao } from '@soma-ai/db'
 import { PostStatus } from '@soma-ai/shared'
 import { authenticate, adminOnly } from '../../plugins/auth'
+
+const CREDITOS_BAIXOS_LIMITE = 10
 
 export default async function adminDashboardRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -78,12 +80,42 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
       timestamp: a.createdAt || a.created_at,
     }))
 
-    // Trial companies — for CTA banner
-    const trialCompanies = await Company.find({ status: 'trial' })
-      .select('name responsible_name trial_expires_at trial_days plan_id whatsapp')
-      .populate('plan_id', 'name slug')
-      .sort({ trial_expires_at: 1 })
+    // Empresas com creditos baixos — CTA pra upgrade PRO
+    const gamsBaixos: any[] = await Gamificacao.find({
+      creditos: { $lt: CREDITOS_BAIXOS_LIMITE },
+    })
+      .select('company_id creditos creditosMes')
+      .sort({ creditos: 1 })
+      .limit(20)
       .lean()
+
+    const companyIds = gamsBaixos.map((g) => g.company_id)
+    const companiesMap = new Map<string, any>()
+    if (companyIds.length) {
+      const cs: any[] = await Company.find({ _id: { $in: companyIds } })
+        .select('name responsible_name plan_id whatsapp status')
+        .populate('plan_id', 'name slug')
+        .lean()
+      cs.forEach((c) => companiesMap.set(String(c._id), c))
+    }
+
+    const lowCreditsCompanies = gamsBaixos
+      .map((g) => {
+        const c = companiesMap.get(String(g.company_id))
+        if (!c) return null
+        return {
+          _id: String(c._id),
+          name: c.name,
+          responsible_name: c.responsible_name,
+          plan: c.plan_id?.name || 'Sem plano',
+          planSlug: c.plan_id?.slug || null,
+          status: c.status,
+          whatsapp: c.whatsapp,
+          creditos: g.creditos || 0,
+          creditosMes: g.creditosMes || 0,
+        }
+      })
+      .filter(Boolean)
 
     return reply.send({
       metrics: {
@@ -94,6 +126,7 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
         overdue: overdueCount,
         postsToday,
         failedPostsToday,
+        lowCredits: lowCreditsCompanies.length,
       },
       alerts: formattedAlerts,
       statusDistribution: {
@@ -104,15 +137,7 @@ export default async function adminDashboardRoutes(app: FastifyInstance) {
         blocked: blockedCount,
       },
       totalPartners: activeCount + trialCount + setupPendingCount + pendingSubCount + blockedCount,
-      trialCompanies: trialCompanies.map((c: any) => ({
-        _id: String(c._id),
-        name: c.name,
-        responsible_name: c.responsible_name,
-        plan: c.plan_id?.name || 'Sem plano',
-        trial_expires_at: c.trial_expires_at,
-        trial_days: c.trial_days,
-        whatsapp: c.whatsapp,
-      })),
+      lowCreditsCompanies,
     })
   })
 

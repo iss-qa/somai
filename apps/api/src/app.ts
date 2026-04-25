@@ -25,9 +25,19 @@ import adminAppLogsRoutes from './routes/admin/applogs'
 import adminIntegrationsRoutes from './routes/admin/integrations'
 import adminComunicacaoRoutes from './routes/admin/comunicacao'
 import adminSetupsRoutes from './routes/admin/setups'
+import adminFalRoutes from './routes/admin/fal'
 import setupRoutes from './routes/setup'
 import billingRoutes from './routes/billing'
 import cronRoutes from './routes/cron'
+import onboardingRoutes from './routes/onboarding'
+import gamificacaoRoutes from './routes/gamificacao'
+import inspiracoesRoutes from './routes/inspiracoes'
+import comunidadeRoutes from './routes/comunidade'
+import calendarAiRoutes from './routes/calendar-ai'
+import criarRoutes from './routes/criar'
+import marcasRoutes from './routes/marcas'
+import referralsRoutes from './routes/referrals'
+import supportRoutes from './routes/support'
 
 let app: ReturnType<typeof Fastify> | null = null
 
@@ -75,7 +85,17 @@ export async function getApp() {
   await app.register(adminIntegrationsRoutes, { prefix: '/api/admin/integrations' })
   await app.register(adminComunicacaoRoutes, { prefix: '/api/admin/comunicacao' })
   await app.register(adminSetupsRoutes, { prefix: '/api/admin/setups' })
+  await app.register(adminFalRoutes, { prefix: '/api/admin/fal' })
   await app.register(setupRoutes, { prefix: '/api/setup' })
+  await app.register(onboardingRoutes, { prefix: '/api/onboarding' })
+  await app.register(gamificacaoRoutes, { prefix: '/api/gamificacao' })
+  await app.register(inspiracoesRoutes, { prefix: '/api/inspiracoes' })
+  await app.register(comunidadeRoutes, { prefix: '/api/comunidade' })
+  await app.register(calendarAiRoutes, { prefix: '/api/calendar-ai' })
+  await app.register(criarRoutes, { prefix: '/api/criar' })
+  await app.register(marcasRoutes, { prefix: '/api/marcas' })
+  await app.register(referralsRoutes, { prefix: '/api/referrals' })
+  await app.register(supportRoutes, { prefix: '/api/support' })
 
   try {
     const { default: notificationRoutes } = await import('./routes/notifications')

@@ -1,497 +1,631 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MetricCard } from '@/components/company/MetricCard'
-import { PostItem } from '@/components/company/PostItem'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAuthStore } from '@/store/authStore'
-import { api } from '@/lib/api'
-import { getGreeting } from '@/lib/utils'
-import { SUPPORT_CONTACT } from '@/lib/contact'
 import {
-  Send,
-  Image,
+  Trophy,
+  Flame,
+  Zap,
   Calendar,
-  Video,
-  CheckCircle2,
+  CalendarPlus,
+  Plus,
   Sparkles,
-  Clock,
-  ArrowRight,
-  Loader2,
-  Bell,
-  X,
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  CreditCard,
-  Lock,
-  Target,
-  MessageSquare,
-  Timer,
+  Lightbulb,
   MessageCircle,
-  Mail,
+  Gift,
+  ChevronRight,
+  TrendingUp,
+  Clock,
+  Coins,
+  Image as ImageIcon,
+  ArrowRight,
+  Settings,
+  Instagram,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { api } from '@/lib/api'
+import { CriarChoiceModal } from '@/components/v2/CriarChoiceModal'
 
-interface DashNotification {
-  _id: string
-  type: string
-  title: string
-  message: string
-  read: boolean
-  action_url: string
-  created_at: string
-  expires_at: string | null
-}
-
-const notifTypeIcons: Record<string, React.ElementType> = {
-  token_expired: AlertTriangle,
-  post_failed: AlertTriangle,
-  payment_due: CreditCard,
-  payment_overdue: CreditCard,
-  access_blocked: Lock,
-  setup_pending: Clock,
-  video_ready: Video,
-  video_failed: AlertTriangle,
-  campaign_published: Target,
-  campaign_completed: CheckCircle,
-  card_publicado: Image,
-  card_agendado: Calendar,
-  comunicacao: MessageSquare,
-}
-
-const notifTypeColors: Record<string, { text: string; bg: string }> = {
-  token_expired: { text: 'text-amber-400', bg: 'bg-amber-500/15' },
-  post_failed: { text: 'text-red-400', bg: 'bg-red-500/15' },
-  payment_due: { text: 'text-amber-400', bg: 'bg-amber-500/15' },
-  payment_overdue: { text: 'text-red-400', bg: 'bg-red-500/15' },
-  access_blocked: { text: 'text-red-400', bg: 'bg-red-500/15' },
-  setup_pending: { text: 'text-blue-400', bg: 'bg-blue-500/15' },
-  video_ready: { text: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-  video_failed: { text: 'text-red-400', bg: 'bg-red-500/15' },
-  campaign_published: { text: 'text-purple-400', bg: 'bg-purple-500/15' },
-  campaign_completed: { text: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-  card_publicado: { text: 'text-green-400', bg: 'bg-green-500/15' },
-  card_agendado: { text: 'text-blue-400', bg: 'bg-blue-500/15' },
-  comunicacao: { text: 'text-primary-400', bg: 'bg-primary-500/15' },
-}
-
-function notifTimeAgo(dateStr: string): string {
-  const now = new Date()
-  const date = new Date(dateStr)
-  const diffMs = now.getTime() - date.getTime()
-  const diffMin = Math.floor(diffMs / 60000)
-  if (diffMin < 1) return 'Agora'
-  if (diffMin < 60) return `ha ${diffMin}min`
-  const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) return `ha ${diffH}h`
-  const diffD = Math.floor(diffH / 24)
-  return `ha ${diffD}d`
-}
-
-interface DashboardData {
-  metrics: {
-    postsThisMonth: number
-    approvedCards: number
-    scheduledToday: number
-    videosGenerated: number
-    publishedCards: number
+interface DashboardV2 {
+  empresa: {
+    id: string
+    nome: string
+    logo: string
+    niche: string
+    instagramHandle: string
+    onboardingCompleto?: boolean
   }
-  upcomingPosts: Array<{
+  metricas: {
+    totalPosts: number
+    variacaoTotal: number
+    pautasPara30d: number
+    agendadosSemana: number
+    creditos: number
+    plano: string
+  }
+  gamificacao: {
+    xp: number
+    nivel: string
+    nivelProgresso: { atual: number; proximo: number; faltam: number }
+    creditosMes: number
+    ofensiva: number
+  }
+  missoes: Array<{
     _id: string
-    caption: string
-    card_id?: { generated_image_url?: string }
-    platforms: string[]
-    published_at: string | null
-    created_at: string
-    status: 'published' | 'failed' | 'cancelled'
+    titulo: string
+    tipo: string
+    icone: string
+    recompensaXP: number
+    progresso: number
+    meta: number
   }>
+  proximoPasso: {
+    key: string
+    label: string
+    completos: number
+    total: number
+  }
+  ultimasCriacoes: Array<{
+    id: string
+    headline: string
+    imageUrl: string
+    status: string
+    createdAt: string
+  }>
+  posts: {
+    comunidade: Array<{
+      id: string
+      thumb: string
+      segmento: string
+      formato: string
+    }>
+  }
+  comunidade: Array<{
+    id: string
+    titulo: string
+    tags: string[]
+    upvotes: number
+  }>
+  datasProximas: Array<{
+    date: string
+    name: string
+    description: string
+    dateISO: string
+    suggested_headline: string
+  }>
+  dicaRapida: string
 }
 
-function TrialBanner() {
-  const user = useAuthStore((s) => s.user)
-  const [timeLeft, setTimeLeft] = useState('')
-
-  useEffect(() => {
-    if (!user?.trialExpiresAt) return
-    function update() {
-      const diff = new Date(user!.trialExpiresAt!).getTime() - Date.now()
-      if (diff <= 0) {
-        setTimeLeft('Expirado')
-        return
-      }
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-      if (days > 0) {
-        setTimeLeft(`${days} dia${days > 1 ? 's' : ''} e ${hours}h ${mins}min`)
-      } else {
-        setTimeLeft(`${hours}h ${mins}min`)
-      }
-    }
-    update()
-    const interval = setInterval(update, 60000)
-    return () => clearInterval(interval)
-  }, [user?.trialExpiresAt])
-
-  // Admin liberou acesso — nao exibe mais o banner
-  if (user?.accessEnabled === true) return null
-  if (!user?.trialExpiresAt || !timeLeft) return null
-
-  const expired = timeLeft === 'Expirado'
-
-  const waMsg = 'Olá, meu período de teste do Soma.AI encerrou e quero ativar meu plano.'
-
-  return (
-    <div className={`flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl border ${
-      expired
-        ? 'bg-red-500/10 border-red-500/20'
-        : 'bg-amber-500/10 border-amber-500/20'
-    }`}>
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-          expired ? 'bg-red-500/15' : 'bg-amber-500/15'
-        }`}>
-          <Timer className={`w-5 h-5 ${expired ? 'text-red-400' : 'text-amber-400'}`} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium ${expired ? 'text-red-300' : 'text-amber-300'}`}>
-            {expired ? 'Período de teste encerrado' : 'Período de teste ativo'}
-          </p>
-          <p className={`text-xs ${expired ? 'text-red-400/70' : 'text-amber-400/70'}`}>
-            {expired
-              ? 'Fale com nosso time para ativar seu plano:'
-              : `Tempo restante: ${timeLeft}`
-            }
-          </p>
-        </div>
-      </div>
-
-      {expired && (
-        <div className="flex items-center gap-2 sm:flex-shrink-0">
-          <a
-            href={SUPPORT_CONTACT.whatsappUrl(waMsg)}
-            target="_blank"
-            rel="noopener"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-medium transition-colors"
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            WhatsApp
-          </a>
-          <a
-            href={SUPPORT_CONTACT.mailtoUrl('Ativar plano Soma.AI')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-surface border border-brand-border hover:border-gray-600 text-gray-200 text-xs font-medium transition-colors"
-          >
-            <Mail className="w-3.5 h-3.5" />
-            Email
-          </a>
-        </div>
-      )}
-    </div>
-  )
-}
-
-export default function DashboardPage() {
+export default function DashboardV2Page() {
   const router = useRouter()
-  const user = useAuthStore((s) => s.user)
-  const trialExpired = useAuthStore((s) => s.isTrialExpired)()
-  const [data, setData] = useState<DashboardData | null>(null)
+  const [data, setData] = useState<DashboardV2 | null>(null)
   const [loading, setLoading] = useState(true)
-  const [notifications, setNotifications] = useState<DashNotification[]>([])
+  const [showCriarModal, setShowCriarModal] = useState(false)
 
   useEffect(() => {
-    async function loadDashboard() {
-      try {
-        const [result, notifData] = await Promise.all([
-          api.get<DashboardData>('/api/dashboard/summary'),
-          api.get<{ notifications: DashNotification[]; count: number }>('/api/notifications/unread').catch(() => ({ notifications: [], count: 0 })),
-        ])
-        setData(result)
-        setNotifications(notifData.notifications.slice(0, 5))
-      } catch {
-        setData({
-          metrics: {
-            postsThisMonth: 0,
-            approvedCards: 0,
-            scheduledToday: 0,
-            videosGenerated: 0,
-            publishedCards: 0,
-          },
-          upcomingPosts: [],
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadDashboard()
+    api
+      .get<DashboardV2>('/api/dashboard/v2')
+      .then((d) => setData(d))
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
-  async function dismissNotification(id: string) {
-    try {
-      await api.post(`/api/notifications/${id}/dismiss`)
-      setNotifications((prev) => prev.filter((n) => n._id !== id))
-    } catch {}
-  }
-
-  if (loading) {
+  if (loading || !data) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-purple-200 border-t-purple-600" />
       </div>
     )
   }
 
-  const metrics = data?.metrics || {
-    postsThisMonth: 0,
-    approvedCards: 0,
-    scheduledToday: 0,
-    videosGenerated: 0,
-    publishedCards: 0,
-  }
+  const progressoPct =
+    data.gamificacao.nivelProgresso.proximo === Infinity
+      ? 100
+      : Math.min(
+          100,
+          Math.round(
+            ((data.gamificacao.xp - data.gamificacao.nivelProgresso.atual) /
+              (data.gamificacao.nivelProgresso.proximo -
+                data.gamificacao.nivelProgresso.atual)) *
+              100,
+          ),
+        )
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Greeting */}
-      <div>
-        <h2 className="text-2xl font-bold text-white">
-          {getGreeting()}, {user?.companyName || user?.name || 'bem-vindo'}!
-        </h2>
-        <p className="text-gray-400 mt-1">
-          Aqui esta o resumo do seu marketing hoje.
-        </p>
-      </div>
-
-      {/* Trial countdown banner */}
-      <TrialBanner />
-
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <MetricCard
-          title="Posts este mes"
-          value={metrics.postsThisMonth}
-          icon={Send}
-          color="blue"
-        />
-        <MetricCard
-          title="Cards aprovados"
-          value={metrics.approvedCards}
-          icon={Image}
-          color="green"
-        />
-        <MetricCard
-          title="Publicados"
-          value={metrics.publishedCards}
-          icon={CheckCircle2}
-          color="pink"
-        />
-        <MetricCard
-          title="Agendados hoje"
-          value={metrics.scheduledToday}
-          icon={Calendar}
-          color="yellow"
-        />
-        <MetricCard
-          title="Vídeos gerados"
-          value={metrics.videosGenerated}
-          icon={Video}
-          color="purple"
-        />
-      </div>
-
-      {/* Notifications / Alerts */}
-      {notifications.length > 0 && (
-        <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-primary-400" />
-              Alertas e Mensagens
-            </CardTitle>
-            <span className="text-xs text-gray-500">
-              {notifications.length} pendente{notifications.length !== 1 ? 's' : ''}
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr_280px]">
+      {/* ─── Coluna esquerda — Gamificação ─── */}
+      <aside className="space-y-4">
+        <div className="rounded-2xl bg-gray-900 p-4 text-white">
+          <div className="mb-2 flex items-center justify-between text-xs">
+            <span className="text-gray-400">Ranking</span>
+            <Trophy className="h-4 w-4 text-amber-400" />
+          </div>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-300">
+            {data.gamificacao.nivel.replace('INTERMEDIARIO', 'INTERMEDIÁRIO')}
+          </div>
+          <div className="mb-1 flex items-baseline justify-between text-sm">
+            <span className="text-gray-400">Progresso</span>
+            <span className="font-semibold">
+              {data.gamificacao.xp}/
+              {data.gamificacao.nivelProgresso.proximo === Infinity
+                ? '∞'
+                : data.gamificacao.nivelProgresso.proximo}{' '}
+              XP
             </span>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {notifications.map((n) => {
-                const Icon = notifTypeIcons[n.type] || Info
-                const colors = notifTypeColors[n.type] || { text: 'text-gray-400', bg: 'bg-gray-500/15' }
-                return (
-                  <div
-                    key={n._id}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-brand-surface border border-brand-border hover:border-gray-700 transition-colors group"
-                  >
-                    <div className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center flex-shrink-0`}>
-                      <Icon className={`w-4 h-4 ${colors.text}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div
-                          className="flex-1 min-w-0 cursor-pointer"
-                          onClick={() => {
-                            if (n.action_url) router.push(n.action_url)
-                          }}
-                        >
-                          <p className="text-sm font-medium text-gray-200 leading-tight">
-                            {n.title}
-                          </p>
-                          {n.message && (
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
-                              {n.message}
-                            </p>
-                          )}
-                          <span className="text-[10px] text-gray-600 mt-1 inline-block">
-                            {notifTimeAgo(n.created_at)}
-                            {n.expires_at && (
-                              <span className="text-amber-600 ml-2">
-                                expira {notifTimeAgo(n.expires_at)}
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => dismissNotification(n._id)}
-                          className="text-gray-700 hover:text-gray-400 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-700">
+            <div
+              className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+              style={{ width: `${progressoPct}%` }}
+            />
+          </div>
+          <div className="mt-2 text-[11px] text-gray-400">
+            {data.gamificacao.nivelProgresso.faltam > 0
+              ? `Faltam ${data.gamificacao.nivelProgresso.faltam} XP para o proximo nivel`
+              : 'Nivel maximo!'}
+          </div>
+        </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Upcoming posts */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary-400" />
-              Próximas postagens
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/app/calendar')}
-              className="gap-1"
+        <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4">
+          <div className="mb-1 flex items-center gap-2 text-xs uppercase tracking-wide text-orange-700">
+            <Flame className="h-4 w-4" />
+            Ofensiva
+          </div>
+          <div className="text-3xl font-bold text-gray-900">
+            {data.gamificacao.ofensiva}
+          </div>
+          <div className="text-xs text-gray-600">
+            {data.gamificacao.ofensiva === 0
+              ? 'Comece sua ofensiva hoje!'
+              : `${data.gamificacao.ofensiva} dia${data.gamificacao.ofensiva > 1 ? 's' : ''} seguido${data.gamificacao.ofensiva > 1 ? 's' : ''}!`}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-sm font-semibold text-gray-900">
+              MISSOES {data.missoes.filter((m) => m.progresso >= m.meta).length}/
+              {data.missoes.length}
+            </div>
+            <Link
+              href="/app/jornada"
+              className="text-xs text-purple-600 hover:underline"
             >
               Ver todas
-              <ArrowRight className="w-3 h-3" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {data?.upcomingPosts && data.upcomingPosts.length > 0 ? (
-              <div className="space-y-3">
-                {data.upcomingPosts.slice(0, 5).map((post) => (
-                  <PostItem key={post._id} post={post} />
-                ))}
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {data.missoes.length === 0 && (
+              <p className="text-xs text-gray-500">
+                Nenhuma missao ativa agora.
+              </p>
+            )}
+            {data.missoes.map((m) => (
+              <div
+                key={m._id}
+                className="flex w-full items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+              >
+                <Zap className="h-4 w-4 flex-shrink-0 text-purple-500" />
+                <div className="flex-1 truncate text-xs">
+                  <div className="truncate font-medium text-gray-900">
+                    {m.titulo}
+                  </div>
+                  <div className="text-gray-500">+{m.recompensaXP} XP</div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-gray-400" />
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <Calendar className="w-10 h-10 text-gray-700 mx-auto mb-3" />
-                <p className="text-sm text-gray-400">
-                  Nenhuma postagem agendada
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  Gere um card e agende sua primeira postagem
-                </p>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      {/* ─── Coluna central — Área principal ─── */}
+      <section className="space-y-4">
+        {/* Banner "Vamos agilizar!" — marca sem setup completo */}
+        {!data.empresa.onboardingCompleto && (
+          <div className="flex items-center gap-4 rounded-2xl border-2 border-purple-200 bg-gradient-to-r from-purple-50 via-pink-50 to-rose-50 p-4">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <div className="text-lg font-semibold text-gray-900">
+                Vamos agilizar!
+              </div>
+              <div className="text-sm text-gray-700">
+                Podemos preencher quase tudo de <b>{data.empresa.nome}</b>{' '}
+                automaticamente usando IA.
+              </div>
+            </div>
+            <Button
+              onClick={() => router.push('/onboarding')}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Configurar
+            </Button>
+          </div>
+        )}
+
+        {data.empresa.onboardingCompleto &&
+          data.proximoPasso.completos < data.proximoPasso.total && (
+          <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 p-4 text-white shadow-lg">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white/20">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-white/80">
+                Proximo passo
+              </div>
+              <div className="text-lg font-semibold">
+                {data.proximoPasso.label}
+              </div>
+              <div className="text-xs text-white/80">
+                Crie conteudo incrivel com ajuda da IA
+              </div>
+            </div>
+            <div className="hidden items-center gap-3 md:flex">
+              <div className="text-right">
+                <div className="text-xs text-white/80">Completas</div>
+                <div className="font-semibold">
+                  {data.proximoPasso.completos}/{data.proximoPasso.total}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCriarModal(true)}
+                className="inline-flex items-center gap-1 rounded-full bg-white px-4 py-2 text-sm font-medium text-purple-700 hover:bg-gray-50"
+              >
+                Ir
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900">
+              Ultimos posts da comunidade
+            </h3>
+            <button
+              type="button"
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {data.posts.comunidade.length === 0 && (
+              <div className="flex h-16 w-full items-center justify-center rounded-xl border border-dashed border-gray-200 text-xs text-gray-500">
+                Ainda nao ha posts na comunidade
               </div>
             )}
-          </CardContent>
-        </Card>
+            {data.posts.comunidade.map((p) => (
+              <div
+                key={p.id}
+                className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-full ring-2 ring-purple-200"
+              >
+                {p.thumb ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.thumb}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-br from-purple-200 to-pink-200" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
 
-        {/* Quick actions */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
-            Ações rapidas
-          </h3>
-
-          <QuickAction
-            title="Gerar Card"
-            description="Crie um card com IA"
-            icon={Sparkles}
-            color="primary"
-            onClick={() => router.push('/app/cards/generate')}
-            locked={trialExpired}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <MetricTile
+            label="Total de posts"
+            value={String(data.metricas.totalPosts)}
+            hint={
+              data.metricas.variacaoTotal !== 0
+                ? `${data.metricas.variacaoTotal > 0 ? '+' : ''}${data.metricas.variacaoTotal}%`
+                : undefined
+            }
+            tone="dark"
+            icon={<TrendingUp className="h-4 w-4" />}
           />
-
-          <QuickAction
-            title="Agendar Post"
-            description="Programe publicações"
-            icon={Calendar}
-            color="blue"
-            onClick={() => router.push('/app/calendar')}
-            locked={trialExpired}
+          <MetricTile
+            label="Pautas para criar"
+            value={String(data.metricas.pautasPara30d)}
+            hint="Proximos 30 dias"
+            icon={<Calendar className="h-4 w-4 text-purple-500" />}
           />
-
-          <QuickAction
-            title="Criar Vídeo"
-            description="Gere videos com IA"
-            icon={Video}
-            color="purple"
-            onClick={() => router.push('/app/videos')}
-            locked={trialExpired}
+          <MetricTile
+            label="Agendados"
+            value={String(data.metricas.agendadosSemana)}
+            hint="Para esta semana"
+            icon={<Clock className="h-4 w-4 text-blue-500" />}
+          />
+          <MetricTile
+            label="Creditos IA"
+            value={String(data.metricas.creditos)}
+            hint={data.metricas.plano}
+            icon={<Coins className="h-4 w-4 text-amber-500" />}
           />
         </div>
-      </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400" />
+              <div>
+                <div className="font-semibold text-gray-900">Dashboard</div>
+                <div className="text-xs text-gray-500">
+                  Trabalhando em {data.empresa.nome}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Link
+                href="/app/calendar"
+                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50"
+              >
+                <Calendar className="h-4 w-4" />
+                Agendamento
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowCriarModal(true)}
+                className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-1.5 text-sm font-medium text-white hover:from-purple-700 hover:to-pink-700"
+              >
+                <Plus className="h-4 w-4" />
+                Criar Post
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900">
+              Suas ultimas criacoes
+            </h3>
+            <Link
+              href="/app/biblioteca"
+              className="text-xs text-purple-600 hover:underline"
+            >
+              Ver biblioteca →
+            </Link>
+          </div>
+          {data.ultimasCriacoes.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center">
+              <ImageIcon className="h-10 w-10 text-gray-300" />
+              <p className="text-sm text-gray-600">
+                Voce ainda nao criou nenhum post
+              </p>
+              <Button size="sm" onClick={() => setShowCriarModal(true)}>
+                Criar primeiro post
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {data.ultimasCriacoes.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/app/biblioteca`}
+                  className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
+                >
+                  <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-medium text-gray-800 shadow-sm backdrop-blur dark:bg-gray-900/90 dark:text-gray-100">
+                    <Instagram className="h-3 w-3" />
+                    Instagram
+                  </span>
+                  <div className="aspect-square bg-gray-100 dark:bg-gray-800">
+                    {c.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={c.imageUrl}
+                        alt={c.headline}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-gray-400">
+                        <ImageIcon className="h-8 w-8" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-2">
+                    <div className="truncate text-xs font-medium text-gray-900 dark:text-white">
+                      {c.headline || 'Sem titulo'}
+                    </div>
+                    <div className="text-[10px] uppercase text-gray-500">
+                      {c.status}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white p-6 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-xl">
+            🤖
+          </div>
+          <div className="text-sm text-gray-700">
+            A IA esta buscando sugestoes para voce!
+          </div>
+          <Link href="/app/inspiracao">
+            <Button variant="outline" size="sm">
+              Ver inspiracoes
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* ─── Coluna direita — Comunidade e dicas ─── */}
+      <aside className="space-y-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-purple-500" />
+              <span className="text-sm font-semibold text-gray-900">
+                Comunidade
+              </span>
+            </div>
+            <Link
+              href="/app/comunidade"
+              className="text-xs text-purple-600 hover:underline"
+            >
+              Ver mais →
+            </Link>
+          </div>
+          {data.comunidade.length === 0 ? (
+            <p className="text-xs text-gray-500">Ainda nao ha perguntas.</p>
+          ) : (
+            data.comunidade.map((p) => (
+              <Link
+                key={p.id}
+                href={`/app/comunidade`}
+                className="block rounded-lg border border-gray-100 bg-gray-50 p-2 hover:bg-purple-50"
+              >
+                <div className="mb-1 flex items-center gap-1">
+                  {p.tags.slice(0, 1).map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] text-purple-700"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+                <div className="truncate text-xs text-gray-800">
+                  {p.titulo}
+                </div>
+              </Link>
+            ))
+          )}
+          <button
+            type="button"
+            className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 py-2 text-xs font-medium text-amber-700 hover:from-amber-100 hover:to-orange-100"
+          >
+            <Gift className="h-4 w-4" />
+            Ganhe 100 Creditos
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <CalendarPlus className="h-4 w-4 text-purple-500" />
+            <span className="text-sm font-semibold text-gray-900">
+              Proximas Datas
+            </span>
+          </div>
+          <p className="text-xs text-gray-500">Nao perca nenhuma</p>
+          <div className="mt-3 space-y-2">
+            {(!data.datasProximas || data.datasProximas.length === 0) && (
+              <div className="rounded-lg bg-gray-50 p-3 text-center text-xs text-gray-500">
+                Nenhuma data comemorativa encontrada
+              </div>
+            )}
+            {data.datasProximas?.slice(0, 4).map((d, i) => {
+              const date = new Date(d.dateISO)
+              const dia = date.getDate()
+              const mes = date
+                .toLocaleDateString('pt-BR', { month: 'short' })
+                .replace('.', '')
+                .toUpperCase()
+              const diasFalta = Math.max(
+                0,
+                Math.ceil(
+                  (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+                ),
+              )
+              const labelDias =
+                diasFalta === 0
+                  ? 'Hoje'
+                  : diasFalta === 1
+                    ? 'Amanha'
+                    : `Em ${diasFalta} dias`
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 rounded-lg border border-gray-100 p-2 dark:border-gray-800"
+                >
+                  <div className="flex h-10 w-10 flex-col items-center justify-center rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 text-[11px] font-bold text-purple-700 dark:from-purple-900/40 dark:to-pink-900/40 dark:text-purple-200">
+                    <span className="leading-none">{dia}</span>
+                    <span className="mt-0.5 text-[9px] font-semibold">
+                      {mes}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate text-xs font-medium text-gray-900 dark:text-white">
+                      {d.name}
+                    </div>
+                    <div className="text-[10px] text-amber-600 dark:text-amber-400">
+                      {labelDias}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-amber-600" />
+            <span className="text-sm font-semibold text-gray-900">
+              Dica Rapida
+            </span>
+          </div>
+          <p className="text-sm text-gray-700">{data.dicaRapida}</p>
+        </div>
+      </aside>
+
+      <CriarChoiceModal
+        open={showCriarModal}
+        onClose={() => setShowCriarModal(false)}
+      />
     </div>
   )
 }
 
-function QuickAction({
-  title, description, icon: Icon, color, onClick, locked,
+function MetricTile({
+  label,
+  value,
+  hint,
+  icon,
+  tone = 'light',
 }: {
-  title: string
-  description: string
-  icon: React.ComponentType<{ className?: string }>
-  color: 'primary' | 'blue' | 'purple'
-  onClick: () => void
-  locked?: boolean
+  label: string
+  value: string
+  hint?: string
+  icon: React.ReactNode
+  tone?: 'light' | 'dark'
 }) {
-  const colorMap = {
-    primary: { border: 'hover:border-primary-500/40', bg: 'hover:bg-primary-500/5', iconBg: 'bg-primary-500/15 group-hover:bg-primary-500/25', icon: 'text-primary-400' },
-    blue: { border: 'hover:border-blue-500/40', bg: 'hover:bg-blue-500/5', iconBg: 'bg-blue-500/15 group-hover:bg-blue-500/25', icon: 'text-blue-400' },
-    purple: { border: 'hover:border-purple-500/40', bg: 'hover:bg-purple-500/5', iconBg: 'bg-purple-500/15 group-hover:bg-purple-500/25', icon: 'text-purple-400' },
-  }[color]
-
-  if (locked) {
-    return (
-      <div
-        title="Disponivel apos ativar seu plano"
-        className="w-full rounded-xl border border-brand-border bg-brand-card/50 p-5 text-left opacity-50 cursor-not-allowed relative"
-      >
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center`}>
-            <Icon className="w-5 h-5 text-gray-500" />
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-gray-400">{title}</p>
-            <p className="text-xs text-gray-600">{description}</p>
-          </div>
-          <Lock className="w-4 h-4 text-gray-600" />
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <button
-      onClick={onClick}
-      className={`w-full group rounded-xl border border-brand-border bg-brand-card p-5 text-left transition-all ${colorMap.border} ${colorMap.bg}`}
+    <div
+      className={
+        tone === 'dark'
+          ? 'rounded-2xl bg-gray-900 p-4 text-white'
+          : 'rounded-2xl border border-gray-200 bg-white p-4'
+      }
     >
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-lg ${colorMap.iconBg} flex items-center justify-center transition-colors`}>
-          <Icon className={`w-5 h-5 ${colorMap.icon}`} />
-        </div>
-        <div>
-          <p className="font-medium text-white">{title}</p>
-          <p className="text-xs text-gray-500">{description}</p>
-        </div>
+      <div
+        className={`mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide ${
+          tone === 'dark' ? 'text-gray-400' : 'text-gray-500'
+        }`}
+      >
+        <span>{label}</span>
+        {icon}
       </div>
-    </button>
+      <div className="text-2xl font-bold">{value}</div>
+      {hint && (
+        <div
+          className={`text-xs ${tone === 'dark' ? 'text-green-400' : 'text-gray-500'}`}
+        >
+          {hint}
+        </div>
+      )}
+    </div>
   )
 }

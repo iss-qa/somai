@@ -110,9 +110,23 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // Aplica tema salvo antes do primeiro paint — evita flash.
+  // Default: 'dark' (v1 foi construída dark; usuário pode alternar no /app).
+  const themeScript = `
+try {
+  var t = localStorage.getItem('soma-theme');
+  if (!t) t = 'dark';
+  if (t === 'dark') document.documentElement.classList.add('dark');
+  else document.documentElement.classList.remove('dark');
+} catch(_) {}
+  `.trim()
+
   return (
-    <html lang="pt-BR" className={`${jakarta.variable} dark`}>
-      <body className="font-sans antialiased bg-brand-dark text-foreground">
+    <html lang="pt-BR" className={`${jakarta.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="font-sans antialiased bg-brand-dark text-foreground dark:bg-brand-dark">
         {children}
         <Toaster
           position="top-right"
