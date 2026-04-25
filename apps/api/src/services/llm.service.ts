@@ -1,15 +1,15 @@
 /**
  * LLM unificado com fallback em cascata.
  *
- * Texto: Gemini 2.0 Flash -> OpenAI gpt-4o-mini -> DeepSeek deepseek-chat
- * Vision: Gemini 2.0 Flash -> OpenAI gpt-4o-mini -> graceful empty
+ * Texto: OpenAI gpt-4o-mini -> Gemini 2.0 Flash -> DeepSeek deepseek-chat
+ * Vision: OpenAI gpt-4o-mini -> Gemini 2.0 Flash -> graceful empty
  *         (DeepSeek nao suporta image input)
  *
  * Logs:
- *   [llm] boot — gemini=on openai=on deepseek=on
- *   [llm] start text(640ch) provider=gemini
- *   [llm] gemini falhou em text status=429 msg="quota..." → tenta openai
- *   [llm] openai falhou em text status=401 msg="api key invalid" → tenta deepseek
+ *   [llm] boot — openai=on gemini=on deepseek=on
+ *   [llm] start text(640ch) provider=openai
+ *   [llm] openai falhou em text status=429 msg="quota..." → tenta gemini
+ *   [llm] gemini falhou em text status=401 msg="api key invalid" → tenta deepseek
  *   [llm] ok text deepseek in 1340ms
  *   [llm] FALHA TOTAL em vision (gracioso): retornando vazio
  */
@@ -237,8 +237,8 @@ async function runCascade<T>(label: string, steps: Step<T>[]): Promise<T> {
 export const LLMService = {
   async generateText(prompt: string): Promise<string> {
     return runCascade(`text(${prompt.length}ch)`, [
-      { name: 'gemini', available: hasGemini(), run: () => geminiText(prompt) },
       { name: 'openai', available: hasOpenAI(), run: () => openaiText(prompt) },
+      { name: 'gemini', available: hasGemini(), run: () => geminiText(prompt) },
       { name: 'deepseek', available: hasDeepSeek(), run: () => deepseekText(prompt) },
     ])
   },
@@ -270,8 +270,8 @@ export const LLMService = {
       return await runCascade(
         `vision(${mimeType}, ${Math.round(base64.length / 1024)}kb)`,
         [
-          { name: 'gemini', available: hasGemini(), run: () => geminiVision(prompt, base64, mimeType) },
           { name: 'openai', available: hasOpenAI(), run: () => openaiVision(prompt, base64, mimeType) },
+          { name: 'gemini', available: hasGemini(), run: () => geminiVision(prompt, base64, mimeType) },
         ],
       )
     } catch (err) {
