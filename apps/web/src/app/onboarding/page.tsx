@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Instagram, Globe, Loader2, Sparkles, ArrowRight } from 'lucide-react'
+import { Instagram, Globe, Loader2, Sparkles, ArrowRight, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -174,9 +174,32 @@ export default function OnboardingInicioPage() {
               Conecte em 1 clique. Vamos analisar seus ultimos posts, logo e
               bio automaticamente.
             </p>
-            <p className="mt-3 text-xs text-gray-400">
-              Requer conta Business ou Creator
-            </p>
+            <div
+              className="group/req relative mt-3 inline-flex items-center gap-1 text-xs text-gray-400"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span>Requer conta Business ou Creator</span>
+              <Info className="h-3 w-3 text-gray-400 transition group-hover/req:text-gray-600" />
+              <div className="pointer-events-none absolute left-0 top-full z-10 mt-2 w-72 rounded-lg border border-gray-200 bg-white p-3 text-left shadow-lg opacity-0 transition-opacity group-hover/req:opacity-100">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                  Pre-requisitos
+                </p>
+                <ul className="space-y-1.5 text-xs leading-snug text-gray-600">
+                  <li className="flex gap-1.5">
+                    <span className="text-purple-500">•</span>
+                    <span>Conta Instagram <strong className="text-gray-800">Profissional</strong> (Business ou Creator)</span>
+                  </li>
+                  <li className="flex gap-1.5">
+                    <span className="text-purple-500">•</span>
+                    <span>Vinculada a uma <strong className="text-gray-800">Pagina do Facebook</strong></span>
+                  </li>
+                  <li className="flex gap-1.5">
+                    <span className="text-purple-500">•</span>
+                    <span>Voce precisa ser <strong className="text-gray-800">admin da Pagina</strong></span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </button>
 
           {/* Card Site */}
