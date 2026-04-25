@@ -1,47 +1,52 @@
 /**
- * LLM unificado com fallback automatico.
+ * LLM unificado com fallback em cascata.
  *
- * Ordem: Gemini (2.0 Flash) -> OpenAI (gpt-4o-mini).
+ * Texto: Gemini 2.0 Flash -> OpenAI gpt-4o-mini -> DeepSeek deepseek-chat
+ * Vision: Gemini 2.0 Flash -> OpenAI gpt-4o-mini -> graceful empty
+ *         (DeepSeek nao suporta image input)
  *
- * Sobe pra OpenAI quando o Gemini retorna quota/rate-limit/auth ou quando
- * a chave nao existe. Se tambem nao houver chave OpenAI, relanca o erro
- * original pra rota tratar com mensagem amigavel.
- *
- * Todos os metodos logam:
- *   [llm] start text (gemini|openai) len=N
- *   [llm] ok text gemini in 800ms
- *   [llm] Gemini falhou (msg): fallback -> OpenAI
- *   [llm] ok text openai(fb) in 1200ms
- *   [llm] ambos providers falharam
+ * Logs:
+ *   [llm] boot — gemini=on openai=on deepseek=on
+ *   [llm] start text(640ch) provider=gemini
+ *   [llm] gemini falhou em text status=429 msg="quota..." → tenta openai
+ *   [llm] openai falhou em text status=401 msg="api key invalid" → tenta deepseek
+ *   [llm] ok text deepseek in 1340ms
+ *   [llm] FALHA TOTAL em vision (gracioso): retornando vazio
  */
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import OpenAI from 'openai'
 
 const GEMINI_TEXT_MODEL = 'gemini-2.0-flash'
 const OPENAI_TEXT_MODEL = 'gpt-4o-mini'
+const DEEPSEEK_TEXT_MODEL = 'deepseek-chat'
 
+function geminiOnly(): boolean {
+  const v = String(process.env.LLM_GEMINI_ONLY || '').toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes'
+}
 function hasGemini() {
   return !!process.env.GEMINI_API_KEY
 }
 function hasOpenAI() {
-  return !!process.env.OPENAI_API_KEY
+  return !geminiOnly() && !!process.env.OPENAI_API_KEY
+}
+function hasDeepSeek() {
+  return !geminiOnly() && !!process.env.DEEPSEEK_API_KEY
 }
 
-// Log 1x na inicializacao pra deixar claro quais providers estao ativos
 ;(function logProviders() {
-  const g = hasGemini()
-  const o = hasOpenAI()
+  const debug = geminiOnly() ? ' [DEBUG: LLM_GEMINI_ONLY=on]' : ''
   console.log(
-    `[llm] boot — gemini=${g ? 'on' : 'OFF'} openai(fallback)=${o ? 'on' : 'OFF'}`,
+    `[llm] boot — gemini=${hasGemini() ? 'on' : 'OFF'} openai=${hasOpenAI() ? 'on' : 'OFF'} deepseek=${hasDeepSeek() ? 'on' : 'OFF'}${debug}`,
   )
-  if (!g && !o) {
+  if (!hasGemini() && !hasOpenAI() && !hasDeepSeek()) {
     console.warn(
       '[llm] ATENCAO: nenhum provider de LLM configurado. Onboarding/IA vai falhar.',
     )
   }
 })()
 
-function isFallbackableError(err: any): boolean {
+function isFallbackable(err: any): boolean {
   const raw = String(err?.message || '')
   const lower = raw.toLowerCase()
   return (
@@ -51,6 +56,9 @@ function isFallbackableError(err: any): boolean {
     err?.status === 500 ||
     err?.status === 502 ||
     err?.status === 503 ||
+    err?.code === 'ETIMEDOUT' ||
+    err?.code === 'ECONNRESET' ||
+    err?.code === 'ECONNREFUSED' ||
     lower.includes('quota') ||
     lower.includes('rate limit') ||
     lower.includes('too many requests') ||
@@ -59,13 +67,19 @@ function isFallbackableError(err: any): boolean {
     lower.includes('permission') ||
     lower.includes('exceeded') ||
     lower.includes('overloaded') ||
-    lower.includes('unavailable')
+    lower.includes('unavailable') ||
+    lower.includes('timeout') ||
+    lower.includes('network') ||
+    lower.includes('fetch failed')
   )
 }
 
 function shortErr(err: any): string {
-  return String(err?.message || err || 'unknown').slice(0, 200)
+  const msg = String(err?.message || err || 'unknown')
+  return msg.replace(/\s+/g, ' ').slice(0, 250)
 }
+
+// ── Provider clients ────────────────────────────────────────────
 
 function getGemini(): GoogleGenerativeAI | null {
   const key = process.env.GEMINI_API_KEY
@@ -77,6 +91,18 @@ function getOpenAI(): OpenAI | null {
   return key ? new OpenAI({ apiKey: key }) : null
 }
 
+function getDeepSeek(): OpenAI | null {
+  const key = process.env.DEEPSEEK_API_KEY
+  return key
+    ? new OpenAI({
+        apiKey: key,
+        baseURL: 'https://api.deepseek.com/v1',
+      })
+    : null
+}
+
+// ── Text providers ──────────────────────────────────────────────
+
 async function geminiText(prompt: string): Promise<string> {
   const g = getGemini()
   if (!g) throw new Error('GEMINI_API_KEY nao configurada')
@@ -84,6 +110,30 @@ async function geminiText(prompt: string): Promise<string> {
   const res = await model.generateContent(prompt)
   return res.response.text().trim()
 }
+
+async function openaiText(prompt: string): Promise<string> {
+  const c = getOpenAI()
+  if (!c) throw new Error('OPENAI_API_KEY nao configurada')
+  const res = await c.chat.completions.create({
+    model: OPENAI_TEXT_MODEL,
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.7,
+  })
+  return (res.choices[0]?.message?.content || '').trim()
+}
+
+async function deepseekText(prompt: string): Promise<string> {
+  const c = getDeepSeek()
+  if (!c) throw new Error('DEEPSEEK_API_KEY nao configurada')
+  const res = await c.chat.completions.create({
+    model: DEEPSEEK_TEXT_MODEL,
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.7,
+  })
+  return (res.choices[0]?.message?.content || '').trim()
+}
+
+// ── Vision providers ────────────────────────────────────────────
 
 async function geminiVision(
   prompt: string,
@@ -98,17 +148,6 @@ async function geminiVision(
     { inlineData: { mimeType, data: base64 } },
   ])
   return res.response.text().trim()
-}
-
-async function openaiText(prompt: string): Promise<string> {
-  const c = getOpenAI()
-  if (!c) throw new Error('OPENAI_API_KEY nao configurada')
-  const res = await c.chat.completions.create({
-    model: OPENAI_TEXT_MODEL,
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.7,
-  })
-  return (res.choices[0]?.message?.content || '').trim()
 }
 
 async function openaiVision(
@@ -142,62 +181,66 @@ function stripJsonFences(s: string): string {
     .trim()
 }
 
-// Wrapper generico com log + fallback
-async function withFallback<T>(
-  label: string,
-  primary: () => Promise<T>,
-  fallback: (() => Promise<T>) | null,
-): Promise<T> {
-  const started = Date.now()
-  console.log(`[llm] start ${label} provider=gemini`)
-  try {
-    const out = await primary()
-    console.log(`[llm] ok ${label} gemini in ${Date.now() - started}ms`)
-    return out
-  } catch (geminiErr: any) {
-    const fallbackable = isFallbackableError(geminiErr)
-    console.warn(
-      `[llm] gemini falhou em ${label} (fallbackable=${fallbackable}) status=${geminiErr?.status} msg="${shortErr(geminiErr)}"`,
-    )
-    if (!fallback || !fallbackable) {
-      throw geminiErr
-    }
-    if (!process.env.OPENAI_API_KEY) {
-      console.warn(
-        `[llm] sem OPENAI_API_KEY configurada — nao ha fallback, relancando erro original`,
-      )
-      throw geminiErr
-    }
-    const fbStart = Date.now()
-    console.log(`[llm] fallback ${label} provider=openai(gpt-4o-mini)`)
+// ── Cascade runner ──────────────────────────────────────────────
+
+interface Step<T> {
+  name: string
+  available: boolean
+  run: () => Promise<T>
+}
+
+async function runCascade<T>(label: string, steps: Step<T>[]): Promise<T> {
+  const total = Date.now()
+  const errors: string[] = []
+  for (const step of steps) {
+    if (!step.available) continue
+    const t = Date.now()
+    console.log(`[llm] start ${label} provider=${step.name}`)
     try {
-      const out = await fallback()
+      const out = await step.run()
       console.log(
-        `[llm] ok ${label} openai(fb) in ${Date.now() - fbStart}ms (total ${Date.now() - started}ms)`,
+        `[llm] ok ${label} ${step.name} in ${Date.now() - t}ms (total ${Date.now() - total}ms)`,
       )
       return out
-    } catch (openaiErr: any) {
-      console.error(
-        `[llm] FALHA TOTAL em ${label}. gemini="${shortErr(geminiErr)}" | openai="${shortErr(openaiErr)}" status=${openaiErr?.status}`,
+    } catch (err: any) {
+      const fbk = isFallbackable(err)
+      // Em debug (so gemini), loga o erro CRU completo pra diagnostico
+      if (geminiOnly()) {
+        console.error(
+          `[llm][DEBUG] ${step.name} falhou em ${label}. status=${err?.status} code=${err?.code} name=${err?.name}\n--- mensagem completa ---\n${err?.message}\n--- stack ---\n${err?.stack}\n--- raw ---\n${JSON.stringify(err, Object.getOwnPropertyNames(err)).slice(0, 4000)}`,
+        )
+        // Em debug propaga direto pra rota mostrar ao usuario
+        throw err
+      }
+      const msg = `${step.name}[status=${err?.status ?? '-'} code=${err?.code ?? '-'}] ${shortErr(err)}`
+      console.warn(
+        `[llm] ${step.name} falhou em ${label} (fallbackable=${fbk}): ${msg}`,
       )
-      // Propaga o erro do OpenAI anotado com o do Gemini pra ficar claro no log
-      const merged: any = new Error(
-        `Ambos providers falharam. gemini=${shortErr(geminiErr)} | openai=${shortErr(openaiErr)}`,
-      )
-      merged.status = openaiErr?.status || geminiErr?.status || 500
-      merged.cause = openaiErr
-      throw merged
+      errors.push(msg)
+      if (!fbk) {
+        const out: any = new Error(`${label} falhou: ${msg}`)
+        out.status = err?.status || 500
+        out.cause = err
+        throw out
+      }
     }
   }
+  const summary = `Todos providers falharam em ${label}. ${errors.join(' | ')}`
+  console.error(`[llm] ${summary}`)
+  const out: any = new Error(summary)
+  out.status = 502
+  throw out
 }
+
+// ── Public API ──────────────────────────────────────────────────
 
 export const LLMService = {
   async generateText(prompt: string): Promise<string> {
-    return withFallback(
-      `text(${prompt.length}ch)`,
-      () => geminiText(prompt),
-      hasOpenAI() ? () => openaiText(prompt) : null,
-    )
+    return runCascade(`text(${prompt.length}ch)`, [
+      { name: 'gemini', available: hasGemini(), run: () => geminiText(prompt) },
+      { name: 'openai', available: hasOpenAI(), run: () => openaiText(prompt) },
+      { name: 'deepseek', available: hasDeepSeek(), run: () => deepseekText(prompt) },
+    ])
   },
 
   async generateJson<T = any>(
@@ -213,15 +256,31 @@ export const LLMService = {
     }
   },
 
+  /**
+   * Vision com graceful degradation: se todos providers de vision falharem,
+   * retorna string vazia em vez de jogar — o chamador trata como "sem
+   * cores/estilo" e o usuario preenche manualmente no passo 5.
+   */
   async analyzeImage(
     prompt: string,
     base64: string,
     mimeType: string,
   ): Promise<string> {
-    return withFallback(
-      `vision(${mimeType}, ${Math.round(base64.length / 1024)}kb)`,
-      () => geminiVision(prompt, base64, mimeType),
-      hasOpenAI() ? () => openaiVision(prompt, base64, mimeType) : null,
-    )
+    try {
+      return await runCascade(
+        `vision(${mimeType}, ${Math.round(base64.length / 1024)}kb)`,
+        [
+          { name: 'gemini', available: hasGemini(), run: () => geminiVision(prompt, base64, mimeType) },
+          { name: 'openai', available: hasOpenAI(), run: () => openaiVision(prompt, base64, mimeType) },
+        ],
+      )
+    } catch (err) {
+      // Em debug, propaga o erro pra ficar visivel
+      if (geminiOnly()) throw err
+      console.warn(
+        `[llm] vision degradado para vazio — usuario preenche manualmente. Erro: ${shortErr(err)}`,
+      )
+      return ''
+    }
   },
 }

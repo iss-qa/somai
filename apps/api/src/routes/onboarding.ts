@@ -10,12 +10,26 @@ import {
 } from '../services/brand-extraction.service'
 import { LLMService } from '../services/llm.service'
 
+function isDebugLLM() {
+  const v = String(process.env.LLM_GEMINI_ONLY || '').toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes'
+}
+
 // Traduz erros do LLM (Gemini/OpenAI) em { status, message } curtos.
 // Sem isso, JSON bruto com quotas[] / tokens expirados vazam pro front.
+// Em modo debug (LLM_GEMINI_ONLY), devolve o erro completo pra facilitar
+// diagnostico — assim a toast no front mostra o motivo real.
 function mapGeminiError(err: any): { status: number; message: string } {
+  if (isDebugLLM()) {
+    return {
+      status: err?.status || 500,
+      message: `[DEBUG] ${String(err?.message || err || 'erro desconhecido').slice(0, 1500)}`,
+    }
+  }
   const raw = String(err?.message || '')
   const lower = raw.toLowerCase()
-  const ambos = lower.startsWith('ambos providers falharam')
+  const ambos = lower.startsWith('ambos providers falharam') ||
+    lower.startsWith('todos providers falharam')
 
   // Quota
   if (
