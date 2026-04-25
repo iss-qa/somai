@@ -330,15 +330,23 @@ Responda APENAS com o JSON.`
     mimeType: string,
   ): Promise<{ cores: string[]; estilo: EstiloVisualV2 | null }> {
     try {
-      const prompt = `Analise esta imagem de marca (logo ou site). Retorne SOMENTE JSON com:
+      const prompt = `Analise esta imagem de logo de marca e identifique as cores exatas usadas no design.
+
+Retorne SOMENTE JSON sem markdown:
 {
   "cores": ["#RRGGBB", "#RRGGBB", "#RRGGBB"],
   "estilo": "minimalista" | "colorido" | "elegante" | "moderno" | "rustico" | "feminino" | "corporativo"
 }
 
-- 3 cores dominantes em hex
-- estilo: escolha UMA palavra da lista
-Responda apenas com o JSON.`
+Regras para cores:
+- Identifique as 3 cores mais importantes da logo (nao do fundo generico)
+- Se a logo tiver fundo colorido, inclua essa cor
+- Se usar verde, branco e escuro: inclua as 3
+- Sempre retorne exatamente 3 cores em hexadecimal (#RRGGBB)
+- Se so houver 2 cores, repita a mais importante como terceira
+- Para estilos fintech/financas/tecnologia prefira "moderno" ou "corporativo"
+
+Responda apenas com o JSON, sem texto adicional.`
 
       const text = await LLMService.analyzeImage(prompt, base64, mimeType)
       const parsed = safeParseJson<any>(text, {})

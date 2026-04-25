@@ -88,6 +88,15 @@ export default async function onboardingRoutes(app: FastifyInstance) {
       if (!company) {
         return reply.status(404).send({ error: 'Empresa nao encontrada' })
       }
+      const estiloVisual: any = company.estiloVisual
+        ? { ...company.estiloVisual }
+        : {}
+      // Fallback: popula cores do estiloVisual a partir de brand_colors se estiverem vazias
+      const bc: any = company.brand_colors || {}
+      if (!estiloVisual.cores?.length && (bc.primary || bc.secondary || bc.accent)) {
+        estiloVisual.cores = [bc.primary, bc.secondary, bc.accent].filter(Boolean)
+      }
+
       return reply.send({
         onboardingCompleto: !!company.onboardingCompleto,
         onboardingStep: company.onboardingStep || 'inicio',
@@ -98,7 +107,7 @@ export default async function onboardingRoutes(app: FastifyInstance) {
         marca: company.marca || {},
         publico: company.publico || {},
         identidade: company.identidade || {},
-        estiloVisual: company.estiloVisual || {},
+        estiloVisual,
       })
     },
   )

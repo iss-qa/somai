@@ -145,10 +145,11 @@ export default function PerfilPage() {
         niche: niche.trim(),
         instagramHandle: instagram.replace(/^@/, '').trim(),
         website: website.trim(),
-        marca: { descricao: bio.trim() },
+        'marca.nome': name.trim(),
+        'marca.descricao': bio.trim(),
         compartilhaComunidade: compartilha,
       })
-      if (user) setUser({ ...user, name: name.trim() })
+      if (user) setUser({ ...user, name: name.trim(), companyName: name.trim() })
       toast.success('Perfil atualizado')
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao salvar')

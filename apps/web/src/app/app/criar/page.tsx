@@ -8,6 +8,7 @@ import { StepFormato } from './components/StepFormato'
 import { StepBriefing } from './components/StepBriefing'
 import { StepCriar } from './components/StepCriar'
 import { IdeiaDialog } from './components/IdeiaDialog'
+import { InspiracaoModal } from './components/InspiracaoModal'
 import { useCriarWizard } from './hooks/useCriarWizard'
 
 export default function CriarV2Page() {
@@ -24,6 +25,7 @@ export default function CriarV2Page() {
       {w.step === 'criar' && <StepCriar w={w} />}
 
       <IdeiaDialog w={w} />
+      <InspiracaoModal w={w} />
 
       <UpgradeProModal
         open={w.showUpgrade}

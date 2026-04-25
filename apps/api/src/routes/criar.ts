@@ -2,10 +2,10 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { Card, Company, Gamificacao, FalUsage, AppSettings } from '@soma-ai/db'
 import { CardStatus } from '@soma-ai/shared'
 import { authenticate } from '../plugins/auth'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { fal } from '@fal-ai/client'
 import { StorageService } from '../services/storage.service'
 import { GamificacaoService } from '../services/gamificacao.service'
+import { LLMService } from '../services/llm.service'
 import { Types } from 'mongoose'
 
 const CREDITO_CUSTO_SLIDE = 15
@@ -25,12 +25,6 @@ const FORMAT_SIZE: Record<string, { width: number; height: number; aspect: strin
   stories_unico: { width: 1080, height: 1920, aspect: '9:16' },
   stories_carrossel: { width: 1080, height: 1920, aspect: '9:16' },
   post_facebook: { width: 1080, height: 1350, aspect: '4:5' },
-}
-
-function getGemini(): GoogleGenerativeAI {
-  const key = process.env.GEMINI_API_KEY
-  if (!key) throw new Error('GEMINI_API_KEY nao configurada')
-  return new GoogleGenerativeAI(key)
 }
 
 function ensureFalConfigured() {
@@ -129,10 +123,7 @@ Regras:
 - Sem explicar o que voce fez. Sem comentarios extras. Apenas o briefing.`
 
       try {
-        const gemini = getGemini()
-        const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' })
-        const result = await model.generateContent(prompt)
-        const text = result.response.text()
+        const text = await LLMService.generateText(prompt)
 
         // Contabiliza o refine (incrementa contador, debita credito se nao-free)
         await Gamificacao.updateOne(
@@ -155,20 +146,10 @@ Regras:
         })
       } catch (err: any) {
         request.log.error(err, '[criar] refinar-prompt falhou')
-        const raw = String(err?.message || '')
-        const isQuota =
-          err?.status === 429 ||
-          /quota|rate.?limit|exceeded|429/i.test(raw)
-        if (isQuota) {
-          return reply.status(503).send({
-            error:
-              'Servico de IA temporariamente indisponivel. Tente novamente em instantes.',
-            code: 'AI_UNAVAILABLE',
-          })
-        }
-        return reply
-          .status(500)
-          .send({ error: raw || 'Erro ao refinar prompt' })
+        return reply.status(503).send({
+          error: 'Servico de IA temporariamente indisponivel. Tente novamente em instantes.',
+          code: 'AI_UNAVAILABLE',
+        })
       }
     },
   )

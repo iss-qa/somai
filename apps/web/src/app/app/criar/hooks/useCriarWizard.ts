@@ -38,6 +38,7 @@ export function useCriarWizard() {
   const [ideia, setIdeia] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
   const [showIdeiaDialog, setShowIdeiaDialog] = useState(false)
+  const [showInspiracaoModal, setShowInspiracaoModal] = useState(false)
   const [ideiaTemp, setIdeiaTemp] = useState('')
   const [gerando, setGerando] = useState(false)
   const [promptRefinado, setPromptRefinado] = useState('')
@@ -180,6 +181,8 @@ export function useCriarWizard() {
     setLinkUrl,
     showIdeiaDialog,
     setShowIdeiaDialog,
+    showInspiracaoModal,
+    setShowInspiracaoModal,
     ideiaTemp,
     setIdeiaTemp,
     // derived

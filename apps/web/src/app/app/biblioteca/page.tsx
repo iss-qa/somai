@@ -32,13 +32,15 @@ interface CardItem {
   createdAt: string
 }
 
-type Tab = 'todos' | 'draft' | 'scheduled' | 'posted'
+type Tab = 'todos' | 'draft' | 'scheduled' | 'posted' | 'ia' | 'personalizado'
 
 const TABS: { key: Tab; label: string; status?: string }[] = [
   { key: 'todos', label: 'Todos' },
   { key: 'draft', label: 'Rascunhos', status: 'draft' },
   { key: 'scheduled', label: 'Agendados', status: 'scheduled' },
   { key: 'posted', label: 'Publicados', status: 'posted' },
+  { key: 'ia', label: 'Gerados por IA' },
+  { key: 'personalizado', label: 'Personalizados' },
 ]
 
 export default function BibliotecaV2Page() {
@@ -55,6 +57,7 @@ export default function BibliotecaV2Page() {
     const params = new URLSearchParams()
     params.set('limit', '60')
     const tabCfg = TABS.find((t) => t.key === tab)
+    // ia/personalizado are client-side filters — don't send status param
     if (tabCfg?.status) params.set('status', tabCfg.status)
     if (formato) params.set('format', formato)
 
@@ -71,14 +74,17 @@ export default function BibliotecaV2Page() {
   }, [tab, formato])
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return cards
+    let result = cards
+    if (tab === 'ia') result = result.filter((c) => !!c.generated_image_url)
+    if (tab === 'personalizado') result = result.filter((c) => !c.generated_image_url)
+    if (!query.trim()) return result
     const q = query.toLowerCase()
-    return cards.filter(
+    return result.filter(
       (c) =>
         (c.headline || '').toLowerCase().includes(q) ||
         (c.caption || '').toLowerCase().includes(q),
     )
-  }, [cards, query])
+  }, [cards, tab, query])
 
   const counts = useMemo(() => {
     const map: Record<string, number> = {
@@ -86,9 +92,13 @@ export default function BibliotecaV2Page() {
       draft: 0,
       scheduled: 0,
       posted: 0,
+      ia: 0,
+      personalizado: 0,
     }
     for (const c of cards) {
       if (c.status in map) map[c.status] = (map[c.status] || 0) + 1
+      if (c.generated_image_url) map.ia = (map.ia || 0) + 1
+      else map.personalizado = (map.personalizado || 0) + 1
     }
     return map
   }, [cards])

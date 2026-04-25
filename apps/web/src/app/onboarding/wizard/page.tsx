@@ -726,9 +726,11 @@ function StepEstilo({
   const [uploadingRef, setUploadingRef] = useState(false)
   const [refinando, setRefinando] = useState(false)
 
-  const cores = value.cores && value.cores.length >= 3
-    ? value.cores.slice(0, 3)
-    : ['', '', '']
+  const cores = [
+    value.cores?.[0] ?? '',
+    value.cores?.[1] ?? '',
+    value.cores?.[2] ?? '',
+  ]
 
   const paletas = paletasPage === 0 ? PALETAS_BASE : PALETAS_EXTRA
   const activePaleta = value.paleta || ''
@@ -843,7 +845,7 @@ function StepEstilo({
                 alt="Logo"
                 className="h-14 w-14 rounded-lg object-cover"
               />
-              <div className="flex-1 text-sm">
+              <div className="min-w-0 flex-1 text-sm">
                 <div className="font-medium text-gray-900">Logo enviada</div>
                 <div className="truncate text-xs text-gray-500">
                   {value.logoUrl}

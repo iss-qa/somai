@@ -182,7 +182,10 @@ export function StepBriefing({ w }: { w: CriarWizardApi }) {
             />
             <FonteCard
               ativo={w.fonte === 'inspiracao'}
-              onClick={() => w.router.push('/app/inspiracao')}
+              onClick={() => {
+                w.setFonte('inspiracao')
+                w.setShowInspiracaoModal(true)
+              }}
               titulo="Inspiracoes"
               subtitulo="Escolha de uma biblioteca de ideias prontas"
               icon={<Lightbulb className="h-5 w-5" />}
