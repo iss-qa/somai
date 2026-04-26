@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   BookOpen,
@@ -50,6 +50,14 @@ const TABS: { key: Tab; label: string; status?: string }[] = [
 ]
 
 export default function BibliotecaV2Page() {
+  return (
+    <Suspense fallback={null}>
+      <BibliotecaV2Content />
+    </Suspense>
+  )
+}
+
+function BibliotecaV2Content() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = (searchParams.get('tab') || 'todos') as Tab
