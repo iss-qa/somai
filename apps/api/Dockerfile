@@ -24,7 +24,6 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
 COPY apps/api ./apps/api
 COPY packages/db ./packages/db
 COPY packages/shared ./packages/shared
-COPY tsconfig.base.json ./
 
 ENV NODE_ENV=production
 ENV PORT=3001
