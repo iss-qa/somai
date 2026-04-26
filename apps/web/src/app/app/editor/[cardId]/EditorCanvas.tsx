@@ -278,7 +278,13 @@ export const EditorCanvas = forwardRef<HTMLDivElement, Props>(function EditorCan
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'contain',
+                  // Com borderRadius (ex.: logo auto-adicionada como circulo)
+                  // queremos cover pra preencher e cortar os cantos quadrados;
+                  // sem borderRadius mantemos contain pra preservar proporcao.
+                  objectFit: ov.borderRadius ? 'cover' : 'contain',
+                  borderRadius: ov.borderRadius
+                    ? `${ov.borderRadius * scale}px`
+                    : undefined,
                   pointerEvents: 'none',
                 }}
               />

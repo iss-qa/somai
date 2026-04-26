@@ -132,10 +132,13 @@ export default function EditorPage() {
               id: makeOverlayId(),
               type: 'image',
               imageUrl: c.brand.logoUrl,
+              // Quadrada + borderRadius circular: foto de perfil do Instagram vem
+              // quadrada com fundo, máscara circular esconde os cantos.
               x: 0.04,
               y: 0.04,
-              w: 0.18,
-              h: 0.1,
+              w: 0.14,
+              h: 0.14,
+              borderRadius: 999,
               z: Date.now(),
             },
           ])
@@ -413,7 +416,7 @@ export default function EditorPage() {
   if (!card) return null
 
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-gray-50 dark:bg-gray-950">
+    <div className="fixed inset-0 z-50 flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Header */}
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
         <button

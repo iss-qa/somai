@@ -235,7 +235,7 @@ Regras:
             expand_prompt: true,
             style: 'auto',
             negative_prompt:
-              'low quality, blurry, watermark, signature, text errors, distorted text, gibberish text, random letters, misspelled words, fake brand names, fake logos, fake handles, @username, url, illegible typography, bad composition, cluttered, busy top area, multiple logos',
+              'low quality, blurry, jpeg artifacts, watermark, signature, text errors, distorted text, gibberish text, random letters, misspelled words, fake brand names, fake logos, fake handles, @username, url, illegible typography, bad composition, cluttered layout, busy top area, multiple logos, multiple posts, picture-in-picture, collage, mockup frames, phone frames, device mockups, garbled text near button, secondary illegible captions, lorem ipsum, scribbled text, smudged text, deformed letters, broken kerning, overlapping text blocks',
             ...(referenceImageUrl ? { image_url: referenceImageUrl } : {}),
           },
           logs: false,
@@ -381,11 +381,14 @@ function derivarHeadline(ideia?: string): string {
 /**
  * Constroi um prompt visual otimizado pro Ideogram a partir do briefing parseado.
  *
- * Estrategia: o backgroundn precisa ser uma cena/composicao limpa, com headline
+ * Estrategia: o background precisa ser uma cena/composicao limpa, com headline
  * em destaque para legibilidade, mas sem nome de marca, handle ou logos
  * desenhados pelo modelo (a logo da empresa e overlay no canvas no frontend, o
  * que evita "JORE MASE", "VAGASE" e logos deformadas). Reservamos area superior
  * livre para a logo ser sobreposta.
+ *
+ * Prompt em INGLÊS — Ideogram tem performance bem melhor em texto/layout
+ * em inglês, mesmo quando os strings de copy estão em português.
  */
 function buildVisualPrompt({
   briefing,
@@ -398,29 +401,51 @@ function buildVisualPrompt({
   objetivo?: string
   abordagem?: string
 }): string {
-  const paleta = (company?.estiloVisual?.paleta || []).filter(Boolean).join(', ')
-  const estilo = company?.estiloVisual?.estilo || 'moderno e profissional'
+  const paletaArr = (company?.estiloVisual?.paleta || []).filter(Boolean) as string[]
+  const paletaText = paletaArr.length ? paletaArr.join(', ') : ''
+  const estilo = company?.estiloVisual?.estilo || 'modern and professional'
+  const niche = company?.niche || company?.marca?.descricao || ''
+  const fontFamily = company?.estiloVisual?.fontFamily || 'Inter or Poppins'
 
   const headline = sanitizeShort(briefing.headline, 70)
   const bullets = briefing.bullets.slice(0, 3).map((b) => sanitizeShort(b, 80))
   const cta = sanitizeShort(briefing.cta, 60)
   const visual = briefing.visual.slice(0, 3).map((v) => sanitizeShort(v, 100))
 
+  // Escolhe layout estrutural com base na presença de bullets (split photo+panel)
+  // ou só um headline (full-bleed photo com sobreposição).
+  const hasBullets = bullets.length >= 2
+  const layoutHint = hasBullets
+    ? 'Layout: top half contains a high-quality lifestyle photograph relevant to the topic; bottom half is a solid colored panel (using the brand palette) hosting structured text content. Smooth transition between halves.'
+    : 'Layout: full-bleed lifestyle photograph with a soft dark gradient overlay on the bottom 40% for text legibility. Headline sits over the gradient.'
+
   return [
-    `Design de post publicitário para Instagram, alta qualidade, estilo ${estilo}.`,
-    objetivo ? `Objetivo: ${objetivo}.` : '',
-    abordagem ? `Abordagem: ${abordagem}.` : '',
-    paleta ? `Paleta de cores: ${paleta}.` : '',
-    visual.length ? `Composição visual: ${visual.join('; ')}.` : '',
-    headline ? `Texto principal centralizado, em destaque, tipografia ousada e legível: "${headline}".` : '',
-    bullets.length
-      ? `Tópicos secundários, lista com ícones, cada um curto e direto: ${bullets.map((b) => `"${b}"`).join(' | ')}.`
+    `Premium Brazilian Instagram social media post, ${estilo} style, magazine-quality advertising design.`,
+    niche ? `Brand niche/context: ${niche}.` : '',
+    objetivo ? `Communication goal: ${objetivo}.` : '',
+    abordagem ? `Strategic approach: ${abordagem}.` : '',
+    paletaText
+      ? `Brand color palette (use these dominant colors throughout, including in panel backgrounds, accents, button, icons): ${paletaText}. Stay strictly within this palette.`
       : '',
-    cta ? `Botão de chamada para ação no rodapé com texto: "${cta}".` : '',
-    'Reserve a área superior (topo da imagem) limpa, sem texto e sem elementos gráficos, para sobreposição posterior da logomarca.',
-    'Não desenhe nomes de marca, handles, @, URLs, watermarks, selos ou logotipos — esses elementos são adicionados depois.',
-    'Apenas o texto explicitamente listado acima deve aparecer; nenhum outro texto, palavra ou letra solta.',
-    'Layout limpo, hierarquia clara, contraste forte entre texto e fundo, tipografia perfeita sem distorção, qualidade profissional de agência.',
+    layoutHint,
+    visual.length
+      ? `Photo subject and visual references: ${visual.join('; ')}. Photo must look real, professional photography, sharp focus, natural lighting.`
+      : 'Photo must look real, professional photography, sharp focus, natural lighting.',
+    headline
+      ? `HEADLINE TEXT (bold, large, perfectly centered or aligned, must be 100% legible and spelled exactly): "${headline}". Use a clean modern sans-serif typeface (${fontFamily} style), strong weight, generous letter spacing.`
+      : '',
+    bullets.length
+      ? `BULLET POINTS (small, simple line icons next to each, evenly spaced, same typography family as headline but lighter weight): ${bullets.map((b) => `"${b}"`).join(' • ')}. Each bullet must be perfectly readable and spelled exactly as written.`
+      : '',
+    cta
+      ? `CALL-TO-ACTION BUTTON at the bottom: large rounded pill-shaped button using the strongest accent color from the palette, dark or white text inside, button label exactly: "${cta}". The button is the strongest element below the bullets.`
+      : '',
+    'TOP-LEFT corner reserved completely empty (a small clean square area, no text, no graphics, no decoration there) — the brand logo will be overlaid client-side after generation.',
+    'DO NOT DRAW: any brand name, @handle, URL, phone number, watermark, signature, fake logo, additional captions, lorem ipsum, decorative letters, or any text that was not explicitly listed above.',
+    'Only the headline, bullet points, and CTA button label above must appear as text. Anywhere else: zero text, zero gibberish, zero stray letters.',
+    'Typography rules: perfect kerning, no distorted glyphs, no overlapping characters, no broken letters, single consistent typeface family across the post, professional spacing.',
+    'Composition: clear visual hierarchy (photo → headline → bullets → CTA), strong contrast between text and background, generous breathing room, asymmetric balance OK, no clutter, no overlapping elements, no frames or borders, full-bleed edges.',
+    'Output quality: ultra high resolution, sharp typography, agency-grade Brazilian social media design, looks like top-tier paid ad in Instagram feed.',
   ]
     .filter(Boolean)
     .join(' ')
