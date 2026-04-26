@@ -1,8 +1,8 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { Card, Company, Gamificacao, FalUsage, AppSettings } from '@soma-ai/db'
+import { Card, Company, Gamificacao, FalUsage } from '@soma-ai/db'
 import { CardStatus } from '@soma-ai/shared'
 import { authenticate } from '../plugins/auth'
-import { fal } from '@fal-ai/client'
+import OpenAI from 'openai'
 import { StorageService } from '../services/storage.service'
 import { GamificacaoService } from '../services/gamificacao.service'
 import { LLMService } from '../services/llm.service'
@@ -12,12 +12,9 @@ const CREDITO_CUSTO_SLIDE = 15
 const CREDITO_CUSTO_REFINAR = 1
 const REFINES_GRATUITOS = 3
 
-// Modelo ativo + custo real (USD) — mantem em sync com fal.ai pricing
-const FAL_MODEL = 'fal-ai/recraft-v3'
-const FAL_COST_USD = 0.04
-
-// Bloqueio preventivo: se saldo fal.ai estimado < MIN_FAL_BALANCE, bloqueia novas geracoes
-const MIN_FAL_BALANCE = 0.5
+// gpt-image-1 medium portrait 1024x1536 = $0.063/imagem
+const OPENAI_IMAGE_MODEL = 'gpt-image-1'
+const OPENAI_IMAGE_COST_USD = 0.063
 
 const NICHE_CONTEXT: Record<string, string> = {
   farmacia: 'pharmacy and health products retail',
@@ -76,10 +73,10 @@ const FORMAT_SIZE: Record<string, { width: number; height: number; aspect: strin
   post_facebook: { width: 1080, height: 1350, aspect: '4:5' },
 }
 
-function ensureFalConfigured() {
-  const key = process.env.FAL_KEY
-  if (!key) throw new Error('FAL_KEY nao configurada')
-  fal.config({ credentials: key })
+function getOpenAIClient(): OpenAI {
+  const key = process.env.OPENAI_API_KEY
+  if (!key) throw new Error('OPENAI_API_KEY nao configurada')
+  return new OpenAI({ apiKey: key })
 }
 
 export default async function criarRoutes(app: FastifyInstance) {
@@ -315,80 +312,35 @@ Regras absolutas:
         })
       }
 
-      // Bloqueio preventivo: saldo fal.ai estimado < MIN
-      const balanceEstimado = await calcularSaldoFalEstimado()
-      if (balanceEstimado !== null && balanceEstimado < MIN_FAL_BALANCE) {
-        request.log.warn(
-          { balance: balanceEstimado },
-          '[criar] saldo fal.ai baixo — bloqueando geracao',
-        )
-        return reply.status(503).send({
-          error:
-            'Servico de geracao de imagem temporariamente indisponivel. Contate o suporte.',
-          code: 'FAL_BALANCE_LOW',
-        })
-      }
-
       const size = FORMAT_SIZE[formato]
-      // Recraft v3 usa named image_size: 9:16 → portrait_16_9, demais → portrait_4_3
-      const imageSize = size.aspect === '9:16' ? 'portrait_16_9' : 'portrait_4_3'
+      // gpt-image-1 suporta: 1024x1024, 1024x1536, 1536x1024
+      const openAISize = '1024x1536' // portrait para todos os formatos
 
       const company: any = await Company.findById(companyId).lean()
 
-      // Parseia briefing markdown em campos estruturados (Headline / Bullets / CTA / Visual)
       const briefing = parseBriefing(prompt)
-
-      // Constroi prompt visual otimizado pro Ideogram (ingles, foco em design publicitario)
-      const { visualPrompt, negativePromptExtra } = buildVisualPrompt({
-        briefing,
-        company,
-        objetivo,
-        abordagem,
-      })
-
-      const baseNegativePrompt =
-        'low quality, blurry, jpeg artifacts, watermark, signature, text errors, distorted text, gibberish text, random letters, misspelled words, fake brand names, fake logos, fake handles, @username, url, illegible typography, bad composition, cluttered layout, busy top area, multiple logos, multiple posts, picture-in-picture, collage, mockup frames, phone frames, device mockups, garbled text near button, secondary illegible captions, lorem ipsum, scribbled text, smudged text, deformed letters, broken kerning, overlapping text blocks'
-      const negativePrompt = negativePromptExtra
-        ? `${baseNegativePrompt}, ${negativePromptExtra}`
-        : baseNegativePrompt
+      const { visualPrompt } = buildVisualPrompt({ briefing, company, objetivo, abordagem })
 
       try {
-        ensureFalConfigured()
+        const openai = getOpenAIClient()
 
-        // Recraft v3 tem limite de prompt nao documentado (~2000 chars)
-        const promptTruncated = visualPrompt.length > 2000
-          ? visualPrompt.slice(0, 1997) + '...'
-          : visualPrompt
-
-        const result: any = await fal.subscribe(FAL_MODEL, {
-          input: {
-            prompt: promptTruncated,
-            image_size: imageSize,
-          },
-          logs: false,
+        const imageResponse = await openai.images.generate({
+          model: OPENAI_IMAGE_MODEL,
+          prompt: visualPrompt,
+          size: openAISize as any,
+          quality: 'medium' as any,
+          n: 1,
         })
 
-        const imageUrl: string | undefined =
-          result?.data?.images?.[0]?.url ||
-          result?.images?.[0]?.url
-        if (!imageUrl) {
-          request.log.error({ result }, '[criar] fal.ai retornou sem url')
+        const b64Json = imageResponse.data?.[0]?.b64_json
+        if (!b64Json) {
+          request.log.error({ imageResponse }, '[criar] openai retornou sem imagem')
           return reply.status(500).send({ error: 'Geracao de imagem falhou' })
         }
 
-        // Download e re-upload pro R2 (pra nao depender do fal.ai storage)
-        const imgRes = await fetch(imageUrl)
-        if (!imgRes.ok) {
-          return reply
-            .status(500)
-            .send({ error: 'Falha ao baixar imagem gerada' })
-        }
-        const buf = Buffer.from(await imgRes.arrayBuffer())
-        const contentType = imgRes.headers.get('content-type') || 'image/png'
-        const dataUrl = `data:${contentType};base64,${buf.toString('base64')}`
+        const dataUrl = `data:image/png;base64,${b64Json}`
         const publicUrl = await StorageService.uploadBase64Media(dataUrl, 'cards')
 
-        // Cria Card (headline / subtext / cta vem do briefing parseado)
         const headlineLimpa = sanitizeShort(briefing.headline) || derivarHeadline(ideia)
         const card = await Card.create({
           company_id: companyId,
@@ -405,23 +357,20 @@ Regras absolutas:
           generated_image_url: publicUrl,
         })
 
-        // Debita creditos (apos sucesso)
         await GamificacaoService.emitir(companyId, 'manual', {
           creditos: -CREDITO_CUSTO_SLIDE,
           descricao: `Geracao de imagem (${formato})`,
           refId: String(card._id),
         })
-        // Tambem registra XP de post gerado
         await GamificacaoService.emitir(companyId, 'gerar_post', {
           refId: String(card._id),
         })
 
-        // Log de uso fal.ai (pra painel admin)
         await FalUsage.create({
           company_id: companyId,
           company_name: company?.name || '',
-          model_name: FAL_MODEL,
-          cost_usd: FAL_COST_USD,
+          model_name: OPENAI_IMAGE_MODEL,
+          cost_usd: OPENAI_IMAGE_COST_USD,
           card_id: card._id,
           format: formato,
           success: true,
@@ -438,12 +387,11 @@ Regras absolutas:
       } catch (err: any) {
         request.log.error(err, '[criar] gerar-imagem falhou')
         const raw = String(err?.message || '')
-        // Loga falha sem custo (fal.ai nao cobra quando falha antes de gerar)
         try {
           await FalUsage.create({
             company_id: companyId,
             company_name: company?.name || '',
-            model_name: FAL_MODEL,
+            model_name: OPENAI_IMAGE_MODEL,
             cost_usd: 0,
             card_id: null,
             format: formato,
@@ -705,19 +653,3 @@ function buildVisualPrompt({
   return { visualPrompt, negativePromptExtra }
 }
 
-/**
- * Calcula saldo restante estimado do fal.ai.
- * Formula: saldo_comprado - soma(FalUsage.cost_usd com success=true)
- * Retorna null se nao houver saldo comprado cadastrado (disable bloqueio).
- */
-async function calcularSaldoFalEstimado(): Promise<number | null> {
-  const setting: any = await AppSettings.findOne({ key: 'fal_balance_purchased' }).lean()
-  if (!setting || typeof setting.value !== 'number') return null
-
-  const gasto = await FalUsage.aggregate([
-    { $match: { success: true } },
-    { $group: { _id: null, total: { $sum: '$cost_usd' } } },
-  ])
-  const totalGasto = gasto[0]?.total || 0
-  return Math.max(0, setting.value - totalGasto)
-}
