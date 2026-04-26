@@ -17,7 +17,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import OpenAI from 'openai'
 
 const GEMINI_TEXT_MODEL = 'gemini-2.0-flash'
-const OPENAI_TEXT_MODEL = 'gpt-4o-mini'
+const OPENAI_TEXT_MODEL = 'gpt-4.1-mini'
 const DEEPSEEK_TEXT_MODEL = 'deepseek-chat'
 
 function geminiOnly(): boolean {

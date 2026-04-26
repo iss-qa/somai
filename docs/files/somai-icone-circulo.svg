@@ -1,0 +1,7 @@
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Círculo de fundo -->
+  <circle cx="60" cy="60" r="58" fill="#3B1FD6"/>
+  <!-- Cruz branca dentro -->
+  <rect x="51" y="14" width="18" height="92" rx="9" fill="white"/>
+  <rect x="14" y="51" width="92" height="18" rx="9" fill="white"/>
+</svg>

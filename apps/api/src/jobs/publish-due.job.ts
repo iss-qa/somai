@@ -77,19 +77,22 @@ export async function publishDuePosts(
       const postType = item.post_type
 
       if (isInstagram) {
-        if (postType === 'stories') {
+        const isStory = postType === 'stories' || postType === 'stories_unico' || postType === 'stories_carrossel'
+        const isCarousel = (postType === 'carousel' || postType === 'carrossel_portrait') && card?.slide_image_urls?.length >= 2
+
+        if (isStory) {
           const r = await MetaService.publishInstagramStory(companyId, mediaUrl, mediaType)
           instagramPostId = r.instagram_story_id
         } else if (postType === 'reels' || mediaType === 'video') {
           // Reels ou qualquer video vai pelo endpoint de Reels
           const r = await MetaService.publishInstagramReels(companyId, mediaUrl, fullCaption)
           instagramPostId = r.instagram_post_id
-        } else if (postType === 'carousel' && card?.slide_image_urls?.length >= 2) {
+        } else if (isCarousel) {
           // Carrossel com multiplas imagens
           const r = await MetaService.publishInstagramCarousel(companyId, card.slide_image_urls, fullCaption)
           instagramPostId = r.instagram_post_id
         } else {
-          // Feed regular (incluindo carousel com apenas 1 imagem — publica como feed)
+          // Feed regular (post_portrait, post_facebook, carrossel sem multiplas imagens)
           const r = await MetaService.publishInstagramFeed(companyId, mediaUrl, fullCaption)
           instagramPostId = r.instagram_post_id
         }
