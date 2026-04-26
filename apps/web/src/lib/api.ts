@@ -8,6 +8,7 @@ function getTokenFromCookie(): string | null {
 
 // Endpoints que podem demorar (geracao de IA, upload de video, etc) — 3 min
 const SLOW_PATHS = [
+  '/api/criar/gerar-imagem',
   '/api/cards/generate-image',
   '/api/cards/generate-content-plan',
   '/api/cards/',  // approve/update com video base64

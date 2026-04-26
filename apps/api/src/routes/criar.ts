@@ -355,11 +355,15 @@ Regras absolutas:
       try {
         ensureFalConfigured()
 
+        // Recraft v3 tem limite de prompt nao documentado (~2000 chars)
+        const promptTruncated = visualPrompt.length > 2000
+          ? visualPrompt.slice(0, 1997) + '...'
+          : visualPrompt
+
         const result: any = await fal.subscribe(FAL_MODEL, {
           input: {
-            prompt: visualPrompt,
+            prompt: promptTruncated,
             image_size: imageSize,
-            style: 'digital_illustration',
           },
           logs: false,
         })
