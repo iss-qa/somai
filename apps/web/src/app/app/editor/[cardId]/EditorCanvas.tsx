@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { proxyImageUrl } from '@/lib/proxyImage'
 
 export type Overlay = {
   id: string
@@ -189,7 +190,7 @@ export const EditorCanvas = forwardRef<HTMLDivElement, Props>(function EditorCan
       {imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={imageUrl}
+          src={proxyImageUrl(imageUrl)}
           alt=""
           draggable={false}
           className="pointer-events-none absolute inset-0 h-full w-full object-contain"
@@ -271,7 +272,7 @@ export const EditorCanvas = forwardRef<HTMLDivElement, Props>(function EditorCan
             {ov.type === 'image' && ov.imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={ov.imageUrl}
+                src={proxyImageUrl(ov.imageUrl)}
                 alt=""
                 draggable={false}
                 style={{

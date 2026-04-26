@@ -37,6 +37,7 @@ import calendarAiRoutes from './routes/calendar-ai'
 import criarRoutes from './routes/criar'
 import marcasRoutes from './routes/marcas'
 import referralsRoutes from './routes/referrals'
+import storageRoutes from './routes/storage'
 import supportRoutes from './routes/support'
 
 let app: ReturnType<typeof Fastify> | null = null
@@ -98,6 +99,7 @@ export async function getApp() {
   await app.register(criarRoutes, { prefix: '/api/criar' })
   await app.register(marcasRoutes, { prefix: '/api/marcas' })
   await app.register(referralsRoutes, { prefix: '/api/referrals' })
+  await app.register(storageRoutes, { prefix: '/api/storage' })
   await app.register(supportRoutes, { prefix: '/api/support' })
 
   try {
