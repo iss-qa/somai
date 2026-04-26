@@ -1,15 +1,13 @@
 /**
  * LLM unificado com fallback em cascata.
  *
- * Texto: OpenAI gpt-4o-mini -> Gemini 2.0 Flash -> DeepSeek deepseek-chat
- * Vision: OpenAI gpt-4o-mini -> Gemini 2.0 Flash -> graceful empty
+ * Texto: OpenAI gpt-4.1-mini -> Gemini 2.0 Flash -> DeepSeek deepseek-chat
+ * Vision: OpenAI gpt-4.1-mini -> Gemini 2.0 Flash -> graceful empty
  *         (DeepSeek nao suporta image input)
  *
- * Logs:
- *   [llm] boot — openai=on gemini=on deepseek=on
+ * Logs em runtime:
  *   [llm] start text(640ch) provider=openai
  *   [llm] openai falhou em text status=429 msg="quota..." → tenta gemini
- *   [llm] gemini falhou em text status=401 msg="api key invalid" → tenta deepseek
  *   [llm] ok text deepseek in 1340ms
  *   [llm] FALHA TOTAL em vision (gracioso): retornando vazio
  */
@@ -34,17 +32,6 @@ function hasDeepSeek() {
   return !geminiOnly() && !!process.env.DEEPSEEK_API_KEY
 }
 
-;(function logProviders() {
-  const debug = geminiOnly() ? ' [DEBUG: LLM_GEMINI_ONLY=on]' : ''
-  console.log(
-    `[llm] boot — gemini=${hasGemini() ? 'on' : 'OFF'} openai=${hasOpenAI() ? 'on' : 'OFF'} deepseek=${hasDeepSeek() ? 'on' : 'OFF'}${debug}`,
-  )
-  if (!hasGemini() && !hasOpenAI() && !hasDeepSeek()) {
-    console.warn(
-      '[llm] ATENCAO: nenhum provider de LLM configurado. Onboarding/IA vai falhar.',
-    )
-  }
-})()
 
 function isFallbackable(err: any): boolean {
   const raw = String(err?.message || '')
