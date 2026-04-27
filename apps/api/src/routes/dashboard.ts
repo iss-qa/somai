@@ -112,6 +112,13 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const monthStartPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const todayEnd = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23, 59, 59, 999,
+    )
     const weekEnd = new Date(now)
     weekEnd.setDate(weekEnd.getDate() + 7)
 
@@ -123,6 +130,10 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       postsEsteMes,
       postsMesAnterior,
       agendadosSemana,
+      agendadosHoje,
+      cardsAprovados,
+      videosGerados,
+      proximasPostagensRaw,
       ultimosCards,
       gamificacaoState,
       missoes,
@@ -146,6 +157,22 @@ export default async function dashboardRoutes(app: FastifyInstance) {
         status: QueueStatus.Queued,
         scheduled_at: { $gte: now, $lte: weekEnd },
       }),
+      PostQueue.countDocuments({
+        ...query,
+        status: QueueStatus.Queued,
+        scheduled_at: { $gte: todayStart, $lte: todayEnd },
+      }),
+      Card.countDocuments({ ...query, status: CardStatus.Approved }),
+      Video.countDocuments({ ...query }),
+      PostQueue.find({
+        ...query,
+        status: QueueStatus.Queued,
+        scheduled_at: { $gte: now },
+      })
+        .sort({ scheduled_at: 1 })
+        .limit(5)
+        .populate('card_id', 'headline generated_image_url')
+        .lean(),
       Card.find({ ...query })
         .sort({ createdAt: -1 })
         .limit(6)
@@ -225,9 +252,13 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       },
       metricas: {
         totalPosts,
+        postsEsteMes,
         variacaoTotal: variacao,
         pautasPara30d,
         agendadosSemana,
+        agendadosHoje,
+        cardsAprovados,
+        videosGerados,
         creditos: gamificacaoState.creditos,
         plano: c?.plan_id ? 'Pro' : 'Gratuito',
       },
@@ -245,6 +276,19 @@ export default async function dashboardRoutes(app: FastifyInstance) {
         status: card.status,
         createdAt: card.createdAt,
       })),
+      proximasPostagens: proximasPostagensRaw.map((p: any) => {
+        const cardObj =
+          p.card_id && typeof p.card_id === 'object' ? p.card_id : null
+        return {
+          id: String(p._id),
+          cardId: cardObj ? String(cardObj._id || p.card_id) : null,
+          headline: cardObj?.headline || p.caption || '',
+          imageUrl: cardObj?.generated_image_url || '',
+          platforms: p.platforms || [],
+          scheduledAt: p.scheduled_at,
+          status: p.status,
+        }
+      }),
       posts: {
         comunidade: inspiracoesComunidade.map((i: any) => ({
           id: String(i._id),

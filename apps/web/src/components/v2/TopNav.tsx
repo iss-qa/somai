@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/store/authStore'
 import { api } from '@/lib/api'
+import { FEATURES } from '@/lib/features'
 import { BrandSwitcher } from './BrandSwitcher'
 import { ThemeToggle } from './ThemeToggle'
 import { CreditBalance } from './CreditBalance'
@@ -46,16 +47,27 @@ interface GamState {
   xp: number
 }
 
-const NAV = [
+interface NavItem {
+  href: string
+  label: string
+  icon: typeof LayoutDashboard
+  cta?: boolean
+  accent?: boolean
+  hidden?: boolean
+}
+
+const NAV: NavItem[] = [
   { href: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/app/criar', label: 'Criar', icon: Plus, cta: true },
   { href: '/app/scripts', label: 'Roteiros', icon: FileText },
   { href: '/app/inspiracao', label: 'Inspiração', icon: Lightbulb },
   { href: '/app/biblioteca', label: 'Biblioteca', icon: BookOpen },
   { href: '/app/calendar', label: 'Calendário', icon: Calendar },
-  { href: '/app/comunidade', label: 'Comunidade', icon: Users },
-  { href: '/app/jornada', label: 'Jornada', icon: Trophy, accent: true },
+  { href: '/app/comunidade', label: 'Comunidade', icon: Users, hidden: !FEATURES.comunidade },
+  { href: '/app/jornada', label: 'Jornada', icon: Trophy, accent: true, hidden: !FEATURES.jornada },
 ]
+
+const VISIBLE_NAV = NAV.filter((i) => !i.hidden)
 
 export function TopNav() {
   const pathname = usePathname()
@@ -149,7 +161,7 @@ export function TopNav() {
 
         {/* Nav central desktop */}
         <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
-          {NAV.map((item) => {
+          {VISIBLE_NAV.map((item) => {
             const active = pathname.startsWith(item.href)
             const Icon = item.icon
             if (item.cta) {
@@ -318,7 +330,7 @@ export function TopNav() {
             <BrandSwitcher />
           </div>
           <nav className="flex-1 overflow-y-auto p-2">
-            {NAV.map((item) => {
+            {VISIBLE_NAV.map((item) => {
               const active = pathname.startsWith(item.href)
               const Icon = item.icon
               const commonClass = cn(
