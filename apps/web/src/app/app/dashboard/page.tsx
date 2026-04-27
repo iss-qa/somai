@@ -175,9 +175,9 @@ export default function DashboardV2Page() {
       )}
 
       {/* Header — saudacao + CTA principal (foco em postagens) */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-bold text-gray-900 dark:text-white md:text-2xl">
+          <h1 className="text-xl font-bold leading-tight text-gray-900 dark:text-white md:text-2xl">
             {getGreeting()}, {nomeUsuario}!
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -185,8 +185,8 @@ export default function DashboardV2Page() {
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Link href="/app/calendar">
-            <Button variant="outline">
+          <Link href="/app/calendar" className="flex-1 sm:flex-none">
+            <Button variant="outline" className="w-full sm:w-auto">
               <Calendar className="mr-2 h-4 w-4" />
               <span className="hidden sm:inline">Agendamento</span>
               <span className="sm:hidden">Agenda</span>
@@ -194,7 +194,7 @@ export default function DashboardV2Page() {
           </Link>
           <Button
             onClick={() => setShowCriarModal(true)}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
+            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 sm:flex-none"
           >
             <Plus className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Criar Post</span>

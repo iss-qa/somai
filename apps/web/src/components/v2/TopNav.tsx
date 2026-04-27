@@ -326,9 +326,29 @@ export function TopNav() {
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="border-b border-gray-100 p-3 dark:border-gray-800">
-            <BrandSwitcher />
-          </div>
+          {/* Marca ativa — link direto para /app/marcas em vez de dropdown
+              dentro do drawer (evita o dropdown cobrir a nav). */}
+          <Link
+            href="/app/marcas"
+            tabIndex={mobileOpen ? 0 : -1}
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-200 to-pink-200 text-xs font-bold text-purple-800">
+              {(user?.companyName || 'M').slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Marca ativa
+              </div>
+              <div className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                {user?.companyName || 'Selecionar marca'}
+              </div>
+            </div>
+            <span className="shrink-0 text-xs font-medium text-purple-600 dark:text-purple-400">
+              Trocar
+            </span>
+          </Link>
           <nav className="flex-1 overflow-y-auto p-2">
             {VISIBLE_NAV.map((item) => {
               const active = pathname.startsWith(item.href)

@@ -78,7 +78,7 @@ export function BrandSwitcher() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex min-h-[36px] min-w-0 max-w-full items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm hover:bg-gray-100"
+        className="flex min-h-[36px] min-w-0 max-w-full items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
       >
         {ativa?.logo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -90,10 +90,10 @@ export function BrandSwitcher() {
         ) : (
           <div className="h-5 w-5 shrink-0 rounded-full bg-gradient-to-br from-purple-200 to-pink-200" />
         )}
-        <span className="min-w-0 max-w-[160px] truncate text-gray-700">
+        <span className="min-w-0 max-w-[160px] truncate text-gray-700 dark:text-gray-100">
           {ativa?.nome || user?.companyName || 'Selecionar marca'}
         </span>
-        <ChevronDown className="h-3 w-3 shrink-0 text-gray-400" />
+        <ChevronDown className="h-3 w-3 shrink-0 text-gray-400 dark:text-gray-500" />
       </button>
 
       {open && (
@@ -104,18 +104,18 @@ export function BrandSwitcher() {
             className="fixed inset-0 z-40"
             aria-label="Fechar"
           />
-          <div className="absolute left-0 top-full z-50 mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-xl border border-gray-200 bg-white shadow-lg">
-            <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-semibold uppercase text-gray-500">
+          <div className="absolute left-0 top-full z-50 mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+            <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-semibold uppercase text-gray-500 dark:border-gray-800 dark:text-gray-400">
               Suas Marcas
             </div>
             <div className="max-h-64 overflow-y-auto py-1">
               {loading && (
                 <div className="flex justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-400 dark:text-gray-500" />
                 </div>
               )}
               {!loading && marcas.length === 0 && (
-                <div className="px-3 py-3 text-xs text-gray-500">
+                <div className="px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                   Voce ainda nao tem nenhuma marca.
                 </div>
               )}
@@ -124,7 +124,7 @@ export function BrandSwitcher() {
                   key={m.id}
                   type="button"
                   onClick={() => trocar(m.id)}
-                  className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50"
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   {m.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -137,33 +137,33 @@ export function BrandSwitcher() {
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-200 to-pink-200" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-gray-900">
+                    <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
                       {m.nome}
                     </div>
-                    <div className="truncate text-xs text-gray-500">
+                    <div className="truncate text-xs text-gray-500 dark:text-gray-400">
                       {m.descricao || m.niche || '—'}
                     </div>
                   </div>
                   {m.id === ativaId ? (
-                    <Check className="h-4 w-4 flex-shrink-0 text-purple-600" />
+                    <Check className="h-4 w-4 flex-shrink-0 text-purple-600 dark:text-purple-400" />
                   ) : !m.onboardingCompleto ? (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-700">
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
                       setup
                     </span>
                   ) : null}
                 </button>
               ))}
             </div>
-            <div className="border-t border-gray-100 py-1">
+            <div className="border-t border-gray-100 py-1 dark:border-gray-800">
               <button
                 type="button"
                 onClick={() => {
                   setOpen(false)
                   setShowNova(true)
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-purple-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-purple-50 dark:text-gray-200 dark:hover:bg-purple-950/30"
               >
-                <Plus className="h-4 w-4 text-purple-500" />
+                <Plus className="h-4 w-4 text-purple-500 dark:text-purple-400" />
                 Adicionar Nova Marca
               </button>
               <button
@@ -172,9 +172,9 @@ export function BrandSwitcher() {
                   setOpen(false)
                   router.push('/app/marcas')
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
               >
-                <Settings className="h-4 w-4 text-gray-500" />
+                <Settings className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 Gerenciar Marcas
               </button>
             </div>
@@ -231,13 +231,13 @@ function NovaMarcaDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <div className="text-lg font-semibold text-gray-900">
+      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900 dark:ring-1 dark:ring-gray-800">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
               Nova marca
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Damos um nome inicial — voce vai configurar cores, tom de voz e
               publico no proximo passo.
             </p>
@@ -245,7 +245,8 @@ function NovaMarcaDialog({
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700"
+            className="-mr-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            aria-label="Fechar"
           >
             <X className="h-5 w-5" />
           </button>
