@@ -577,78 +577,52 @@ function buildVisualPrompt({
         'No flat lighting, no harsh flash, warm studio or golden-hour only.',
       ].filter(Boolean).join(' ')
 
-  // Composition & layout: prioriza instrucoes detalhadas do briefing se presentes
-  const layoutDirective = hasComposition
-    ? `COMPOSITION & LAYOUT: ${briefing.composition.join('. ')}.`
-    : hasBullets
-      ? 'LAYOUT: Top 55% full-bleed lifestyle photograph. Bottom 45% solid brand-colored panel with headline, bullets, CTA. Smooth gradient transition between zones.'
-      : 'LAYOUT: Full-bleed photograph. Dark gradient overlay bottom 40% for text legibility. Headline and CTA over gradient in high contrast.'
+  // ARQUITETURA: A IA gera APENAS a cena fotografica (fundo/imagem). Logo, headline,
+  // bullets e CTA sao adicionados client-side pelo editor de slides. Por isso o prompt
+  // exclui qualquer renderizacao de texto/logo — eliminando alucinacoes tipograficas.
 
-  // Logo placement: prioriza instrucoes do briefing se presentes
-  const logoDirective = hasLogoPlacement
-    ? `LOGO ZONE: ${briefing.logoPlacement.join('. ')}. Top area must stay clear for brand logo overlay.`
-    : 'LOGO ZONE: top-left corner (~15% width × 10% height) must stay completely empty — brand logo composited client-side.'
+  // Composicao: descreve cena visual + zonas vazias para overlay client-side
+  const layoutDirective = hasComposition
+    ? `COMPOSITION: ${briefing.composition.join('. ')}. Leave clean empty zones in top-left for logo and bottom 45% for text panel — these areas will receive client-side overlays.`
+    : 'COMPOSITION: Top 55% rich photographic hero scene with subject. Bottom 45% must be a clean solid colored panel or subtle gradient in brand colors — completely empty, no content, will receive text overlay client-side. Top-left ~15%×10% corner must be completely empty for logo overlay.'
 
   const sceneDetails = visual.length
-    ? `SCENE DETAILS: ${visual.join('. ')}.`
+    ? `SCENE: ${visual.join('. ')}.`
     : ''
 
   const comunicationGoal = [
-    objetivo ? `Communication goal: ${objetivo}.` : '',
-    abordagem ? `Strategic approach: ${abordagem}.` : '',
+    objetivo ? `Visual mood/goal: ${objetivo}.` : '',
+    abordagem ? `Visual approach: ${abordagem}.` : '',
   ].filter(Boolean).join(' ')
-
-  // Typography: prioriza instrucoes detalhadas do briefing se presentes
-  const typographyBlock = hasTypography
-    ? [
-        `TYPOGRAPHY RULES: ${briefing.typography.slice(0, 4).join('. ')}.`,
-        headline ? `HEADLINE TEXT: "${headline}" — render exactly as specified above.` : '',
-        bullets.length ? `BULLETS: ${bullets.map((b) => `"${b}"`).join(' | ')}.` : '',
-        cta ? `CTA BUTTON LABEL exactly: "${cta}".` : '',
-      ].filter(Boolean).join(' ')
-    : [
-        headline
-          ? `HEADLINE: "${headline}" — bold, very large, 100% legible, strong contrast. Clean modern sans-serif (${fontFamily}-style), generous tracking.`
-          : '',
-        bullets.length
-          ? `BULLETS (smaller, lighter weight): ${bullets.map((b) => `"${b}"`).join(' | ')}. Simple icons beside each.`
-          : '',
-        cta
-          ? `CTA BUTTON: large rounded pill, strongest accent color, high-contrast text: "${cta}".`
-          : '',
-      ].filter(Boolean).join(' ')
 
   const finalFeelDirective = hasFinalFeel
     ? `OVERALL FEEL: ${briefing.finalFeel.join('. ')}.`
     : ''
 
+  // PROIBICOES ABSOLUTAS: zero texto, zero logo, zero simbolos. Imagem 100% wordless.
   const safetyRules = [
-    'STRICT NO-DRAW: brand name as text, @handles, URLs, phone numbers, prices, watermarks, QR codes, fake logos, lorem ipsum, random letters, extra captions, speech bubbles. ONLY the headline, bullets, and CTA label listed above may appear as typography.',
-    'TYPOGRAPHY QUALITY: perfect kerning, no broken letters, no stretched characters, single consistent type family, professional baseline alignment. Portuguese accents preserved: ã, ç, é, â, ô, ú, í.',
-    'OUTPUT: ultra-high resolution, zero JPEG artifacts, publication-ready for Instagram — agency-grade São Paulo advertising studio quality.',
+    'ABSOLUTE PROHIBITION — ZERO TEXT IN IMAGE: do NOT render any letters, words, characters, numbers, digits, signs, captions, headlines, titles, subtitles, bullet points, button labels, CTAs, slogans, taglines, watermarks, signatures, URLs, handles, hashtags, phone numbers, prices, dates, addresses, lorem ipsum, scribbles, fake script, gibberish text, random letters, decorative typography, signage on objects, text on phones/screens, text on shirts/clothing, text on packages/products, billboards, store signs, license plates with readable letters, books with readable titles. The image must be 100% wordless and textless.',
+    'ABSOLUTE PROHIBITION — ZERO LOGO/BRANDS: do NOT render any logo, brand mark, brand symbol, icon, monogram, badge, emblem, watermark, or app icon anywhere in the image. No fake brand identity. No invented logos. No real-world brand logos.',
+    'OUTPUT: pure photographic background scene, ultra-high resolution, zero JPEG artifacts, agency-grade quality. The image is a clean visual canvas that will receive logo and text overlays from a separate editor.',
   ].join(' ')
 
   const visualPrompt = [
-    `Ultra-premium Brazilian Instagram advertising visual, ${estiloEn} aesthetic, magazine-quality social media post.`,
+    `Pure photographic scene for Brazilian Instagram marketing background, ${estiloEn} aesthetic, magazine-quality.`,
     mediumDirective,
     brandDNA,
     colorDirective,
     lightingDirective,
     comunicationGoal,
-    layoutDirective,
-    logoDirective,
     sceneDetails,
-    typographyBlock,
+    layoutDirective,
     finalFeelDirective,
     safetyRules,
   ]
     .filter(Boolean)
     .join(' ')
 
-  // Negative prompt extra: combina o do briefing com a lista base
-  const negativePromptExtra = briefing.negativePrompt.length
-    ? briefing.negativePrompt.join(', ')
-    : ''
+  // negativePromptExtra mantido para compatibilidade — gpt-image-1 nao usa negative_prompt
+  const negativePromptExtra = ''
 
   return { visualPrompt, negativePromptExtra }
 }
