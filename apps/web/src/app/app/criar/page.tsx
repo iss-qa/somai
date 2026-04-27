@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { UpgradeProModal } from '@/components/v2/UpgradeProModal'
 import { TopSteps } from './components/WizardChrome'
 import { StepTipo } from './components/StepTipo'
@@ -14,6 +15,14 @@ import { useCriarWizard } from './hooks/useCriarWizard'
 
 export default function CriarV2Page() {
   const w = useCriarWizard()
+
+  // Ao trocar de passo, leva o usuario ao topo do conteudo do passo —
+  // sem isso, sai-se de um passo longo no meio do scroll e o titulo do
+  // novo passo fica invisivel.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [w.step])
 
   return (
     <div className="mx-auto max-w-5xl">

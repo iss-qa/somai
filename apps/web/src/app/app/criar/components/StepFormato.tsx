@@ -20,7 +20,7 @@ export function StepFormato({ w }: { w: CriarWizardApi }) {
         subtitulo="Agora escolha o formato da arte que será criada do zero pela IA."
       />
 
-      <div className="mt-6 flex items-center justify-center gap-2">
+      <div className="mt-6 -mx-3 flex items-center gap-2 overflow-x-auto px-3 pb-1 md:mx-0 md:justify-center md:px-0 md:pb-0">
         {(
           [
             { key: 'todos', label: 'Todos', icon: null },
@@ -36,7 +36,7 @@ export function StepFormato({ w }: { w: CriarWizardApi }) {
               key={tab.key}
               type="button"
               onClick={() => w.setFiltroPlataforma(tab.key)}
-              className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium transition ${
+              className={`flex flex-shrink-0 items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium transition ${
                 ativo
                   ? 'border-transparent bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
                   : 'border-gray-200 bg-white text-gray-600 hover:border-purple-300 hover:text-purple-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400'
@@ -49,7 +49,7 @@ export function StepFormato({ w }: { w: CriarWizardApi }) {
         })}
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
         {FORMATOS.filter(
           (f) =>
             w.filtroPlataforma === 'todos' || f.plataforma === w.filtroPlataforma,
