@@ -457,41 +457,44 @@ function CardPreview({
         .slice(0, 2)
     : 'SA'
 
-  // Post type styling
+  // Post type styling.
+  // O ultimo layer (`${pal.bg}`) garante uma camada solida por baixo do gradiente —
+  // sem ela, stops com alpha (ex: `${pal.secondary}33`) deixam o bg da pagina vazar
+  // e o texto branco somia em modo claro.
   const postTypeConfig: Record<PostType, { badge: string; gradient: string; icon: string; accentGradient: string }> = {
     nenhum: {
       badge: '',
-      gradient: `linear-gradient(135deg, ${pal.bg} 0%, ${pal.bg} 100%)`,
+      gradient: `linear-gradient(135deg, ${pal.bg} 0%, ${pal.bg} 100%), ${pal.bg}`,
       icon: '',
       accentGradient: `linear-gradient(135deg, ${pal.primary}, ${pal.secondary})`,
     },
     promocao: {
       badge: 'PROMOCAO',
-      gradient: `linear-gradient(135deg, ${pal.bg} 0%, ${pal.primary}22 50%, ${pal.secondary}33 100%)`,
+      gradient: `linear-gradient(135deg, ${pal.bg} 0%, ${pal.primary}22 50%, ${pal.secondary}33 100%), ${pal.bg}`,
       icon: '',
       accentGradient: `linear-gradient(135deg, ${pal.primary}, ${pal.secondary})`,
     },
     dica: {
       badge: 'DICA',
-      gradient: `linear-gradient(135deg, ${pal.bg} 0%, ${pal.primary}15 60%, ${pal.secondary}20 100%)`,
+      gradient: `linear-gradient(135deg, ${pal.bg} 0%, ${pal.primary}15 60%, ${pal.secondary}20 100%), ${pal.bg}`,
       icon: '',
       accentGradient: `linear-gradient(135deg, ${pal.primary}cc, ${pal.secondary}cc)`,
     },
     novidade: {
       badge: 'NOVIDADE',
-      gradient: `linear-gradient(135deg, ${pal.bg} 0%, ${pal.secondary}25 40%, ${pal.primary}30 100%)`,
+      gradient: `linear-gradient(135deg, ${pal.bg} 0%, ${pal.secondary}25 40%, ${pal.primary}30 100%), ${pal.bg}`,
       icon: '',
       accentGradient: `linear-gradient(135deg, ${pal.secondary}, ${pal.primary})`,
     },
     institucional: {
       badge: 'INSTITUCIONAL',
-      gradient: `linear-gradient(180deg, ${pal.primary}30 0%, ${pal.bg} 40%, ${pal.bg} 60%, ${pal.primary}20 100%)`,
+      gradient: `linear-gradient(180deg, ${pal.primary}30 0%, ${pal.bg} 40%, ${pal.bg} 60%, ${pal.primary}20 100%), ${pal.bg}`,
       icon: '',
       accentGradient: `linear-gradient(135deg, ${pal.primary}, ${pal.secondary})`,
     },
     data_comemorativa: {
       badge: 'DATA COMEMORATIVA',
-      gradient: `linear-gradient(135deg, ${pal.secondary}20 0%, ${pal.bg} 30%, ${pal.primary}25 70%, ${pal.secondary}30 100%)`,
+      gradient: `linear-gradient(135deg, ${pal.secondary}20 0%, ${pal.bg} 30%, ${pal.primary}25 70%, ${pal.secondary}30 100%), ${pal.bg}`,
       icon: '',
       accentGradient: `linear-gradient(135deg, ${pal.secondary}, ${pal.primary}, ${pal.secondary})`,
     },
@@ -3152,7 +3155,7 @@ function GenerateCardPage() {
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 pb-12">
           <div className="border-t border-brand-border pt-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-100">Cards recentes</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Cards recentes</h2>
                   <button
                     onClick={() => router.push('/app/biblioteca')}
                     className="flex items-center gap-1.5 text-sm text-primary-400 hover:text-primary-300 transition-colors"
@@ -3181,12 +3184,12 @@ function GenerateCardPage() {
                         <div key={cardId} className="flex-shrink-0 w-48 group relative">
                           <button onClick={() => loadGalleryCard(card)} className="w-full text-left">
                             <Card className={cn('overflow-hidden transition-all duration-200 hover:shadow-lg', card.status === 'approved' ? 'border-emerald-500/40 hover:border-emerald-500/60 hover:shadow-emerald-500/10' : 'hover:border-primary-500/50 hover:shadow-primary-500/10')}>
-                              <div className="h-32 bg-gradient-to-br from-brand-surface to-brand-dark flex items-center justify-center relative overflow-hidden">
-                                {thumbUrl ? <img src={thumbUrl} alt={card.product_name} className="w-full h-full object-cover" /> : <div className="text-2xl font-bold text-gray-600">{(card.product_name || 'C')[0].toUpperCase()}</div>}
+                              <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-brand-surface dark:to-brand-dark flex items-center justify-center relative overflow-hidden">
+                                {thumbUrl ? <img src={thumbUrl} alt={card.product_name} className="w-full h-full object-cover" /> : <div className="text-2xl font-bold text-gray-500 dark:text-gray-600">{(card.product_name || 'C')[0].toUpperCase()}</div>}
                                 {card.status === 'approved' && <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center"><Check className="w-3 h-3 text-white" /></div>}
                               </div>
                               <CardContent className="p-3 pt-3 space-y-2">
-                                <div className="text-xs font-medium text-gray-200 truncate">{card.product_name || card.card_name}</div>
+                                <div className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{card.product_name || card.card_name}</div>
                                 <div className="flex items-center gap-1.5">
                                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{card.format}</Badge>
                                   <Badge variant={getStatusBadgeVariant(card.status)} className="text-[10px] px-1.5 py-0">{getStatusLabel(card.status)}</Badge>
