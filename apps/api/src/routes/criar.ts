@@ -344,6 +344,8 @@ Regras absolutas:
         const publicUrl = await StorageService.uploadBase64Media(dataUrl, 'cards')
 
         const headlineLimpa = sanitizeShort(briefing.headline) || derivarHeadline(ideia)
+        // Cards IA ja entram como aprovados — o briefing foi refinado pela IA
+        // e a imagem gerada, entao estao prontos para agendar/publicar.
         const card = await Card.create({
           company_id: companyId,
           format: `${size.width}x${size.height}`,
@@ -353,7 +355,8 @@ Regras absolutas:
           cta: briefing.cta || '',
           caption: ideia || '',
           hashtags: [],
-          status: CardStatus.Draft,
+          status: CardStatus.Approved,
+          approved_at: new Date(),
           source: 'ai',
           ai_prompt_used: prompt,
           generated_image_url: publicUrl,
