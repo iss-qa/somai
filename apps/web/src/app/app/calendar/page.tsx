@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import { GerarPautaIA } from '@/components/v2/GerarPautaIA'
 import { AgendarCardModal } from '@/components/v2/AgendarCardModal'
+import { PlanejarConteudoModal } from '@/components/v2/PlanejarConteudoModal'
 
 // ── Types ─────────────────────────────────────
 interface PopulatedCard {
@@ -69,6 +70,7 @@ export default function CalendarioV2Page() {
   const [showDayModal, setShowDayModal] = useState(false)
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null)
   const [scheduleModal, setScheduleModal] = useState<{ date: Date } | null>(null)
+  const [planejarModal, setPlanejarModal] = useState<{ date?: Date } | null>(null)
 
   const month = currentDate.getMonth()
   const year = currentDate.getFullYear()
@@ -163,7 +165,7 @@ export default function CalendarioV2Page() {
         <div className="flex flex-wrap gap-2">
           <GerarPautaIA onSuccess={fetchPosts} />
           <Button
-            onClick={() => router.push('/app/criar')}
+            onClick={() => setPlanejarModal({})}
             className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -283,38 +285,81 @@ export default function CalendarioV2Page() {
                 const day = i + 1
                 const dayPosts = postsByDay.get(day) || []
                 const today = isToday(day)
+                const single = dayPosts.length === 1
                 return (
-                  <button
+                  <div
                     key={day}
-                    type="button"
-                    onClick={() => {
-                      setSelectedDay(day)
-                      setShowDayModal(true)
-                    }}
-                    className={`h-20 border-b border-r border-gray-100 p-1 text-left transition hover:bg-purple-50 dark:border-gray-800 dark:hover:bg-purple-950/20 ${
+                    className={`group relative min-h-[5rem] border-b border-r border-gray-100 p-1 transition dark:border-gray-800 ${
                       today ? 'bg-purple-50/60 dark:bg-purple-950/20' : ''
                     }`}
                   >
-                    <div
-                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                        today
-                          ? 'bg-purple-600 text-white'
-                          : 'text-gray-700 dark:text-gray-300'
-                      }`}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDay(day)
+                        setShowDayModal(true)
+                      }}
+                      className="flex w-full items-center justify-between"
+                      aria-label={`Abrir dia ${day}`}
                     >
-                      {day}
-                    </div>
+                      <span
+                        className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                          today
+                            ? 'bg-purple-600 text-white'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {day}
+                      </span>
+                    </button>
+                    {dayPosts.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPlanejarModal({
+                            date: new Date(year, month, day),
+                          })
+                        }
+                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-purple-50 text-purple-600 opacity-0 transition group-hover:opacity-100 dark:bg-purple-950/40 dark:text-purple-300"
+                        aria-label={`Nova pauta em ${day}`}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     <div className="mt-1 space-y-0.5">
-                      {dayPosts.slice(0, 2).map((p) => (
-                        <PostMini key={p._id} post={p} />
-                      ))}
-                      {dayPosts.length > 2 && (
-                        <div className="text-[10px] text-gray-500">
-                          +{dayPosts.length - 2} mais
-                        </div>
+                      {single ? (
+                        <PostThumbnail
+                          post={dayPosts[0]}
+                          onClick={() => setSelectedPost(dayPosts[0])}
+                        />
+                      ) : (
+                        <>
+                          {dayPosts.slice(0, 2).map((p) => (
+                            <button
+                              key={p._id}
+                              type="button"
+                              onClick={() => setSelectedPost(p)}
+                              className="block w-full text-left"
+                            >
+                              <PostMini post={p} />
+                            </button>
+                          ))}
+                          {dayPosts.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDay(day)
+                                setShowDayModal(true)
+                              }}
+                              className="text-[10px] text-gray-500 hover:text-purple-600"
+                            >
+                              +{dayPosts.length - 2} mais
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -417,6 +462,17 @@ export default function CalendarioV2Page() {
           }}
         />
       )}
+
+      {/* Modal Planejar Conteudo (Nova Pauta) */}
+      <PlanejarConteudoModal
+        open={!!planejarModal}
+        initialDate={planejarModal?.date}
+        onClose={() => setPlanejarModal(null)}
+        onCreated={() => {
+          setPlanejarModal(null)
+          fetchPosts()
+        }}
+      />
     </div>
   )
 }
@@ -447,6 +503,131 @@ function PostMini({ post }: { post: ScheduledPost }) {
       <span className="truncate">
         {hora} {card?.headline || post.caption?.slice(0, 30) || 'Post'}
       </span>
+    </div>
+  )
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  queued: 'Agendado',
+  processing: 'Publicando',
+  done: 'Publicado',
+  failed: 'Falhou',
+  cancelled: 'Cancelado',
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  queued: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  processing: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  done: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+  failed: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  cancelled: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+}
+
+function PostThumbnail({
+  post,
+  onClick,
+}: {
+  post: ScheduledPost
+  onClick: () => void
+}) {
+  const card =
+    typeof post.card_id === 'object' && post.card_id !== null
+      ? post.card_id
+      : null
+  const hora = new Date(post.scheduled_at).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  const plat = post.platforms?.[0]?.toLowerCase()
+  const PlatIcon = plat === 'facebook' ? Facebook : Instagram
+  const titulo = card?.headline || post.caption?.slice(0, 60) || 'Post'
+  const statusKey = post.status
+  const isPublicado = statusKey === 'done'
+
+  return (
+    <div className="group/single relative">
+      <button
+        type="button"
+        onClick={onClick}
+        className={`flex w-full items-center gap-2 rounded-lg border bg-white p-1.5 text-left transition hover:shadow-md dark:bg-gray-950 ${
+          isPublicado
+            ? 'border-green-200 hover:border-green-400 dark:border-green-900/40'
+            : 'border-purple-200 hover:border-purple-400 dark:border-purple-900/40'
+        }`}
+      >
+        {card?.generated_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={card.generated_image_url}
+            alt=""
+            className="h-9 w-9 flex-shrink-0 rounded-md object-cover"
+          />
+        ) : (
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-800">
+            <ImageIcon className="h-3.5 w-3.5 text-gray-400" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1 text-[10px] text-gray-600 dark:text-gray-400">
+            {hora}
+            <PlatIcon className="h-2.5 w-2.5" />
+          </div>
+          <div className="truncate text-[11px] font-medium leading-tight text-gray-900 dark:text-white">
+            {titulo}
+          </div>
+          <span
+            className={`mt-0.5 inline-block rounded px-1 py-0 text-[9px] font-medium ${STATUS_COLOR[statusKey]}`}
+          >
+            {STATUS_LABEL[statusKey]}
+          </span>
+        </div>
+      </button>
+
+      {/* Hover preview */}
+      <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-60 origin-top scale-95 rounded-2xl border border-gray-200 bg-white p-3 opacity-0 shadow-xl transition group-hover/single:scale-100 group-hover/single:opacity-100 dark:border-gray-700 dark:bg-gray-900">
+        {card?.generated_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={card.generated_image_url}
+            alt=""
+            className="aspect-[4/5] w-full rounded-xl object-cover"
+          />
+        ) : (
+          <div className="flex aspect-[4/5] w-full items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800">
+            <ImageIcon className="h-8 w-8 text-gray-400" />
+          </div>
+        )}
+        <div className="mt-2 truncate text-sm font-semibold text-gray-900 dark:text-white">
+          {titulo}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_COLOR[statusKey]}`}
+          >
+            {STATUS_LABEL[statusKey]}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            <Clock className="h-2.5 w-2.5" />
+            {hora}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            <PlatIcon className="h-2.5 w-2.5" />
+            {plat === 'facebook' ? 'Facebook' : 'Instagram'}
+          </span>
+        </div>
+        <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+          {plat === 'facebook' ? 'Facebook' : 'Instagram'}:{' '}
+          <span
+            className={
+              isPublicado
+                ? 'font-medium text-green-600 dark:text-green-400'
+                : 'font-medium text-amber-600 dark:text-amber-400'
+            }
+          >
+            {STATUS_LABEL[statusKey]}
+          </span>
+        </div>
+      </div>
     </div>
   )
 }
