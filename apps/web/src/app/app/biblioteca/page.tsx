@@ -186,21 +186,21 @@ function BibliotecaV2Content() {
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 text-white md:h-12 md:w-12">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 text-white md:h-12 md:w-12">
             <BookOpen className="h-5 w-5 md:h-6 md:w-6" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white md:text-2xl">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-lg font-bold text-gray-900 dark:text-white sm:text-xl md:text-2xl">
               Biblioteca de Cards
             </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 md:text-sm">
+            <p className="truncate text-xs text-gray-500 dark:text-gray-400 md:text-sm">
               {filtered.length}{' '}
               {filtered.length === 1 ? 'card encontrado' : 'cards encontrados'}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           <Button
             variant="outline"
             onClick={() => toast('Em breve', { icon: '🚧' })}
@@ -221,7 +221,7 @@ function BibliotecaV2Content() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="-mx-3 flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-1 md:mx-0 md:px-0">
         {TABS.map((t) => {
           const active = tab === t.key
           const count = counts[t.key] ?? 0
@@ -230,7 +230,7 @@ function BibliotecaV2Content() {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`flex flex-shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition ${
+              className={`flex min-h-[36px] shrink-0 snap-start items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition ${
                 active
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-sm'
                   : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
@@ -253,23 +253,24 @@ function BibliotecaV2Content() {
 
       {/* Search + Filters */}
       <div className="flex flex-wrap gap-2">
-        <div className="relative min-w-[180px] flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <div className="relative min-w-0 flex-1 basis-full sm:basis-0">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Buscar cards..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 dark:border-gray-800 dark:bg-gray-900 dark:text-white"
+            className="block h-10 w-full max-w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-base focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 dark:border-gray-800 dark:bg-gray-900 dark:text-white sm:text-sm"
           />
         </div>
         <button
           type="button"
           onClick={() => setShowFilters(!showFilters)}
-          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300"
+          aria-expanded={showFilters}
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300"
         >
           <Filter className="h-4 w-4" />
-          Filtros
+          <span className="hidden sm:inline">Filtros</span>
         </button>
       </div>
 
@@ -562,7 +563,7 @@ function PreviewModal({
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 rows={5}
-                className="w-full rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-lg border border-gray-200 bg-white p-3 text-base text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:text-sm"
               />
             ) : (
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300">
@@ -717,7 +718,7 @@ function PreviewModal({
                   className="fixed inset-0 z-40"
                   aria-label="Fechar menu"
                 />
-                <div className="absolute bottom-full right-0 z-50 mb-2 w-72 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+                <div className="absolute bottom-full right-0 z-50 mb-2 w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
                   <button
                     type="button"
                     onClick={publicarAgora}
@@ -777,7 +778,7 @@ function PreviewModal({
                   className="fixed inset-0 z-40"
                   aria-label="Fechar menu"
                 />
-                <div className="absolute bottom-full right-0 z-50 mb-2 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+                <div className="absolute bottom-full right-0 z-50 mb-2 w-[min(12rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
                   <button
                     type="button"
                     onClick={handleDownload}

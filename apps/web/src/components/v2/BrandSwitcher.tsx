@@ -78,22 +78,22 @@ export function BrandSwitcher() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm hover:bg-gray-100"
+        className="flex min-h-[36px] min-w-0 max-w-full items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm hover:bg-gray-100"
       >
         {ativa?.logo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={ativa.logo}
             alt=""
-            className="h-5 w-5 rounded-full object-cover"
+            className="h-5 w-5 shrink-0 rounded-full object-cover"
           />
         ) : (
-          <div className="h-5 w-5 rounded-full bg-gradient-to-br from-purple-200 to-pink-200" />
+          <div className="h-5 w-5 shrink-0 rounded-full bg-gradient-to-br from-purple-200 to-pink-200" />
         )}
-        <span className="max-w-[140px] truncate text-gray-700">
+        <span className="min-w-0 max-w-[160px] truncate text-gray-700">
           {ativa?.nome || user?.companyName || 'Selecionar marca'}
         </span>
-        <ChevronDown className="h-3 w-3 text-gray-400" />
+        <ChevronDown className="h-3 w-3 shrink-0 text-gray-400" />
       </button>
 
       {open && (
@@ -104,7 +104,7 @@ export function BrandSwitcher() {
             className="fixed inset-0 z-40"
             aria-label="Fechar"
           />
-          <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-xl border border-gray-200 bg-white shadow-lg">
+          <div className="absolute left-0 top-full z-50 mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-xl border border-gray-200 bg-white shadow-lg">
             <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-semibold uppercase text-gray-500">
               Suas Marcas
             </div>

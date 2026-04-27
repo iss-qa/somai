@@ -76,6 +76,24 @@ export function TopNav() {
     setMobileOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const original = document.body.style.overflow
+    if (mobileOpen) document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = original
+    }
+  }, [mobileOpen])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobileOpen])
+
   const initials = user?.name
     ? user.name
         .split(' ')
@@ -99,20 +117,22 @@ export function TopNav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur dark:border-gray-800 dark:bg-gray-950/90">
-      <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-2 px-3 md:gap-4 md:px-4">
+      <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center gap-1.5 px-2 sm:gap-2 sm:px-3 md:gap-4 md:px-4">
         {/* Mobile menu */}
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="lg:hidden text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-          aria-label="Menu"
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-drawer"
+          className="-ml-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white lg:hidden"
+          aria-label="Abrir menu"
         >
           <Menu className="h-5 w-5" />
         </button>
 
         {/* Logo + seletor de marca */}
-        <div className="flex items-center gap-2 md:gap-3">
-          <Link href="/app/dashboard" className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 md:gap-3">
+          <Link href="/app/dashboard" className="flex shrink-0 items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-amber-400">
               <span className="text-[13px] font-bold text-white">S</span>
             </div>
@@ -120,7 +140,7 @@ export function TopNav() {
               soma<span className="text-purple-600 dark:text-purple-400">.ai</span>
             </span>
           </Link>
-          <div className="hidden md:block">
+          <div className="hidden min-w-0 md:block">
             <BrandSwitcher />
           </div>
         </div>
@@ -166,23 +186,26 @@ export function TopNav() {
         </nav>
 
         {/* Right: créditos, notif, avatar */}
-        <div className="ml-auto flex items-center gap-1 md:gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1 md:gap-2">
           <div className="hidden md:block">
             <CreditBalance variant="compact" />
           </div>
 
           <button
             type="button"
-            className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+            className="relative inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
             aria-label="Notificacoes"
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
           </button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+              <button
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                aria-label="Menu da conta"
+              >
                 <Avatar className="h-8 w-8">
                   {user?.logo_url ? (
                     <AvatarImage src={user.logo_url} />
@@ -243,84 +266,105 @@ export function TopNav() {
       </div>
 
       {/* Drawer mobile */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Fechar menu"
-          />
-          <div className="absolute left-0 top-0 flex h-full w-72 flex-col bg-white shadow-2xl dark:bg-gray-950">
-            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-amber-400">
-                  <span className="text-[13px] font-bold text-white">S</span>
-                </div>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  soma
-                  <span className="text-purple-600 dark:text-purple-400">.ai</span>
-                </span>
+      <div
+        id="mobile-drawer"
+        className={cn(
+          'fixed inset-0 z-50 lg:hidden',
+          mobileOpen ? 'pointer-events-auto' : 'pointer-events-none',
+        )}
+        aria-hidden={!mobileOpen}
+      >
+        <button
+          type="button"
+          className={cn(
+            'absolute inset-0 bg-black/50 transition-opacity duration-300',
+            mobileOpen ? 'opacity-100' : 'opacity-0',
+          )}
+          onClick={() => setMobileOpen(false)}
+          aria-label="Fechar menu"
+          tabIndex={mobileOpen ? 0 : -1}
+        />
+        <div
+          className={cn(
+            'absolute left-0 top-0 flex h-full w-[85vw] max-w-xs flex-col bg-white shadow-2xl transition-transform duration-300 ease-out dark:bg-gray-950',
+            mobileOpen ? 'translate-x-0' : '-translate-x-full',
+          )}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-amber-400">
+                <span className="text-[13px] font-bold text-white">S</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                className="text-gray-500"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <span className="truncate font-semibold text-gray-900 dark:text-white">
+                soma
+                <span className="text-purple-600 dark:text-purple-400">.ai</span>
+              </span>
             </div>
-            <div className="border-b border-gray-100 p-3 dark:border-gray-800">
-              <BrandSwitcher />
-            </div>
-            <nav className="flex-1 overflow-y-auto p-2">
-              {NAV.map((item) => {
-                const active = pathname.startsWith(item.href)
-                const Icon = item.icon
-                const commonClass = cn(
-                  'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition',
-                  active
-                    ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200'
-                    : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800',
-                  item.accent && 'text-amber-700 dark:text-amber-400',
-                )
-                if (item.cta) {
-                  return (
-                    <button
-                      key={item.href}
-                      type="button"
-                      onClick={() => {
-                        setMobileOpen(false)
-                        setShowCriarModal(true)
-                      }}
-                      className={commonClass}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {item.label}
-                    </button>
-                  )
-                }
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="-mr-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+              aria-label="Fechar menu"
+              tabIndex={mobileOpen ? 0 : -1}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="border-b border-gray-100 p-3 dark:border-gray-800">
+            <BrandSwitcher />
+          </div>
+          <nav className="flex-1 overflow-y-auto p-2">
+            {NAV.map((item) => {
+              const active = pathname.startsWith(item.href)
+              const Icon = item.icon
+              const commonClass = cn(
+                'flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition',
+                active
+                  ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200'
+                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800',
+                item.accent && 'text-amber-700 dark:text-amber-400',
+              )
+              if (item.cta) {
                 return (
-                  <Link
+                  <button
                     key={item.href}
-                    href={item.href}
+                    type="button"
+                    tabIndex={mobileOpen ? 0 : -1}
+                    onClick={() => {
+                      setMobileOpen(false)
+                      setShowCriarModal(true)
+                    }}
                     className={commonClass}
                   >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
+                    <Icon className="h-5 w-5 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </button>
                 )
-              })}
-            </nav>
-            <div className="border-t border-gray-100 p-3 text-xs text-gray-500 dark:border-gray-800">
-              <div className="flex items-center justify-between">
-                <span>🪙 {gam?.creditos ?? '—'} créditos</span>
-                <ThemeToggle />
-              </div>
+              }
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  tabIndex={mobileOpen ? 0 : -1}
+                  onClick={() => setMobileOpen(false)}
+                  className={commonClass}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+          <div className="border-t border-gray-100 p-3 text-xs text-gray-500 dark:border-gray-800">
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate">🪙 {gam?.creditos ?? '—'} créditos</span>
+              <ThemeToggle />
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       <CriarChoiceModal
         open={showCriarModal}
