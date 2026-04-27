@@ -22,6 +22,7 @@ import {
   ArrowRight,
   Settings,
   Instagram,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
@@ -97,11 +98,22 @@ interface DashboardV2 {
   dicaRapida: string
 }
 
+interface DataComemorativa {
+  date: string
+  name: string
+  description: string
+  dateISO: string
+  suggested_headline: string
+}
+
 export default function DashboardV2Page() {
   const router = useRouter()
   const [data, setData] = useState<DashboardV2 | null>(null)
   const [loading, setLoading] = useState(true)
   const [showCriarModal, setShowCriarModal] = useState(false)
+  const [calendarioOpen, setCalendarioOpen] = useState(false)
+  const [todasDatas, setTodasDatas] = useState<DataComemorativa[]>([])
+  const [datasLoading, setDatasLoading] = useState(false)
 
   useEffect(() => {
     api
@@ -110,6 +122,36 @@ export default function DashboardV2Page() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  const abrirCalendario = () => {
+    setCalendarioOpen(true)
+    if (todasDatas.length === 0) {
+      setDatasLoading(true)
+      api
+        .get<{ datas: DataComemorativa[] }>('/api/dashboard/datas-comemorativas')
+        .then((d) => setTodasDatas(d.datas || []))
+        .catch(() => {})
+        .finally(() => setDatasLoading(false))
+    }
+  }
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const original = document.body.style.overflow
+    if (calendarioOpen) document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = original
+    }
+  }, [calendarioOpen])
+
+  useEffect(() => {
+    if (!calendarioOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCalendarioOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [calendarioOpen])
 
   if (loading || !data) {
     return (
@@ -512,79 +554,225 @@ export default function DashboardV2Page() {
           </button>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <CalendarPlus className="h-4 w-4 text-purple-500" />
-            <span className="text-sm font-semibold text-gray-900">
-              Proximas Datas
-            </span>
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <CalendarPlus className="h-4 w-4 shrink-0 text-purple-500" />
+              <span className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                Proximas Datas
+              </span>
+            </div>
           </div>
-          <p className="text-xs text-gray-500">Nao perca nenhuma</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Nao perca nenhuma</p>
           <div className="mt-3 space-y-2">
             {(!data.datasProximas || data.datasProximas.length === 0) && (
-              <div className="rounded-lg bg-gray-50 p-3 text-center text-xs text-gray-500">
+              <div className="rounded-lg bg-gray-50 p-3 text-center text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                 Nenhuma data comemorativa encontrada
               </div>
             )}
-            {data.datasProximas?.slice(0, 4).map((d, i) => {
-              const date = new Date(d.dateISO)
-              const dia = date.getDate()
-              const mes = date
-                .toLocaleDateString('pt-BR', { month: 'short' })
-                .replace('.', '')
-                .toUpperCase()
-              const diasFalta = Math.max(
-                0,
-                Math.ceil(
-                  (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-                ),
-              )
-              const labelDias =
-                diasFalta === 0
-                  ? 'Hoje'
-                  : diasFalta === 1
-                    ? 'Amanha'
-                    : `Em ${diasFalta} dias`
-              return (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 rounded-lg border border-gray-100 p-2 dark:border-gray-800"
-                >
-                  <div className="flex h-10 w-10 flex-col items-center justify-center rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 text-[11px] font-bold text-purple-700 dark:from-purple-900/40 dark:to-pink-900/40 dark:text-purple-200">
-                    <span className="leading-none">{dia}</span>
-                    <span className="mt-0.5 text-[9px] font-semibold">
-                      {mes}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate text-xs font-medium text-gray-900 dark:text-white">
-                      {d.name}
-                    </div>
-                    <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                      {labelDias}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            {data.datasProximas?.slice(0, 3).map((d, i) => (
+              <DataComemorativaItem key={i} data={d} />
+            ))}
           </div>
+          {data.datasProximas && data.datasProximas.length > 0 && (
+            <button
+              type="button"
+              onClick={abrirCalendario}
+              className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-gray-200 py-2 text-xs font-medium text-purple-600 transition hover:bg-purple-50 dark:border-gray-700 dark:text-purple-400 dark:hover:bg-purple-950/30"
+            >
+              Ver calendario
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
-        <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4">
+        <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 dark:border-amber-900/40 dark:from-amber-950/40 dark:to-orange-950/30">
           <div className="mb-2 flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-amber-600" />
-            <span className="text-sm font-semibold text-gray-900">
+            <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">
               Dica Rapida
             </span>
           </div>
-          <p className="text-sm text-gray-700">{data.dicaRapida}</p>
+          <p className="text-sm text-gray-700 dark:text-amber-100">{data.dicaRapida}</p>
         </div>
       </aside>
+
+      <CalendarioDatasDrawer
+        open={calendarioOpen}
+        loading={datasLoading}
+        datas={todasDatas}
+        onClose={() => setCalendarioOpen(false)}
+      />
 
       <CriarChoiceModal
         open={showCriarModal}
         onClose={() => setShowCriarModal(false)}
       />
+    </div>
+  )
+}
+
+function DataComemorativaItem({ data }: { data: DataComemorativa }) {
+  const date = new Date(data.dateISO)
+  const dia = date.getDate()
+  const mes = date
+    .toLocaleDateString('pt-BR', { month: 'short' })
+    .replace('.', '')
+    .toUpperCase()
+  const diasFalta = Math.max(
+    0,
+    Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+  )
+  const labelDias =
+    diasFalta === 0
+      ? 'Hoje'
+      : diasFalta === 1
+        ? 'Amanha'
+        : `Em ${diasFalta} dia${diasFalta > 1 ? 's' : ''}`
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-gray-100 p-2 dark:border-gray-800">
+      <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 text-[11px] font-bold text-purple-700 dark:from-purple-900/40 dark:to-pink-900/40 dark:text-purple-200">
+        <span className="leading-none">{dia}</span>
+        <span className="mt-0.5 text-[9px] font-semibold">{mes}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-xs font-medium text-gray-900 dark:text-white">
+          {data.name}
+        </div>
+        <div className="text-[10px] text-amber-600 dark:text-amber-400">
+          {labelDias}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CalendarioDatasDrawer({
+  open,
+  loading,
+  datas,
+  onClose,
+}: {
+  open: boolean
+  loading: boolean
+  datas: DataComemorativa[]
+  onClose: () => void
+}) {
+  return (
+    <div
+      className={
+        open
+          ? 'fixed inset-0 z-50 pointer-events-auto'
+          : 'fixed inset-0 z-50 pointer-events-none'
+      }
+      aria-hidden={!open}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Fechar calendario"
+        tabIndex={open ? 0 : -1}
+        className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${
+          open ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        className={`absolute right-0 top-0 flex h-full w-[90vw] max-w-md flex-col bg-white shadow-2xl transition-transform duration-300 ease-out dark:bg-gray-950 ${
+          open ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+          <div className="flex min-w-0 items-start gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+              <CalendarPlus className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-semibold text-gray-900 dark:text-white">
+                Calendario de Datas
+              </h2>
+              <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                Datas comemorativas para sua marca
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            tabIndex={open ? 0 : -1}
+            aria-label="Fechar calendario"
+            className="-mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-200 border-t-purple-600" />
+            </div>
+          ) : datas.length === 0 ? (
+            <div className="rounded-lg bg-gray-50 p-6 text-center text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+              Nenhuma data comemorativa nos proximos 12 meses.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {datas.map((d, i) => {
+                const date = new Date(d.dateISO)
+                const dia = date.getDate()
+                const mes = date
+                  .toLocaleDateString('pt-BR', { month: 'short' })
+                  .replace('.', '')
+                  .toUpperCase()
+                const diasFalta = Math.max(
+                  0,
+                  Math.ceil(
+                    (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+                  ),
+                )
+                const labelDias =
+                  diasFalta === 0
+                    ? 'Hoje'
+                    : diasFalta === 1
+                      ? 'Amanha'
+                      : `Em ${diasFalta} dia${diasFalta > 1 ? 's' : ''}`
+                return (
+                  <li
+                    key={i}
+                    className="flex items-start gap-3 rounded-xl border border-gray-100 bg-white p-3 dark:border-gray-800 dark:bg-gray-900"
+                  >
+                    <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 text-purple-700 dark:from-purple-900/40 dark:to-pink-900/40 dark:text-purple-200">
+                      <span className="text-base font-bold leading-none">
+                        {dia}
+                      </span>
+                      <span className="mt-0.5 text-[10px] font-semibold">
+                        {mes}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {d.name}
+                      </div>
+                      {d.description && (
+                        <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400">
+                          {d.description}
+                        </p>
+                      )}
+                      <div className="mt-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                        {labelDias}
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+        <div className="border-t border-gray-100 px-4 py-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+          💡 Clique em uma data para ver inspiracoes relacionadas (em breve).
+        </div>
+      </aside>
     </div>
   )
 }

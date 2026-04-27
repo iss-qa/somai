@@ -55,7 +55,7 @@ export default function CompanyLayout({
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50/40 via-white to-pink-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <TopNav />
-      <main className="mx-auto max-w-[1400px] px-3 py-4 md:px-4 md:py-6">
+      <main className="mx-auto max-w-7xl px-3 py-4 sm:px-6 md:py-6 lg:px-8">
         <AccessGate>{children}</AccessGate>
       </main>
     </div>

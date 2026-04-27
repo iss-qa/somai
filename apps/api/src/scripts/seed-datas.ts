@@ -45,6 +45,23 @@ const DATAS: Array<{
   { date: '09-27', name: 'Dia da Secretaria', description: '', niches: ['todos'] },
   { date: '06-15', name: 'Dia do Cabeleireiro', description: '', niches: ['salao_beleza', 'barbearia'] },
   { date: '08-25', name: 'Dia do Soldado', description: '', niches: ['todos'] },
+
+  // Feriados nacionais fixos adicionais
+  { date: '10-12', name: 'Nossa Senhora Aparecida', description: 'Padroeira do Brasil — feriado nacional', niches: ['todos'] },
+  { date: '11-02', name: 'Finados', description: 'Feriado nacional', niches: ['todos'] },
+  { date: '11-20', name: 'Dia da Consciencia Negra', description: 'Feriado nacional — homenagem a Zumbi dos Palmares', niches: ['todos'], suggested_headline: 'Reconhecimento, respeito e representatividade' },
+
+  // Datas culturais fortes
+  { date: '06-13', name: 'Santo Antonio', description: 'Dia dos casamenteiros — abre o ciclo junino', niches: ['todos', 'restaurante', 'confeitaria'] },
+  { date: '06-24', name: 'Sao Joao', description: 'Maior festa popular do Nordeste', niches: ['todos', 'restaurante', 'moda', 'confeitaria'], suggested_headline: 'Arraia chegou! Bora celebrar Sao Joao' },
+  { date: '06-29', name: 'Sao Pedro', description: 'Encerra o ciclo junino', niches: ['todos'] },
+
+  // Bahia — feriados e datas regionais
+  { date: '07-02', name: 'Independencia da Bahia (Dois de Julho)', description: 'Feriado estadual — comemora a expulsao das tropas portuguesas em 1823', niches: ['todos'], suggested_headline: 'Bahia, terra de luta e liberdade' },
+  { date: '01-06', name: 'Lavagem do Bonfim (1 quinta de janeiro)', description: 'Tradicao baiana — fe e cultura em Salvador', niches: ['todos'] },
+  { date: '08-15', name: 'Festa de Nossa Senhora da Boa Morte (Cachoeira-BA)', description: 'Patrimonio cultural afro-brasileiro', niches: ['todos'] },
+  { date: '12-04', name: 'Santa Barbara', description: 'Padroeira dos bombeiros — forte tradicao baiana', niches: ['todos'] },
+  { date: '12-08', name: 'Nossa Senhora da Conceicao da Praia', description: 'Padroeira da cidade de Salvador', niches: ['todos'] },
 ]
 
 async function run() {

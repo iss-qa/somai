@@ -23,6 +23,7 @@ import {
   LifeBuoy,
   Moon,
   Sun,
+  FileText,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -48,6 +49,7 @@ interface GamState {
 const NAV = [
   { href: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/app/criar', label: 'Criar', icon: Plus, cta: true },
+  { href: '/app/scripts', label: 'Roteiros', icon: FileText },
   { href: '/app/inspiracao', label: 'Inspiração', icon: Lightbulb },
   { href: '/app/biblioteca', label: 'Biblioteca', icon: BookOpen },
   { href: '/app/calendar', label: 'Calendário', icon: Calendar },
@@ -117,7 +119,7 @@ export function TopNav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur dark:border-gray-800 dark:bg-gray-950/90">
-      <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center gap-1.5 px-2 sm:gap-2 sm:px-3 md:gap-4 md:px-4">
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-1.5 px-2 sm:gap-2 sm:px-6 md:gap-4 lg:px-8">
         {/* Mobile menu */}
         <button
           type="button"

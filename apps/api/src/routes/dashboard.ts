@@ -212,8 +212,7 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     const passosCompletos = passos.filter((p) => p.feito).length
     const proximoPasso = passos.find((p) => !p.feito) || passos[0]
 
-    const dicaIdx =
-      Math.floor(Date.now() / (1000 * 60 * 60 * 3)) % DICAS.length
+    const dicaIdx = Math.floor(Math.random() * DICAS.length)
 
     return reply.send({
       empresa: {
@@ -264,13 +263,24 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       dicaRapida: DICAS[dicaIdx],
     })
   })
+
+  // ── GET /datas-comemorativas ── lista expandida pro drawer "Ver calendario"
+  app.get('/datas-comemorativas', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { companyId } = request.user!
+    if (!companyId) {
+      return reply.status(400).send({ error: 'Empresa nao encontrada' })
+    }
+    const company: any = await Company.findById(companyId).lean()
+    const datas = await buscarDatasProximas(company?.niche || '', 365, 200)
+    return reply.send({ datas })
+  })
 }
 
 /**
  * Busca datas comemorativas (DatesCalendar) relevantes pra um segmento,
  * nos próximos N dias. O campo `date` é MM-DD (ou MM/DD); aceitamos ambos.
  */
-async function buscarDatasProximas(niche: string, diasFrente = 30) {
+async function buscarDatasProximas(niche: string, diasFrente = 30, limit = 8) {
   const hoje = new Date()
   const fim = new Date(hoje.getTime() + diasFrente * 24 * 60 * 60 * 1000)
   const q: Record<string, any> = { active: true }
@@ -308,5 +318,5 @@ async function buscarDatasProximas(niche: string, diasFrente = 30) {
   cached.sort(
     (a, b) => new Date(a.dateISO).getTime() - new Date(b.dateISO).getTime(),
   )
-  return cached.slice(0, 8)
+  return cached.slice(0, limit)
 }
