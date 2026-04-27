@@ -48,9 +48,9 @@ interface GamState {
 const NAV = [
   { href: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/app/criar', label: 'Criar', icon: Plus, cta: true },
-  { href: '/app/inspiracao', label: 'Inspiracao', icon: Lightbulb },
+  { href: '/app/inspiracao', label: 'Inspiração', icon: Lightbulb },
   { href: '/app/biblioteca', label: 'Biblioteca', icon: BookOpen },
-  { href: '/app/calendar', label: 'Calendario', icon: Calendar },
+  { href: '/app/calendar', label: 'Calendário', icon: Calendar },
   { href: '/app/comunidade', label: 'Comunidade', icon: Users },
   { href: '/app/jornada', label: 'Jornada', icon: Trophy, accent: true },
 ]
@@ -194,7 +194,7 @@ export function TopNav() {
           <button
             type="button"
             className="relative inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-            aria-label="Notificacoes"
+            aria-label="Notificações"
           >
             <Bell className="h-5 w-5" />
             <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />

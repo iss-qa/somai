@@ -21,6 +21,7 @@ import {
   FileText,
 } from 'lucide-react'
 import { Footer, Header, ResumoCardRich } from './WizardChrome'
+import { WhatsAppIcon } from './WhatsAppIcon'
 import { CUSTO_SLIDE } from '../types'
 import type { CriarWizardApi } from '../hooks/useCriarWizard'
 
@@ -70,7 +71,7 @@ export function StepCriar({ w }: { w: CriarWizardApi }) {
     <div className="mt-6 md:mt-10">
       <Header
         titulo="Sua Ideia"
-        subtitulo="Vamos transformar sua ideia em conteudo profissional"
+        subtitulo="Vamos transformar sua ideia em conteúdo profissional"
       />
 
       {/* Cards de resumo (Formato / Modo / Objetivo) */}
@@ -90,12 +91,16 @@ export function StepCriar({ w }: { w: CriarWizardApi }) {
               <span className="flex items-center gap-1">
                 {formatoAtual.plataforma === 'instagram' ? (
                   <Instagram className="h-3 w-3" />
-                ) : (
+                ) : formatoAtual.plataforma === 'facebook' ? (
                   <Facebook className="h-3 w-3" />
+                ) : (
+                  <WhatsAppIcon className="h-3 w-3" />
                 )}
                 {formatoAtual.plataforma === 'instagram'
                   ? 'Instagram'
-                  : 'Facebook'}{' '}
+                  : formatoAtual.plataforma === 'facebook'
+                    ? 'Facebook'
+                    : 'WhatsApp'}{' '}
                 · {formatoAtual.size}
               </span>
             ) : null
@@ -106,15 +111,15 @@ export function StepCriar({ w }: { w: CriarWizardApi }) {
           labelBg="bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
           iconBg="bg-gradient-to-br from-purple-500 to-pink-500"
           icon={<Sparkles className="h-5 w-5 text-white" />}
-          titulo={modo === 'estatica' ? 'Imagem Estatica' : 'Imagem Editavel'}
+          titulo={modo === 'estatica' ? 'Imagem Estática' : 'Imagem Editável'}
           meta={
             <span>
               {fonte === 'zero'
                 ? 'Criar do Zero'
                 : fonte === 'link'
                   ? 'A partir de Link'
-                  : 'Inspiracao'}{' '}
-              · Criacao livre
+                  : 'Inspiração'}{' '}
+              · Criação livre
             </span>
           }
         />
@@ -138,7 +143,7 @@ export function StepCriar({ w }: { w: CriarWizardApi }) {
             <span>
               {objetivo === 'vender'
                 ? 'Converter em clientes'
-                : 'Gerar interacao'}
+                : 'Gerar interação'}
             </span>
           }
         />
@@ -151,7 +156,7 @@ export function StepCriar({ w }: { w: CriarWizardApi }) {
           <span>1 slide</span>
           <span className="text-gray-300 dark:text-gray-700">•</span>
           <Coins className="h-3.5 w-3.5 text-amber-500" />
-          <span className="font-semibold">{CUSTO_SLIDE} creditos</span>
+          <span className="font-semibold">{CUSTO_SLIDE} créditos</span>
         </div>
       </div>
 
@@ -264,7 +269,7 @@ export function StepCriar({ w }: { w: CriarWizardApi }) {
                 {w.promptRefinado ? (
                   <PromptPreview text={w.promptRefinado} />
                 ) : (
-                  <p className="text-sm italic text-gray-400">Aguardando geracao do prompt...</p>
+                  <p className="text-sm italic text-gray-400">Aguardando geração do prompt...</p>
                 )}
               </div>
             ) : (
@@ -273,7 +278,7 @@ export function StepCriar({ w }: { w: CriarWizardApi }) {
                 onChange={(e) => w.setPromptRefinado(e.target.value)}
                 rows={w.promptExpandido ? 24 : 12}
                 className="w-full resize-y rounded-xl border border-gray-200 bg-white p-3 font-mono text-xs leading-relaxed text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                placeholder="Aguardando geracao do prompt..."
+                placeholder="Aguardando geração do prompt..."
               />
             )}
 
@@ -289,7 +294,7 @@ export function StepCriar({ w }: { w: CriarWizardApi }) {
                 {w.referenceImage ? (
                   <div className="flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-2 py-1 text-xs text-purple-700 dark:border-purple-900/40 dark:bg-purple-950/40 dark:text-purple-300">
                     <ImagePlus className="h-3 w-3" />
-                    Imagem de referencia
+                    Imagem de referência
                     <button
                       type="button"
                       onClick={() => w.setReferenceImage(null)}

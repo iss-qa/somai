@@ -11,7 +11,7 @@ type Categoria = 'todas' | 'trends' | 'noticias' | 'datas' | 'oportunidades'
 const CATEGORIAS: { key: Categoria; label: string }[] = [
   { key: 'todas', label: 'Todas' },
   { key: 'trends', label: 'Trends' },
-  { key: 'noticias', label: 'Noticias' },
+  { key: 'noticias', label: 'Notícias' },
   { key: 'datas', label: 'Datas' },
   { key: 'oportunidades', label: 'Oportunidades' },
 ]
@@ -58,7 +58,7 @@ export function InspiracaoModal({ w }: { w: CriarWizardApi }) {
   const salvar = async (id: string) => {
     try {
       await api.post(`/api/inspiracoes/${id}/salvar`)
-      toast.success('Inspiracao salva! +5 XP')
+      toast.success('Inspiração salva! +5 XP')
     } catch {
       toast.error('Erro ao salvar')
     }
@@ -88,7 +88,7 @@ export function InspiracaoModal({ w }: { w: CriarWizardApi }) {
               </div>
               <div>
                 <div className="font-semibold text-white">
-                  Biblioteca de Inspiracoes
+                  Biblioteca de Inspirações
                 </div>
                 <p className="text-xs text-white/80">
                   Escolha um tema pronto para criar seu post
@@ -133,7 +133,7 @@ export function InspiracaoModal({ w }: { w: CriarWizardApi }) {
             <div className="flex flex-col items-center gap-3 py-16 text-center">
               <Lightbulb className="h-12 w-12 text-gray-300" />
               <p className="text-sm text-gray-500">
-                Inspiracoes em breve! Estamos curadoria o melhor conteudo para voce.
+                Inspirações em breve! Estamos curando o melhor conteúdo para você.
               </p>
             </div>
           ) : (
@@ -187,7 +187,7 @@ export function InspiracaoModal({ w }: { w: CriarWizardApi }) {
         {items.length > 0 && (
           <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3 dark:border-gray-800">
             <span className="text-xs text-gray-500">
-              {items.length} inspiracoes disponiveis
+              {items.length} inspirações disponíveis
             </span>
             <div className="flex items-center gap-3">
               <button
@@ -199,7 +199,7 @@ export function InspiracaoModal({ w }: { w: CriarWizardApi }) {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="text-xs text-gray-500">
-                Pagina {page + 1} de {totalPages}
+                Página {page + 1} de {totalPages}
               </span>
               <button
                 type="button"

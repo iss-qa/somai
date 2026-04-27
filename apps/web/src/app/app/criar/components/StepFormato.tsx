@@ -3,6 +3,7 @@
 import toast from 'react-hot-toast'
 import { Sparkles, Instagram, Facebook } from 'lucide-react'
 import { Footer, FormatoCard, Header } from './WizardChrome'
+import { WhatsAppIcon } from './WhatsAppIcon'
 import { FORMATOS } from '../types'
 import type { CriarWizardApi } from '../hooks/useCriarWizard'
 
@@ -11,12 +12,12 @@ export function StepFormato({ w }: { w: CriarWizardApi }) {
     <div className="mt-6 md:mt-10">
       <div className="mt-6 rounded-xl border border-purple-200 bg-purple-50/60 p-3 text-xs text-purple-700 dark:border-purple-900/50 dark:bg-purple-950/40 dark:text-purple-300">
         <Sparkles className="mr-1 inline h-3.5 w-3.5" />
-        Voce esta escolhendo o formato de uma imagem que sera gerada do zero
+        Você está escolhendo o formato de uma imagem que será gerada do zero
         pela IA.
       </div>
       <Header
         titulo="Escolha o Formato da Imagem"
-        subtitulo="Agora escolha o formato da arte que sera criada do zero pela IA."
+        subtitulo="Agora escolha o formato da arte que será criada do zero pela IA."
       />
 
       <div className="mt-6 flex items-center justify-center gap-2">
@@ -25,6 +26,7 @@ export function StepFormato({ w }: { w: CriarWizardApi }) {
             { key: 'todos', label: 'Todos', icon: null },
             { key: 'instagram', label: 'Instagram', icon: Instagram },
             { key: 'facebook', label: 'Facebook', icon: Facebook },
+            { key: 'whatsapp', label: 'WhatsApp', icon: WhatsAppIcon },
           ] as const
         ).map((tab) => {
           const TabIcon = tab.icon

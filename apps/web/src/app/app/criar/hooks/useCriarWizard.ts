@@ -30,8 +30,9 @@ export function useCriarWizard() {
   const [modo, setModo] = useState<ModoGeracao>('estatica')
   const [formato, setFormato] = useState<Formato | null>(null)
   const [filtroPlataforma, setFiltroPlataforma] = useState<
-    'todos' | 'instagram' | 'facebook'
+    'todos' | 'instagram' | 'facebook' | 'whatsapp'
   >('todos')
+  const [highlightObjetivo, setHighlightObjetivo] = useState(false)
   const [objetivo, setObjetivo] = useState<Objetivo | null>(null)
   const [abordagem, setAbordagem] = useState<Abordagem | null>(null)
   const [verMaisAbordagens, setVerMaisAbordagens] = useState(false)
@@ -184,6 +185,8 @@ export function useCriarWizard() {
     setShowInspiracaoModal,
     ideiaTemp,
     setIdeiaTemp,
+    highlightObjetivo,
+    setHighlightObjetivo,
     // derived
     abordagemSelecionada,
     formatoAtual,

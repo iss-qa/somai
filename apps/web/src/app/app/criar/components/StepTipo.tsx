@@ -19,8 +19,8 @@ export function StepTipo({ w }: { w: CriarWizardApi }) {
   return (
     <div className="mt-6 md:mt-10">
       <Header
-        titulo="O que voce quer criar?"
-        subtitulo="Escolha o tipo de conteudo que deseja gerar com IA."
+        titulo="O que você quer criar?"
+        subtitulo="Escolha o tipo de conteúdo que deseja gerar com IA."
       />
       <div className="mt-6 grid gap-3 md:grid-cols-2 md:gap-4">
         <BigCard
@@ -33,8 +33,8 @@ export function StepTipo({ w }: { w: CriarWizardApi }) {
               IA
             </span>
           }
-          subtitulo="Posts, carrosseis e stories estaticos para suas redes sociais."
-          price="A partir de 15 creditos"
+          subtitulo="Posts, carrosséis e stories estáticos para suas redes sociais."
+          price="A partir de 15 créditos"
           icon={<ImageIcon className="h-6 w-6" />}
           footer={
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
@@ -49,15 +49,15 @@ export function StepTipo({ w }: { w: CriarWizardApi }) {
           active={false}
           disabled
           onClick={() => toast('Em breve', { icon: '🚧' })}
-          titulo="Gerar Video"
+          titulo="Gerar Vídeo"
           badge={
             <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
               <Lock className="h-3 w-3" />
               Em breve
             </span>
           }
-          subtitulo="Videos animados com IA. Reels e Shorts."
-          price="A partir de 30 creditos"
+          subtitulo="Vídeos animados com IA. Reels e Shorts."
+          price="A partir de 30 créditos"
           icon={<Video className="h-6 w-6" />}
         />
       </div>

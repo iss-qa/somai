@@ -15,7 +15,7 @@ export function IdeiaDialog({ w }: { w: CriarWizardApi }) {
               Descreva sua ideia
             </div>
             <p className="text-xs text-gray-500">
-              Conte sobre o que voce quer criar
+              Conte sobre o que você quer criar
             </p>
           </div>
           <button
@@ -35,7 +35,7 @@ export function IdeiaDialog({ w }: { w: CriarWizardApi }) {
         />
         <div className="mt-3 rounded-lg bg-purple-50/60 p-3 text-xs text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
           <Sparkles className="mr-1 inline h-3 w-3" />
-          Nossa IA vai transformar sua ideia em um conteudo completo e
+          Nossa IA vai transformar sua ideia em um conteúdo completo e
           profissional!
         </div>
         <div className="mt-4 flex justify-end gap-2">

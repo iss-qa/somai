@@ -71,6 +71,8 @@ const FORMAT_SIZE: Record<string, { width: number; height: number; aspect: strin
   stories_unico: { width: 1080, height: 1920, aspect: '9:16' },
   stories_carrossel: { width: 1080, height: 1920, aspect: '9:16' },
   post_facebook: { width: 1080, height: 1350, aspect: '4:5' },
+  whatsapp_status: { width: 1080, height: 1920, aspect: '9:16' },
+  whatsapp_landscape: { width: 1200, height: 630, aspect: '1.91:1' },
 }
 
 function getOpenAIClient(): OpenAI {

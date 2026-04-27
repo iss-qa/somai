@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FORMATOS, STEPS_ORDER, type StepKey } from '../types'
+import { WhatsAppIcon } from './WhatsAppIcon'
 
 export function Header({ titulo, subtitulo }: { titulo: string; subtitulo: string }) {
   return (
@@ -223,9 +224,24 @@ export function FormatoCard({
   onClick: () => void
 }) {
   const Icon = formato.icon
-  const PlatIcon = formato.plataforma === 'instagram' ? Instagram : Facebook
-  const aspectClass = formato.ratio === 'story' ? 'aspect-[9/16]' : 'aspect-[4/5]'
-  const widthClass = formato.ratio === 'story' ? 'w-[58%]' : 'w-[78%]'
+  const PlatIcon =
+    formato.plataforma === 'instagram'
+      ? Instagram
+      : formato.plataforma === 'facebook'
+        ? Facebook
+        : WhatsAppIcon
+  const aspectClass =
+    formato.ratio === 'story'
+      ? 'aspect-[9/16]'
+      : formato.ratio === 'landscape'
+        ? 'aspect-[1.91/1]'
+        : 'aspect-[4/5]'
+  const widthClass =
+    formato.ratio === 'story'
+      ? 'w-[58%]'
+      : formato.ratio === 'landscape'
+        ? 'w-[88%]'
+        : 'w-[78%]'
 
   return (
     <button
@@ -250,7 +266,9 @@ export function FormatoCard({
             ? 'bg-white/25 text-white'
             : formato.plataforma === 'instagram'
               ? 'bg-pink-50 text-pink-600 dark:bg-pink-950/40 dark:text-pink-300'
-              : 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300'
+              : formato.plataforma === 'facebook'
+                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300'
+                : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300'
         }`}
       >
         <PlatIcon className="h-3 w-3" />
