@@ -14,6 +14,26 @@ export function StepModo({ w }: { w: CriarWizardApi }) {
       />
       <div className="mt-6 grid gap-3 md:grid-cols-2 md:gap-4">
         <BigCard
+          active={w.modo === 'estatica'}
+          onClick={() => w.setModo('estatica')}
+          titulo="Imagem Estática"
+          badge={
+            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+              <Sparkles className="h-3 w-3" />
+              Mais robusto
+            </span>
+          }
+          subtitulo="Ótimo para imagens únicas"
+          price="15 créditos por slide"
+          icon={<Sparkles className="h-6 w-6" />}
+          details={[
+            'Composição totalmente única',
+            'Elementos criados na hora',
+            'Edita via chat com IA',
+          ]}
+          highlight
+        />
+        <BigCard
           active={false}
           disabled
           onClick={() => toast('Em breve', { icon: '🚧' })}
@@ -33,26 +53,6 @@ export function StepModo({ w }: { w: CriarWizardApi }) {
             'Texto e fundo gerados por IA',
             'Pronto em segundos',
           ]}
-        />
-        <BigCard
-          active={w.modo === 'estatica'}
-          onClick={() => w.setModo('estatica')}
-          titulo="Imagem Estática"
-          badge={
-            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-              <Sparkles className="h-3 w-3" />
-              Mais robusto
-            </span>
-          }
-          subtitulo="Ótimo para imagens únicas"
-          price="15 créditos por slide"
-          icon={<Sparkles className="h-6 w-6" />}
-          details={[
-            'Composição totalmente única',
-            'Elementos criados na hora',
-            'Edita via chat com IA',
-          ]}
-          highlight
         />
       </div>
       <Footer
