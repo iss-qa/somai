@@ -327,7 +327,12 @@ export default async function dashboardRoutes(app: FastifyInstance) {
 async function buscarDatasProximas(niche: string, diasFrente = 30, limit = 8) {
   const hoje = new Date()
   const fim = new Date(hoje.getTime() + diasFrente * 24 * 60 * 60 * 1000)
-  const q: Record<string, any> = { active: true }
+  // Apenas entradas curadas (seed oficial) ou criadas pelo admin —
+  // ignora entradas legadas geradas por IA por nicho.
+  const q: Record<string, any> = {
+    active: true,
+    source: { $in: ['soma', 'admin'] },
+  }
   if (niche) q.niches = { $in: [niche, 'todos'] }
 
   const todas: any[] = await DatesCalendar.find(q).lean()

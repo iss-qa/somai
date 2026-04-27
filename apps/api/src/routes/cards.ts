@@ -78,6 +78,66 @@ export default async function cardsRoutes(app: FastifyInstance) {
     },
   )
 
+  // ── GET /stats ──── contagens leves para badges/tabs ─────
+  app.get('/stats', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { companyId, role } = request.user!
+    const match: Record<string, unknown> = {}
+    if (role !== 'superadmin' && role !== 'support') {
+      if (!companyId) {
+        return reply.status(400).send({ error: 'Empresa nao encontrada' })
+      }
+      match.company_id = companyId
+    }
+
+    const [agg] = await Card.aggregate([
+      { $match: match },
+      {
+        $facet: {
+          total: [{ $count: 'n' }],
+          byStatus: [{ $group: { _id: '$status', n: { $sum: 1 } } }],
+          // `source` so existe em cards novos. Para os antigos, classificamos
+          // pelo formato do prompt usado (mesma heuristica de GET /).
+          bySource: [
+            {
+              $project: {
+                source: {
+                  $cond: [
+                    { $in: ['$source', ['ai', 'custom']] },
+                    '$source',
+                    {
+                      $cond: [
+                        {
+                          $regexMatch: {
+                            input: { $ifNull: ['$ai_prompt_used', ''] },
+                            regex: /\*\*Objetivo do Post:\*\*/i,
+                          },
+                        },
+                        'ai',
+                        'custom',
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            { $group: { _id: '$source', n: { $sum: 1 } } },
+          ],
+        },
+      },
+    ])
+
+    const total = agg?.total?.[0]?.n || 0
+    const byStatus: Record<string, number> = {}
+    for (const r of agg?.byStatus || []) {
+      if (r._id) byStatus[r._id] = r.n
+    }
+    const bySource: Record<string, number> = {}
+    for (const r of agg?.bySource || []) {
+      if (r._id) bySource[r._id] = r.n
+    }
+    return reply.send({ total, byStatus, bySource })
+  })
+
   // ── GET /:id ──────────────────────────────────
   app.get(
     '/:id',

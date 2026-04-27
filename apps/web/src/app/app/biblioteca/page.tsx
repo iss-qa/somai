@@ -107,13 +107,20 @@ export default function BibliotecaV2Page() {
   )
 }
 
+interface CardStats {
+  total: number
+  byStatus: Record<string, number>
+  bySource: Record<string, number>
+}
+
 function BibliotecaV2Content() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = (searchParams.get('tab') || 'todos') as Tab
   const [cards, setCards] = useState<CardItem[]>([])
-  const [allCards, setAllCards] = useState<CardItem[]>([])
+  const [stats, setStats] = useState<CardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refetching, setRefetching] = useState(false)
   const [tab, setTab] = useState<Tab>(
     TABS.some((t) => t.key === initialTab) ? initialTab : 'todos',
   )
@@ -123,31 +130,45 @@ function BibliotecaV2Content() {
   const [preview, setPreview] = useState<CardItem | null>(null)
   const [agendar, setAgendar] = useState<CardItem | null>(null)
 
-  const load = () => {
-    setLoading(true)
+  const loadStats = () => {
+    api
+      .get<CardStats>('/api/cards/stats')
+      .then(setStats)
+      .catch(() => {})
+  }
+
+  const loadCards = () => {
+    if (cards.length === 0) setLoading(true)
+    else setRefetching(true)
     const params = new URLSearchParams()
     params.set('limit', '60')
     const tabCfg = TABS.find((t) => t.key === tab)
     if (tabCfg?.status) params.set('status', tabCfg.status)
     if (formato) params.set('format', formato)
 
-    Promise.all([
-      api.get<{ cards: CardItem[] }>(`/api/cards?${params.toString()}`),
-      api.get<{ cards: CardItem[] }>(`/api/cards?limit=200`),
-    ])
-      .then(([d, dAll]) => {
-        setCards(d.cards || [])
-        setAllCards(dAll.cards || [])
+    api
+      .get<{ cards: CardItem[] }>(`/api/cards?${params.toString()}`)
+      .then((d) => setCards(d.cards || []))
+      .catch(() => setCards([]))
+      .finally(() => {
+        setLoading(false)
+        setRefetching(false)
       })
-      .catch(() => {
-        setCards([])
-        setAllCards([])
-      })
-      .finally(() => setLoading(false))
+  }
+
+  // load: usado por preview/delete/agendar pra refrescar tudo apos mutacoes
+  const load = () => {
+    loadCards()
+    loadStats()
   }
 
   useEffect(() => {
-    load()
+    loadStats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    loadCards()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, formato])
 
@@ -165,22 +186,18 @@ function BibliotecaV2Content() {
   }, [cards, tab, query])
 
   const counts = useMemo(() => {
-    const base = allCards.length > 0 ? allCards : cards
-    const map: Record<string, number> = {
-      todos: base.length,
-      draft: 0,
-      scheduled: 0,
-      posted: 0,
-      ia: 0,
-      personalizado: 0,
+    if (!stats) {
+      return { todos: 0, draft: 0, scheduled: 0, posted: 0, ia: 0, personalizado: 0 }
     }
-    for (const c of base) {
-      if (c.status in map) map[c.status] = (map[c.status] || 0) + 1
-      if (c.source === 'ai') map.ia = (map.ia || 0) + 1
-      else map.personalizado = (map.personalizado || 0) + 1
+    return {
+      todos: stats.total,
+      draft: stats.byStatus.draft || 0,
+      scheduled: stats.byStatus.scheduled || 0,
+      posted: stats.byStatus.posted || 0,
+      ia: stats.bySource.ai || 0,
+      personalizado: stats.bySource.custom || 0,
     }
-    return map
-  }, [cards, allCards])
+  }, [stats])
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -313,7 +330,11 @@ function BibliotecaV2Content() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
+        <div
+          className={`grid grid-cols-2 gap-3 transition-opacity md:grid-cols-3 md:gap-4 lg:grid-cols-4 ${
+            refetching ? 'opacity-60' : 'opacity-100'
+          }`}
+        >
           {filtered.map((c) => (
             <PostCard key={c._id} card={c} onClick={() => setPreview(c)} />
           ))}

@@ -69,6 +69,16 @@ async function run() {
     process.env.MONGO_URI || 'mongodb://localhost:27017/soma_ai_dev',
   )
   console.log('[seed] Datas comemorativas...')
+
+  // Desativa entradas legadas/AI nao curadas para que o dashboard so
+  // mostre as datas oficiais (nacionais + regionais BA). Admin pode
+  // reativar manualmente quando houver painel.
+  const legacy = await DatesCalendar.updateMany(
+    { source: { $nin: ['soma', 'admin'] } },
+    { $set: { active: false } },
+  )
+  console.log(`[seed] ${legacy.modifiedCount || 0} entradas legadas desativadas.`)
+
   for (const d of DATAS) {
     await DatesCalendar.findOneAndUpdate(
       { date: d.date, name: d.name },
@@ -78,12 +88,13 @@ async function run() {
           niches: d.niches,
           suggested_headline: d.suggested_headline || '',
           active: true,
+          source: 'soma',
         },
       },
       { upsert: true },
     )
   }
-  console.log(`[seed] ${DATAS.length} datas upsertadas.`)
+  console.log(`[seed] ${DATAS.length} datas curadas upsertadas.`)
   await mongoose.disconnect()
 }
 
