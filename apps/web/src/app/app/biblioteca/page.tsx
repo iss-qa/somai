@@ -144,6 +144,9 @@ function BibliotecaV2Content() {
     params.set('limit', '60')
     const tabCfg = TABS.find((t) => t.key === tab)
     if (tabCfg?.status) params.set('status', tabCfg.status)
+    // Filtro por source (ia/personalizado)
+    if (tab === 'ia') params.set('source', 'ai')
+    if (tab === 'personalizado') params.set('source', 'custom')
     if (formato) params.set('format', formato)
 
     api
@@ -174,8 +177,10 @@ function BibliotecaV2Content() {
 
   const filtered = useMemo(() => {
     let result = cards
+    // Filtro por source ja eh feito server-side, mas mantemos client-side
+    // como fallback para cards antigos que podem nao ter source definido
     if (tab === 'ia') result = result.filter((c) => c.source === 'ai')
-    if (tab === 'personalizado') result = result.filter((c) => c.source !== 'ai')
+    if (tab === 'personalizado') result = result.filter((c) => c.source === 'custom' || (!c.source && !c.ai_prompt_used))
     if (!query.trim()) return result
     const q = query.toLowerCase()
     return result.filter(

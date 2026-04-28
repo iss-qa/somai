@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { Card, Integration } from '@soma-ai/db'
 import { CardStatus } from '@soma-ai/shared'
 import { authenticate } from '../plugins/auth'
+import { Types } from 'mongoose'
 import { EncryptionService } from '../services/encryption.service'
 import { LogService } from '../services/log.service'
 import { LLMService } from '../services/llm.service'
@@ -18,6 +19,7 @@ export default async function cardsRoutes(app: FastifyInstance) {
         Querystring: {
           format?: string
           status?: string
+          source?: string
           page?: string
           limit?: string
         }
@@ -25,7 +27,7 @@ export default async function cardsRoutes(app: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { companyId, role } = request.user!
-      const { format, status, page = '1', limit = '20' } = request.query
+      const { format, status, source, page = '1', limit = '20' } = request.query
 
       const query: Record<string, unknown> = {}
 
@@ -39,6 +41,7 @@ export default async function cardsRoutes(app: FastifyInstance) {
 
       if (format) query.format = format
       if (status) query.status = status
+      if (source === 'ai' || source === 'custom') query.source = source
 
       const pageNum = Math.max(1, parseInt(page))
       const limitNum = Math.min(100, Math.max(1, parseInt(limit)))
@@ -86,7 +89,8 @@ export default async function cardsRoutes(app: FastifyInstance) {
       if (!companyId) {
         return reply.status(400).send({ error: 'Empresa nao encontrada' })
       }
-      match.company_id = companyId
+      // Converte para ObjectId — aggregate() nao faz cast automatico como find()
+      match.company_id = new Types.ObjectId(companyId)
     }
 
     const [agg] = await Card.aggregate([

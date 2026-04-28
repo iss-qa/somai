@@ -104,11 +104,11 @@ export function BrandSwitcher() {
             className="fixed inset-0 z-40"
             aria-label="Fechar"
           />
-          <div className="absolute left-0 top-full z-50 mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
-            <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-semibold uppercase text-gray-500 dark:border-gray-800 dark:text-gray-400">
+          <div className="absolute left-0 top-full z-50 mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-[#111119]">
+            <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-semibold uppercase text-gray-500 dark:border-gray-800 dark:text-gray-400 dark:bg-[#111119]">
               Suas Marcas
             </div>
-            <div className="max-h-64 overflow-y-auto py-1">
+            <div className="max-h-64 overflow-y-auto py-1 dark:bg-[#111119]">
               {loading && (
                 <div className="flex justify-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin text-gray-400 dark:text-gray-500" />
@@ -124,7 +124,7 @@ export function BrandSwitcher() {
                   key={m.id}
                   type="button"
                   onClick={() => trocar(m.id)}
-                  className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800/80"
                 >
                   {m.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -154,7 +154,7 @@ export function BrandSwitcher() {
                 </button>
               ))}
             </div>
-            <div className="border-t border-gray-100 py-1 dark:border-gray-800">
+            <div className="border-t border-gray-100 py-1 dark:border-gray-800 dark:bg-[#111119]">
               <button
                 type="button"
                 onClick={() => {
