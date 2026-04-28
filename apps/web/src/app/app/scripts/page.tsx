@@ -24,6 +24,7 @@ import {
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
+import { useCreditsStore } from '@/store/creditsStore'
 import toast from 'react-hot-toast'
 import {
   FileText,
@@ -125,6 +126,51 @@ const NICHE_TEMPLATES: Record<string, CategoryTemplate[]> = {
     { name: 'Depoimento de Cliente', title: 'O que nossos clientes dizem', text: 'Oi! Tudo bem?\n\nOlha o que a [nome] falou:\n\n"[Depoimento]"\n\nQuer ter essa experiencia? Vem pra ca!' },
     { name: 'Outro', title: '', text: '' },
   ],
+  restaurante: [
+    { name: 'Cardapio do Dia', title: 'Cardapio do Dia - Restaurante', text: 'Oi! Tudo bem? 🍽️\n\nConfira o cardapio de hoje:\n\n🥗 Entrada: [prato]\n🍖 Principal: [prato]\n🍰 Sobremesa: [prato]\n\nReserve sua mesa ou faca seu pedido pelo WhatsApp!' },
+    { name: 'Promocao de Almoco', title: 'Promocao de Almoco', text: 'Olá! Tudo bem? 🍴\n\nPromocao especial de almoco!\n\nPrato executivo completo por apenas R$ [preço].\n\nValido de segunda a sexta.\n\nReserve pelo WhatsApp!' },
+    { name: 'Delivery', title: 'Delivery - Restaurante', text: 'Oi! Tudo bem? 🛵\n\nJa conhece nosso delivery?\n\nPedidos pelo WhatsApp com entrega rapida!\n\nConfira nosso cardapio e faca seu pedido agora.' },
+    { name: 'Evento Especial', title: 'Evento Especial - Restaurante', text: 'Olá! Tudo bem? 🎉\n\nTemos um evento especial!\n\n[Descreva o evento: noite italiana, rodizio, etc.]\n\nReserve sua mesa com antecedencia!\n\nChama no WhatsApp.' },
+    { name: 'Happy Hour', title: 'Happy Hour - Restaurante', text: 'Oi! Tudo bem? 🍻\n\nHappy Hour todo dia das [horario]!\n\nBebidas e petiscos com precos especiais.\n\nVem curtir com os amigos!\n\nReserve pelo WhatsApp.' },
+    { name: 'Depoimento de Cliente', title: 'Avaliacao de Cliente', text: 'Oi! Tudo bem? ⭐\n\nOlha o que o(a) [nome] falou sobre a experiencia aqui:\n\n"[Depoimento]"\n\nVem viver essa experiencia tambem!' },
+    { name: 'Outro', title: '', text: '' },
+  ],
+  confeitaria: [
+    { name: 'Encomendas', title: 'Encomendas - Confeitaria', text: 'Oi! Tudo bem? 🎂\n\nFazemos bolos e doces sob encomenda!\n\nAniversarios, casamentos, formaturas...\n\nEntre em contato pelo WhatsApp e faca seu orcamento!' },
+    { name: 'Cardapio da Semana', title: 'Cardapio da Semana - Confeitaria', text: 'Olá! Tudo bem? 🧁\n\nConfira as delicias da semana:\n\n🍰 [Produto 1]\n🧁 [Produto 2]\n🍪 [Produto 3]\n\nFaca seu pedido pelo WhatsApp!' },
+    { name: 'Lancamento de Sabor', title: 'Novo Sabor - Confeitaria', text: 'Oi! Tudo bem? 🍫\n\nLancamento especial!\n\n[Nome do produto] - [descricao do sabor]\n\nExperimente antes que acabe!\n\nPedidos pelo WhatsApp.' },
+    { name: 'Promocao de Doces', title: 'Promocao de Doces', text: 'Olá! Tudo bem? 🍬\n\nPromocao imperdivel!\n\n[Produto] com [X]% de desconto!\n\nSo ate [data].\n\nGaranta o seu pelo WhatsApp!' },
+    { name: 'Kit Festas', title: 'Kit Festas - Confeitaria', text: 'Oi! Tudo bem? 🎉\n\nMontamos kits completos pra sua festa!\n\n📦 Kit [nome]: [itens inclusos]\n💰 A partir de R$ [preço]\n\nEncomende pelo WhatsApp!' },
+    { name: 'Dicas e Receitas', title: 'Dica de Confeitaria', text: 'Oi! Tudo bem? 👩‍🍳\n\nDica especial pra voce:\n\n[Compartilhe uma dica de confeitaria]\n\nE se precisar de doces profissionais, estamos aqui!\n\nChama no WhatsApp.' },
+    { name: 'Outro', title: '', text: '' },
+  ],
+  hamburgueria: [
+    { name: 'Cardapio de Burgers', title: 'Cardapio - Hamburgueria', text: 'Oi! Tudo bem? 🍔\n\nConfira nossos burgers:\n\n🔥 [Burger 1] - R$ [preço]\n🔥 [Burger 2] - R$ [preço]\n🔥 [Burger 3] - R$ [preço]\n\nFaca seu pedido pelo WhatsApp!' },
+    { name: 'Promocao do Dia', title: 'Promocao do Dia - Hamburgueria', text: 'Olá! Tudo bem? 🍔\n\nPromocao de hoje:\n\n[Nome do burger] + batata + refri por apenas R$ [preço]!\n\nSo hoje! Faca seu pedido agora.' },
+    { name: 'Combo Especial', title: 'Combo Especial - Hamburgueria', text: 'Oi! Tudo bem? 🍟\n\nCombo especial da semana:\n\n🍔 [Burger] + 🍟 Batata + 🥤 Refri\nDe R$ [preço original] por R$ [preço promo]!\n\nPedidos pelo WhatsApp!' },
+    { name: 'Lancamento de Burger', title: 'Novo Burger - Lancamento', text: 'Olá! Tudo bem? 🔥\n\nLancamento exclusivo!\n\n[Nome do burger] - [descricao dos ingredientes]\n\nExperimente antes que acabe!\n\nPedidos pelo WhatsApp.' },
+    { name: 'Delivery', title: 'Delivery - Hamburgueria', text: 'Oi! Tudo bem? 🛵\n\nEntregamos na sua casa!\n\nPedido minimo: R$ [valor]\nTaxa de entrega: R$ [valor]\n\nFaca seu pedido pelo WhatsApp agora!' },
+    { name: 'Depoimento de Cliente', title: 'Avaliacao de Cliente', text: 'Oi! Tudo bem? ⭐\n\nOlha o que o(a) [nome] achou:\n\n"[Depoimento]"\n\nVem provar o melhor burger da cidade!' },
+    { name: 'Outro', title: '', text: '' },
+  ],
+  cafeteria: [
+    { name: 'Cardapio de Cafes', title: 'Nossos Cafes - Cafeteria', text: 'Oi! Tudo bem? ☕\n\nConfira nosso cardapio de cafes:\n\n☕ Espresso - R$ [preço]\n☕ Cappuccino - R$ [preço]\n☕ Latte - R$ [preço]\n🧊 Cold Brew - R$ [preço]\n\nVem tomar um cafe com a gente!' },
+    { name: 'Promocao do Dia', title: 'Promocao do Dia - Cafeteria', text: 'Olá! Tudo bem? ☕\n\nPromocao de hoje:\n\n[Bebida] + [acompanhamento] por apenas R$ [preço]!\n\nSo hoje! Vem aproveitar.' },
+    { name: 'Lancamento de Bebida', title: 'Nova Bebida - Cafeteria', text: 'Oi! Tudo bem? 🧋\n\nLancamento especial!\n\n[Nome da bebida] - [descricao]\n\nDisponivel a partir de hoje!\n\nVem experimentar na cafeteria.' },
+    { name: 'Espaco para Trabalho', title: 'Trabalhe na Cafeteria', text: 'Oi! Tudo bem? 💻\n\nProcurando um lugar tranquilo pra trabalhar?\n\nNossa cafeteria tem Wi-Fi gratis, tomadas e ambiente aconchegante.\n\nVem tomar um cafe enquanto trabalha!' },
+    { name: 'Brunch / Especial', title: 'Brunch Especial - Cafeteria', text: 'Olá! Tudo bem? 🥐\n\nBrunch especial todo [dia da semana]!\n\n[Descreva os itens do brunch]\n\nReserve sua mesa pelo WhatsApp.' },
+    { name: 'Programa de Fidelidade', title: 'Fidelidade - Cafeteria', text: 'Oi! Tudo bem? ⭐\n\nJa conhece nosso programa de fidelidade?\n\nA cada [X] cafes, ganhe 1 gratis!\n\nPassa aqui e cadastre-se!' },
+    { name: 'Outro', title: '', text: '' },
+  ],
+  suplementos: [
+    { name: 'Lancamento de Produto', title: 'Lancamento - Suplementos', text: 'Oi! Tudo bem? 💪\n\nChegou [nome do produto]!\n\n[Beneficios do suplemento]\n\nDisponivel na loja e pelo WhatsApp.\n\nGaranta o seu!' },
+    { name: 'Promocao de Whey', title: 'Promocao de Whey', text: 'Olá! Tudo bem? 🥛\n\nWhey [marca] com preço especial!\n\nDe R$ [preço original] por R$ [preço promo].\n\nEstoque limitado! Faca seu pedido pelo WhatsApp.' },
+    { name: 'Dica de Treino e Nutricao', title: 'Dica de Treino e Nutricao', text: 'Oi! Tudo bem? 🏋️\n\nDica do dia:\n\n[Compartilhe uma dica de treino ou nutricao]\n\nE pra complementar seu treino, temos os melhores suplementos!\n\nChama no WhatsApp.' },
+    { name: 'Combo de Suplementos', title: 'Combo Especial - Suplementos', text: 'Olá! Tudo bem? 💊\n\nCombo especial:\n\n[Produto 1] + [Produto 2] + [Produto 3]\nDe R$ [preço original] por R$ [preço combo]!\n\nGaranta o seu pelo WhatsApp.' },
+    { name: 'Antes e Depois', title: 'Resultados - Antes e Depois', text: 'Oi! Tudo bem? 🔥\n\nOlha a transformacao do(a) [nome]!\n\n[Descreva os resultados]\n\nQuer ter esses resultados? Vem conversar com a gente!' },
+    { name: 'Consultoria Nutricional', title: 'Consultoria Nutricional', text: 'Oi! Tudo bem? 📋\n\nPrecisa de ajuda pra montar sua suplementacao?\n\nOferecemos consultoria personalizada!\n\nChama no WhatsApp e agende sua avaliacao.' },
+    { name: 'Outro', title: '', text: '' },
+  ],
   outro: [
     { name: 'Apresentacao do Negocio', title: 'Apresentacao - Seu Negocio', text: 'Oi! Tudo bem?\n\nJa conhece nosso negocio?\n\n[Descreva brevemente o que você faz]\n\nEstamos aqui pra te ajudar!\n\nChama no WhatsApp pra saber mais.' },
     { name: 'Recrutamento de Admins', title: 'Vagas Abertas - Venha Fazer Parte', text: 'Olá! Tudo bem?\n\nEstamos crescendo e buscando pessoas incriveis pra nossa equipe!\n\n[Descreva a vaga e requisitos]\n\nInteressado? Chama no WhatsApp!' },
@@ -149,6 +195,7 @@ function getCategories(niche?: string): string[] {
 
 function ScriptsContent() {
   const { user } = useAuthStore()
+  const { setCreditos } = useCreditsStore()
   const templates = getTemplates(user?.niche)
   const categories = templates.map((t) => t.name)
 
@@ -164,6 +211,7 @@ function ScriptsContent() {
   const [editingScript, setEditingScript] = useState<ScriptItem | null>(null)
   const [saving, setSaving] = useState(false)
   const [improving, setImproving] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
   // Form state
   const [formTitle, setFormTitle] = useState('')
@@ -386,6 +434,30 @@ function ScriptsContent() {
     }
   }
 
+  // ── AI Generate (5 credits) ────────────────
+  const handleGenerateWithAI = async (tema?: string) => {
+    setGenerating(true)
+    try {
+      const result = await api.post<{ title: string; text: string; creditosRestantes: number }>('/api/scripts/ai/generate', {
+        category: formCategory || undefined,
+        niche: user?.niche,
+        tema: tema || undefined,
+      })
+      setFormTitle(result.title)
+      setFormText(result.text)
+      setCreditos(result.creditosRestantes)
+      toast.success(`Roteiro gerado! Creditos restantes: ${result.creditosRestantes}`)
+    } catch (err: any) {
+      if (err.message?.includes('insuficientes') || err.code === 'INSUFFICIENT_CREDITS') {
+        toast.error('Creditos insuficientes. Voce precisa de 5 creditos para gerar um roteiro.')
+      } else {
+        toast.error(err.message || 'Erro ao gerar roteiro com IA')
+      }
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   // ── Copy text ───────────────────────────────
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -426,10 +498,30 @@ function ScriptsContent() {
             Crie roteiros, adicione audios e imagens para compartilhar via WhatsApp
           </p>
         </div>
-        <Button className="gap-2 w-full sm:w-auto" onClick={openCreateModal}>
-          <Plus className="w-4 h-4" />
-          Novo Roteiro
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            className="gap-2 flex-1 sm:flex-initial border-primary-500/30 text-primary-400 hover:bg-primary-500/10"
+            onClick={() => {
+              openCreateModal()
+              // Trigger AI generate after modal opens
+              setTimeout(() => handleGenerateWithAI(), 100)
+            }}
+            disabled={generating}
+          >
+            {generating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            Gerar com IA
+            <Badge variant="secondary" className="text-[10px] ml-1">5 ✦</Badge>
+          </Button>
+          <Button className="gap-2 flex-1 sm:flex-initial" onClick={openCreateModal}>
+            <Plus className="w-4 h-4" />
+            Novo Roteiro
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filter */}
@@ -627,20 +719,57 @@ function ScriptsContent() {
           <p className="text-sm text-gray-500 mb-4">
             Crie roteiros, adicione audios e imagens para compartilhar via WhatsApp
           </p>
-          <Button className="gap-2" onClick={openCreateModal}>
-            <Plus className="w-4 h-4" />
-            Novo Roteiro
-          </Button>
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              className="gap-2 border-primary-500/30 text-primary-400 hover:bg-primary-500/10"
+              onClick={() => {
+                openCreateModal()
+                setTimeout(() => handleGenerateWithAI(), 100)
+              }}
+              disabled={generating}
+            >
+              {generating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              Gerar com IA
+              <Badge variant="secondary" className="text-[10px] ml-1">5 ✦</Badge>
+            </Button>
+            <Button className="gap-2" onClick={openCreateModal}>
+              <Plus className="w-4 h-4" />
+              Novo Roteiro
+            </Button>
+          </div>
         </div>
       )}
 
       {/* ── Create/Edit Modal ──────────────────── */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle>
               {editingScript ? 'Editar Roteiro' : 'Novo Roteiro'}
             </DialogTitle>
+            {!editingScript && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-primary-500/30 text-primary-400 hover:bg-primary-500/10"
+                onClick={() => handleGenerateWithAI()}
+                disabled={generating}
+              >
+                {generating ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3 h-3" />
+                )}
+                Gerar Roteiro
+                <Badge variant="secondary" className="text-[10px] ml-1">5 ✦</Badge>
+              </Button>
+            )}
           </DialogHeader>
 
           <div className="space-y-4 py-2">
@@ -841,7 +970,7 @@ function ScriptsContent() {
 
 export default function ScriptsPage() {
   return (
-    <FeatureGate feature="Roteiros com IA">
+    <FeatureGate feature="Roteiros com IA" minPlan="starter">
       <ScriptsContent />
     </FeatureGate>
   )

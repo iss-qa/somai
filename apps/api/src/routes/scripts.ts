@@ -1,8 +1,11 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { Script, Integration } from '@soma-ai/db'
+import { Script, Integration, Gamificacao } from '@soma-ai/db'
 import { authenticate } from '../plugins/auth'
 import { EncryptionService } from '../services/encryption.service'
 import { LLMService } from '../services/llm.service'
+import { Types } from 'mongoose'
+
+const CREDITO_CUSTO_GERAR = 5
 
 export default async function scriptsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate)
@@ -142,6 +145,95 @@ ${text}`
           return reply.status(502).send({ error: 'IA nao retornou texto' })
         }
         return reply.send({ improved_text: improved.trim() })
+      } catch (err: any) {
+        return reply.status(502).send({ error: err.message || 'Erro de conexao com API de IA' })
+      }
+    },
+  )
+
+  // ── POST /ai/generate ───────────────────────────
+  // Generates a complete script via AI. Costs 5 credits.
+  app.post(
+    '/ai/generate',
+    async (
+      request: FastifyRequest<{
+        Body: {
+          category?: string
+          niche?: string
+          tema?: string
+        }
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { companyId } = request.user!
+
+      if (!companyId) {
+        return reply.status(400).send({ error: 'Empresa nao encontrada' })
+      }
+
+      const { category, niche, tema } = request.body
+
+      // Check credit balance
+      const gam: any = await Gamificacao.findOne({
+        company_id: new Types.ObjectId(companyId),
+      }).lean()
+      const creditosAtuais = gam?.creditos || 0
+      if (creditosAtuais < CREDITO_CUSTO_GERAR) {
+        return reply.status(402).send({
+          error: 'Creditos insuficientes para gerar roteiro',
+          code: 'INSUFFICIENT_CREDITS',
+          needed: CREDITO_CUSTO_GERAR,
+          balance: creditosAtuais,
+        })
+      }
+
+      const prompt = `Voce e um especialista em comunicacao e marketing para pequenos negocios no Brasil.
+Crie um roteiro COMPLETO de comunicacao para WhatsApp${category ? ` na categoria "${category}"` : ''}${niche ? ` para um negocio do tipo "${niche}"` : ''}${tema ? `. O tema/assunto e: "${tema}"` : ''}.
+
+O roteiro deve:
+- Ser informal e amigavel, como se estivesse falando com um amigo
+- Usar emojis de forma natural (sem exagerar)
+- Ter entre 150 e 400 caracteres
+- Ser persuasivo e engajante
+- Incluir um CTA (chamada para acao) no final
+- NAO usar colchetes [] ou placeholders genericos
+- Criar um conteudo realista e pronto para usar
+
+Responda APENAS com um JSON valido no formato:
+{"title": "titulo do roteiro", "text": "texto completo do roteiro"}
+
+Nao inclua explicacoes, apenas o JSON.`
+
+      try {
+        const raw = await LLMService.generateText(prompt)
+        if (!raw) {
+          return reply.status(502).send({ error: 'IA nao retornou texto' })
+        }
+
+        // Parse JSON response from AI
+        let parsed: { title: string; text: string }
+        try {
+          const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+          parsed = JSON.parse(cleaned)
+        } catch {
+          // Fallback: use raw text if JSON parsing fails
+          parsed = {
+            title: category ? `Roteiro - ${category}` : 'Roteiro gerado por IA',
+            text: raw.trim(),
+          }
+        }
+
+        // Debit credits
+        await Gamificacao.updateOne(
+          { company_id: new Types.ObjectId(companyId) },
+          { $inc: { creditos: -CREDITO_CUSTO_GERAR } },
+        )
+
+        return reply.send({
+          title: parsed.title,
+          text: parsed.text,
+          creditosRestantes: creditosAtuais - CREDITO_CUSTO_GERAR,
+        })
       } catch (err: any) {
         return reply.status(502).send({ error: err.message || 'Erro de conexao com API de IA' })
       }

@@ -10,11 +10,12 @@ interface FeatureGateProps {
   feature: string
   /**
    * Minimum plan required:
+   * - 'starter' = Starter, Pro or Enterprise (any paid plan)
    * - 'pro' = Pro or Enterprise
    * - 'enterprise' = Enterprise only
    * Default: 'pro'
    */
-  minPlan?: 'pro' | 'enterprise'
+  minPlan?: 'starter' | 'pro' | 'enterprise'
 }
 
 export function FeatureGate({
@@ -44,7 +45,11 @@ export function FeatureGate({
 
   // Check plan level
   const hasRequiredPlan =
-    minPlan === 'enterprise' ? isEnterprise() : isPro()
+    minPlan === 'enterprise'
+      ? isEnterprise()
+      : minPlan === 'starter'
+        ? !!user?.plan // any paid plan (starter, pro, enterprise)
+        : isPro()
 
   if (hasRequiredPlan) {
     return <>{children}</>
